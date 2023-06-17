@@ -1,0 +1,22 @@
+{
+  "validations": {
+    "messages": {
+      "Firstname": "First name can only contain letters, and must be between 2 and 30 characters long",
+      "Lastname": "Last name can only contain letters, and must be between 2 and 30 characters long",
+      "Username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
+      "Email": "Please enter a valid email address in the format example@example.com.",
+      "Password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&."
+    },
+    "code": 400
+  },
+  "constraints": {
+    "messages": {
+      "Email": "Sorry, that email address is already in use. Please enter a different email address to create a new account."
+    },
+    "code": 422
+  },
+  "server": {
+    "message": "Oops, something went wrong while saving your data. Please try again later or contact support if the problem persists.",
+    "code": 500
+  }
+}

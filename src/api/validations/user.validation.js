@@ -35,7 +35,8 @@ const userSchema = Joi.object({
     .pattern(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
-    .required()
+    .required(),
+  RepeatPassword: Joi.string().valid(Joi.ref('Password')).strip().required()
 }).options({ abortEarly: false });
 
 export default userSchema;

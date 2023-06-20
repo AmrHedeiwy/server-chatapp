@@ -23,8 +23,8 @@ const User = db.User;
  */
 const createUser = async (data) => {
   try {
-    console.log(data);
-    await User.create(data);
+    // await User.create(data);
+    await User.create(data, { validate: true });
     return {
       status: successMessages.create_user.code,
       message: successMessages.create_user.message
@@ -39,14 +39,9 @@ const createUser = async (data) => {
      * - SequelizeValidationError --> ValidationError
      * - SequelizeUniqueConstraintError --> ConstraintError
      */
-    err.name = err.name.replace('Sequelize', '').replace('Unique', '');
+    err.type = err.name.replace('Sequelize', '').replace('Unique', '');
 
-    // Extract the field name. If it is a server error, it will be null instead
-    const field = [err.errors[0].path] || null;
-    // Error object containing the type and details about the error stored in an array.
-    const errObj = { type: err.name, details: [{ path: field, errObj: err }] };
-
-    return { error: errObj };
+    return { errors: { type: err.type, details: err.errors } };
   }
 };
 

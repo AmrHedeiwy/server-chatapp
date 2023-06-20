@@ -1,7 +1,8 @@
+import Joi from 'joi';
+
 /**
- * @module userSchema
- * This module defines the valitdations that execute when a
- * user enters their register credentials using Joi.
+ * Defines the valitdation rules that execute when a
+ * user enters their register credentials using Joi library.
  *
  * @typedef {Object} user schema
  * @property {string} Firstname - The first name of the user. Must be
@@ -17,9 +18,6 @@
  * one lowercase letter, one digit, and one special character from
  * the set @$!%?&.
  */
-
-import Joi from 'joi';
-
 const userSchema = Joi.object({
   Firstname: Joi.string()
     .pattern(/^[A-Za-z]{2,30}$/)
@@ -36,7 +34,14 @@ const userSchema = Joi.object({
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
     .required(),
-  RepeatPassword: Joi.string().valid(Joi.ref('Password')).strip().required()
+  RepeatPassword: Joi.string()
+    .empty('')
+    .required()
+    .valid(Joi.ref('Password'))
+    .messages({
+      'any.required': '"RepeatPassword" is not allowed to be empty'
+    })
+    .strip()
 }).options({ abortEarly: false });
 
 export default userSchema;

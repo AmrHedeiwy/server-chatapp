@@ -5,7 +5,8 @@
       "Lastname": "Last name can only contain letters, and must be between 2 and 30 characters long",
       "Username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
       "Email": "Please enter a valid email address in the format example@example.com.",
-      "Password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&."
+      "Password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&.",
+      "RepeatPassword": "Passwords do not match. Please try again."
     },
     "code": 400
   },

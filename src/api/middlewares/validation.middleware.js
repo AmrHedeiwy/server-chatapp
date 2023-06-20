@@ -28,12 +28,16 @@ const validation = (schema) => async (req, res, next) => {
   const body = req.body;
   try {
     const { error, value } = schema.validate(body);
-
     if (error) throw error;
 
     req.body = value;
+
     next();
   } catch (err) {
+    err.details.forEach((error) => {
+      error.path = error.path[0];
+      error.validatorName = error.type;
+    });
     next({ type: 'ValidationError', details: err.details });
   }
 };

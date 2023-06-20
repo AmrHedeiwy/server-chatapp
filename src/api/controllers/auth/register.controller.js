@@ -22,21 +22,20 @@ import userSchema from '../../validations/user.validation.js';
  * @param {Function} next - The next middleware in the chain.
  * @returns {Object} An object containing information about the result
  * of the operation.
- *
- * The object contains the following properties:
- * - status (The status depending on the result of the opperation).
- * - message (A user-friendly message to be sent to the client).
- * - error (The error object, if any. Can contain information about the error,
- * such as validation errors, constraint errors, or server errors).
  */
 const register = [
+  // Middleware function that validates the request body against the Joi schema.
   validation(userSchema),
+  // Route handler that creates a new user using the the request body.
   async (req, res, next) => {
     const body = req.body;
 
-    const { status, message, error } = await createUser(body);
-    if (error) return next(error);
+    const { status, message, errors } = await createUser(body);
 
+    // If there are any errors returned from createUser, pass them to the next middleware function.
+    if (errors) return next(errors);
+
+    // Otherwise, set the response status to the status returned by createUser and send the message to the client as JSON.
     res.status(status).json(message);
   }
 ];

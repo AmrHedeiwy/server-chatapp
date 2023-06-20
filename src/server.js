@@ -1,18 +1,24 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import cors from 'cors';
+
 const port = process.env.PORT || 3000;
 
 // Importing the sequelize instnace
 import db from './api/models/index.js';
 
+//
+const corsOptions = { origin: 'http://localhost:1234' };
+
 // Creating an Express app instance, an HTTP server instance, and Socket.io instance
 const app = express();
 const server = createServer(app);
-const io = new Server(server, { cors: { origin: 'http://localhost:1234' } });
+const io = new Server(server, { cors: corsOptions });
 
 // Parsing request body as json
 app.use(express.json());
+app.use(cors(corsOptions));
 
 // For testing purposes
 io.on('connection', (socket) => {

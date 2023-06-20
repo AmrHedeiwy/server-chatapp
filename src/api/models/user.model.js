@@ -44,6 +44,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
+          notEmpty: true,
           is: /^[A-Za-z]{2,30}$/
         }
       },
@@ -51,6 +52,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
+          notEmpty: true,
           is: /^[A-Za-z]{2,30}$/
         }
       },
@@ -58,6 +60,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
+          notEmpty: true,
           is: /^[A-Za-z\d_-]{3,20}$/
         }
       },
@@ -70,6 +73,7 @@ export default (sequelize, DataTypes) => {
         unique: true,
         allowNull: false,
         validate: {
+          notEmpty: true,
           isEmail: true,
           isLowercase: true
         }
@@ -78,6 +82,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
+          notEmpty: true,
           is: /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&*]{8,}$/
         }
       }

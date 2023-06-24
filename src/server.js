@@ -8,8 +8,8 @@ const port = process.env.PORT || 3000;
 // Importing the sequelize instnace
 import db from './api/models/index.js';
 
-//
-const corsOptions = { origin: 'http://localhost:1234' };
+// Default CORS option
+const corsOptions = { origin: process.env.CLIENT_URL };
 
 // Creating an Express app instance, an HTTP server instance, and Socket.io instance
 const app = express();
@@ -35,7 +35,7 @@ app.use(routes);
 app.use(errorMiddleware);
 
 /**
- * setup the PostgreSQL database and start the server.
+ * Setup the PostgreSQL database and start the server.
  *
  * @function main
  */

@@ -1,3 +1,7 @@
+import Joi from 'joi';
+import sequelize from 'sequelize';
+import { EmailVerificationError } from '../helpers/BaseError.js';
+
 // Loading the validation, contraint, and server errors from errors.json file
 import errorsJSON from '../../config/errors.json' assert { type: 'json' };
 const validationErrors = errorsJSON.validations;
@@ -14,22 +18,25 @@ const serverErrors = errorsJSON.server;
  * @param {Function} next - The next middleware in the chain.
  */
 const errorMiddleware = (error, req, res, next) => {
-  switch (error.type) {
-    // Handle validation errors.
-    case 'ValidationError':
-      validationError(error, req, res, next);
-      break;
-
-    // Hanlde constaint errors.
-    case 'ConstraintError':
-      constraintError(error, req, res, next);
-      break;
-
-    // Handle all other errors as server errors.
-    default:
-      serverError(error, req, res, next);
-      break;
+  // Hanlde Sequelize constraint errors.
+  if (error instanceof sequelize.UniqueConstraintError) {
+    constraintError(error, req, res, next);
   }
+
+  // Handle Joi and Sequelize validation errors.
+  else if (
+    error instanceof Joi.ValidationError ||
+    error instanceof sequelize.ValidationError
+  ) {
+    validationError(error, req, res, next);
+
+    // fdffd
+  } else if (error instanceof EmailVerificationError) {
+    emailVerificationError(error, req, res, next);
+  }
+
+  // Handle all other errors as server errors.
+  else serverError(error, req, res, next);
 };
 
 /**
@@ -43,15 +50,19 @@ const errorMiddleware = (error, req, res, next) => {
  * @returns {Object} A response object containg information avout the error.
  *
  * The response object contains the following:
- *  - field name (where the error occured, represented as a key).
- *  - error message (appropriate error message based on the field name).
+ *  - Key: Field name where the error occured.
+ *  - Value: Appropriate error message based on the field name.
+ * @example { Firstname: '<error_message>', Lastname: '<error_message>' }
  */
 async function validationError(error, req, res, next) {
   // Extracting the appropriate status code.
   const statusCode = validationErrors.code;
 
+  // Joi generates error.details (Array<object>) while Sequeize generates error.errors (Array<object>).
+  const errorArray = error.details || error.errors;
+
   // Filtering the error to obtian path and validator name
-  const filteredValidationError = error.details.reduce(
+  const filteredValidationError = errorArray.reduce(
     (acc, err) => {
       // If the path value does not exist in the accumulator, we push the path and validator name as an object to it.
       if (!acc.some((obj) => obj.path === err.path)) {
@@ -73,11 +84,12 @@ async function validationError(error, req, res, next) {
        * - Notice that the path value does not repeat.
        *
        * - This is done as when Sequelize ORM throws a Validation Error,
-       * it sometimes throws an error for the same field twice. That is because the same field
-       * contains more than one validation rule.
+       * it sometimes throws an error for the same field twice. This is because
+       * Sequelize throws an error for every validation rule for the same field. And
+       * we only want to obtain the first error thrown for that field.
        *
        * - Validations by default are handled by the Joi schema. But if for some reason the
-       * response body object bypassed the Joi validation, we ensure that the error is consistantly handled
+       * response body object bypassed the Joi validation, we ensure that the error can be consistantly handled
        * between Joi and Sequeize ORM.
        */
     ]
@@ -122,10 +134,16 @@ async function validationError(error, req, res, next) {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information avout the error.
+ *
+ * The response object contains the following:
+ *  - Key: Field name where the error occured.
+ *  - Value: Appropriate error message based on the field name.
+ * @example { Email: '<error_message>' }
  */
 async function constraintError(error, req, res, next) {
   // Extracting field name.
-  const field = error.details[0].path;
+  const field = error.errors[0].path;
 
   // Extracting appropriate message for the error based on the field.
   const message = constraintErrors.messages[field];
@@ -133,8 +151,21 @@ async function constraintError(error, req, res, next) {
   // Extracting the appropriate status code.
   const statusCode = constraintErrors.code;
 
-  // Sending the status code and object containing field name as the key and the message as the value.
+  // Sending the status code and the response object.
   res.status(statusCode).json({ [field]: message });
+}
+
+async function emailVerificationError(error, req, res, next) {
+  if (error.type === 'failToSendEmailVerification') {
+    console.error(error);
+  }
+  // Extracting appropriate message.
+  const message = serverErrors.messages.EmailVerification;
+
+  // Extracting the appropriate status code.
+  const statusCode = constraintErrors.code;
+
+  res.status(statusCode).json({ EmailVerificationError: message });
 }
 
 /**
@@ -145,13 +176,14 @@ async function constraintError(error, req, res, next) {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} Send an appropriate error message with status code 500.
  */
 async function serverError(error, req, res, next) {
   // Logging the error to the server.
   console.error(error);
 
-  // Extracting appropriate message for the error based on the field.
-  const message = serverErrors.message;
+  // Extracting appropriate message.
+  const message = serverErrors.messages.Unexpected;
 
   // Extracting the appropriate status code.
   const statusCode = serverErrors.code;

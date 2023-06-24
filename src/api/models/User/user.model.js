@@ -65,8 +65,7 @@ export default (sequelize, DataTypes) => {
         }
       },
       Userkey: {
-        type: DataTypes.STRING,
-        allowNull: false
+        type: DataTypes.STRING
       },
       Email: {
         type: DataTypes.STRING,
@@ -85,6 +84,11 @@ export default (sequelize, DataTypes) => {
           notEmpty: true,
           is: /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&*]{8,}$/
         }
+      },
+      IsVerified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
       }
     },
     {

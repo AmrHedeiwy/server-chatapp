@@ -3,3 +3,4 @@ package-lock.json
 .vscode
 .prettierrc
 src/config/db-config.json
+.env*

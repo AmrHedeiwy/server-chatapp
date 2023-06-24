@@ -39,26 +39,26 @@ async function loadModels() {
    * @example user.test.js
    */
   for (const file of files) {
-    if (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    ) {
+    if (file !== basename) {
       // Import the model and pass the sequelize instance and sequelize data types.
-      const filePath = path.join(dirName, file);
+      const filePath = path.join(
+        dirName,
+        file,
+        `${file.toLowerCase()}.model.js`
+      );
       const modelModule = await import(filePath);
       const model = modelModule.default(sequelize, Sequelize.DataTypes);
 
+      const modelName = model.name;
       // load the model to db object
-      db[model.name] = model;
+      db[modelName] = model;
 
       // Load the hooks for this model from the hooks directory `models/hooks`
       const hooksPath = path.join(
         path.dirname(filePath),
-        'hooks',
-        `${model.name.toLowerCase()}Hooks.js`
+        `${modelName.toLowerCase()}.hooks.js`
       );
+
       // Import the hooks and pass the model instance
       const hooksModule = await import(hooksPath);
 

@@ -1,6 +1,6 @@
 {
   "create_user": {
-    "message": "Congratulations! Your account has been created. You can now log in with your email address and password.",
+    "message": "Thank you for registering! We've sent a verification email to the email address you provided. Please check your inbox and follow the instructions in the email to complete your account setup. If you don't receive the email within a few minutes, please check your spam folder or contact our support team for assistance.",
     "code": 201
   }
 }

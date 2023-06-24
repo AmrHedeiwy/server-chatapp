@@ -1,5 +1,7 @@
+import jwt from 'jsonwebtoken';
 import db from '../models/index.js';
 import successMessages from '../../config/success.json' assert { type: 'json' };
+import { EmailVerificationError } from '../helpers/BaseError.js';
 
 const User = db.User;
 
@@ -21,9 +23,8 @@ const User = db.User;
  * - error (The error object, if any. Can contain information about the error,
  * such as validation errors, constraint errors, or server errors).
  */
-const createUser = async (data) => {
+export const createUser = async (data) => {
   try {
-    // await User.create(data);
     await User.create(data, { validate: true });
     return {
       status: successMessages.create_user.code,
@@ -32,7 +33,7 @@ const createUser = async (data) => {
   } catch (err) {
     /**
      * Some Sequelize errors include the words "Sequelize" and "Unique" in the error name.
-     * This line of code removes those words to make the error name consistent
+     * This line of code removes those words to keep the error format consistent
      * throught the whole program.
      *
      * For example:
@@ -41,8 +42,20 @@ const createUser = async (data) => {
      */
     err.type = err.name.replace('Sequelize', '').replace('Unique', '');
 
-    return { errors: { type: err.type, details: err.errors } };
+    return { errors: err };
   }
 };
 
-export { createUser };
+export const verifyEmail = async (token) => {
+  try {
+    const decoded = jwt.verify(token, 'mysec');
+
+    const user = await User.findByPk(decoded.UserID);
+    if (!user) throw new EmailVerificationError('User not found', 'notFound');
+
+    await user.update({ IsVerified: true });
+    return;
+  } catch (err) {
+    return { error: err };
+  }
+};

@@ -1,4 +1,4 @@
-import { createUser } from '../../services/user.service.js';
+import { createUser, verifyEmail } from '../../services/auth.service.js';
 import validation from '../../middlewares/validation.middleware.js';
 import userSchema from '../../validations/user.validation.js';
 
@@ -23,7 +23,7 @@ import userSchema from '../../validations/user.validation.js';
  * @returns {Object} An object containing information about the result
  * of the operation.
  */
-const register = [
+export const register = [
   // Middleware function that validates the request body against the Joi schema.
   validation(userSchema),
   // Route handler that creates a new user using the the request body.
@@ -40,6 +40,18 @@ const register = [
   }
 ];
 
+export const emailVerification = [
+  async (req, res, next) => {
+    const token = req.params.token;
+
+    const result = await verifyEmail(token);
+    if (result?.error) return next(result.error);
+
+    res.redirect(process.env.CLIENT_URl);
+  }
+];
+
 export default {
-  register
+  register,
+  emailVerification
 };

@@ -1,3 +1,4 @@
+import Joi from 'joi';
 /**
  * Returns middlware that validates the user's data.
  *
@@ -34,11 +35,21 @@ const validation = (schema) => async (req, res, next) => {
 
     next();
   } catch (err) {
+    // Ensuring a consistant error format.
     err.details.forEach((error) => {
+      // Field name where the error occured.
       error.path = error.path[0];
+
+      /**
+       * Name of validation.
+       * - Can be `is` which means the field does not follow
+       * a pattern (regex).
+       * - Can be `string.empty` or `any.required` which means the
+       * field was left empty.
+       */
       error.validatorName = error.type;
     });
-    next({ type: 'ValidationError', details: err.details });
+    next(err);
   }
 };
 

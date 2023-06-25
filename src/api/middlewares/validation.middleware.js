@@ -14,16 +14,16 @@ import Joi from 'joi';
  * @param {Function} next - The next middleware in the chain.
  *
  * If the validation passes:
- * - We update the req.body to the stripped values (removes unnecessary
+ * - We update the req.body to the stripped values(removes unnecessary
  * data from the object).
  * - The next() function is called.
  *
  * If the validation fails:
- * - The next() function is called passing an error object
+ * - The next() function is called passing an error object.
  *
  * The error object contains the following properties:
- * - type (Type of error).
- * - details (Details about the error)
+ * - type: Type of error.
+ * - details: Additional error detials.
  */
 const validation = (schema) => async (req, res, next) => {
   const body = req.body;

@@ -66,12 +66,16 @@ export default (User) => {
    * @property {string} Email - The user's email.
    */
   User.afterSave(async (user) => {
+    // Extacting the user's UserID, Firstname, Email.
     const { UserID, Firstname, Email } = user;
 
+    // Generates a JSON Web Token (JWT) containing the provided user ID.
     const verficationToken = jwt.sign({ UserID }, 'mysec');
+
+    // Custom email message.
     const msg = {
       to: Email,
-      from: 'amr.hedeiwy@gmail.com', // Use the email address or domain you verified above
+      from: 'amr.hedeiwy@gmail.com',
       subject: 'Verify your email address',
       html: `<p>Dear ${Firstname},</p>
     <p>Please click the following link to verify your email address:</p>
@@ -80,6 +84,7 @@ export default (User) => {
     <p>Deiwy Team</p>`
     };
 
+    // Attempt to send an email to the user's email.
     try {
       await sgMail.send(msg);
       return {
@@ -87,8 +92,8 @@ export default (User) => {
         message: successMessages.create_user.message
       };
     } catch (err) {
+      // Create a new EmailVericficationError object
       const errorObject = new EmailVerificationError(
-        'Send Error.',
         'failToSendEmailVerification',
         err
       );

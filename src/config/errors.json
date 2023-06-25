@@ -17,10 +17,17 @@
     "code": 422
   },
   "server": {
-    "messages": {
-      "EmailVerification": "We're sorry, but we were unable to send a verification email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
-      "Unexpected": "Oops, something went wrong while saving your data. Please try again later or contact support if the problem persists."
+    "UserNotFound": {
+      "message": "Sorry, we couldn't verify your account. The email address you entered does not exist in our records. Please check that you've entered the correct email address or create a new account if you haven't already done so.",
+      "code": 404
     },
-    "code": 500
+    "EmailVerificationSendError": {
+      "message": "We're sorry, but we were unable to send a verification email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
+      "code": 500
+    },
+    "Unexpected": {
+      "message": "Oops, something went wrong while saving your data. Please try again later or contact support if the problem persists.",
+      "code": 500
+    }
   }
 }

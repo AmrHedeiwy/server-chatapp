@@ -47,7 +47,8 @@ const errorMiddleware = (error, req, res, next) => {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} A response object containg information avout the error.
+ * @returns {Object} A response object containg information about the error with
+ * status code 400 Bad Request.
  *
  * The response object contains the following:
  *  - Key: Field name where the error occured.
@@ -134,7 +135,8 @@ async function validationError(error, req, res, next) {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} A response object containg information avout the error.
+ * @returns {Object} A response object containg information about the error with
+ * status code 422 Unprocessable Entity.
  *
  * The response object contains the following:
  *  - Key: Field name where the error occured.
@@ -155,15 +157,48 @@ async function constraintError(error, req, res, next) {
   res.status(statusCode).json({ [field]: message });
 }
 
+/**
+ * For email verification errors.
+ *
+ * @middleware
+ * @param {Object} error - The object containg error information.
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information about the error.
+ *
+ * The response object contains the following:
+ * Key: EmailVerificationError.
+ * Value: Error message.
+ * @example { EmailVerificationError: '<error_message>' }
+ */
 async function emailVerificationError(error, req, res, next) {
-  if (error.type === 'failToSendEmailVerification') {
-    console.error(error);
-  }
-  // Extracting appropriate message.
-  const message = serverErrors.messages.EmailVerification;
+  var message;
+  var statusCode;
 
-  // Extracting the appropriate status code.
-  const statusCode = constraintErrors.code;
+  /**
+   * Extracting the appropriate error message depending on the type.
+   *
+   * Email verification errors could occur by:
+   * - The server unable to send the email to the email prompted.
+   * - The user clicks the email verification link but the server fails to find
+   * user in the database.
+   */
+  switch (error.type) {
+    case 'notFound':
+      message = serverErrors.UserNotFound.message;
+      statusCode = serverErrors.UserNotFound.code;
+      break;
+    case 'failToSendEmailVerification':
+      // Log the error to the server.
+      console.error(error);
+
+      message = serverErrors.EmailVerificationSendError.message;
+      statusCode = serverErrors.EmailVerificationSendError.code;
+      break;
+    default:
+      break;
+  }
 
   res.status(statusCode).json({ EmailVerificationError: message });
 }
@@ -176,7 +211,8 @@ async function emailVerificationError(error, req, res, next) {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} Send an appropriate error message with status code 500.
+ * @returns {Object} Send an appropriate error message with
+ * with status code 500 Internal Server Error.
  */
 async function serverError(error, req, res, next) {
   // Logging the error to the server.

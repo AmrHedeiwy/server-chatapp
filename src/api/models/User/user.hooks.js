@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
-import { EmailVerificationError } from '../../helpers/BaseError.js';
+import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 

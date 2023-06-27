@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import db from '../models/index.js';
-import successJSON from '../../config/success.json' assert { type: 'json' };
-import { EmailVerificationError } from '../helpers/BaseError.js';
+import db from '../../models/index.js';
+import successJSON from '../../../config/success.json' assert { type: 'json' };
+import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
 
 const User = db.User;
 
@@ -29,7 +29,7 @@ const User = db.User;
  * will be set using the stored status code and message from `successJSON` file.
  * If an error occurs, only the `error` property will be set to the err object.
  */
-export const createUser = async (data) => {
+export const registerUser = async (data) => {
   try {
     await User.create(data, { validate: true });
     return {
@@ -81,4 +81,9 @@ export const verifyEmail = async (token) => {
     // If an error occurs, return an object with an `error` property containing the err object.
     return { error: err };
   }
+};
+
+export default {
+  registerUser,
+  verifyEmail
 };

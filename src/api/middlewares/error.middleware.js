@@ -1,6 +1,6 @@
 import Joi from 'joi';
 import sequelize from 'sequelize';
-import { EmailVerificationError } from '../helpers/BaseError.js';
+import { EmailVerificationError } from '../helpers/ErrorTypes.helper.js';
 
 // Loading the validation, contraint, and server errors from errors.json file
 import errorsJSON from '../../config/errors.json' assert { type: 'json' };
@@ -219,10 +219,10 @@ async function serverError(error, req, res, next) {
   console.error(error);
 
   // Extracting appropriate message.
-  const message = serverErrors.messages.Unexpected;
+  const message = serverErrors.Unexpected.message;
 
   // Extracting the appropriate status code.
-  const statusCode = serverErrors.code;
+  const statusCode = serverErrors.Unexpected.code;
 
   res.status(statusCode).json({ message });
 }

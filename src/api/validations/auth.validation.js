@@ -4,7 +4,6 @@ import Joi from 'joi';
  * Defines the valitdation rules that execute when a
  * user enters their register credentials using Joi library.
  *
- * @typedef {Object} user schema
  * @property {string} Firstname - The first name of the user. Must be
  * between 2 and 30 letters only.
  * @property {string} Lastname - The last name of the user. Must be
@@ -18,7 +17,7 @@ import Joi from 'joi';
  * one lowercase letter, one digit, and one special character from
  * the set @$!%?&.
  */
-const userSchema = Joi.object({
+export const registerSchema = Joi.object({
   Firstname: Joi.string()
     .pattern(/^[A-Za-z]{2,30}$/)
     .required(),
@@ -44,4 +43,7 @@ const userSchema = Joi.object({
     .strip()
 }).options({ abortEarly: false });
 
-export default userSchema;
+export const loginSchema = Joi.object({
+  Email: Joi.string().email().required(),
+  Password: Joi.string().required()
+}).options({ abortEarly: false });

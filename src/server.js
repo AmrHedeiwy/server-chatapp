@@ -1,4 +1,6 @@
 import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -16,9 +18,27 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, { cors: corsOptions });
 
+// Fixing CORS problem
+app.use(cors(corsOptions));
+
+// Setting our session
+app.use(
+  session({
+    secret: 'sec',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 // Equals 1 day
+    }
+  })
+);
+import { strategyService } from './api/services/index.js';
+app.use(passport.initialize(strategyService));
+app.use(passport.session());
+
 // Parsing request body as json
 app.use(express.json());
-app.use(cors(corsOptions));
+app.use(express.urlencoded({ extended: true }));
 
 // For testing purposes
 io.on('connection', (socket) => {
@@ -41,7 +61,7 @@ app.use(errorMiddleware);
  */
 async function main() {
   // Synchronizing the databsae tables with the models
-  await db.sequelize.sync({ force: true });
+  await db.sequelize.sync();
   // Starting the server and listening on specifed port
   server.listen(port, () => {
     console.log(`server running on port ${port}`);

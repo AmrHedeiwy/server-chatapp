@@ -1,6 +1,7 @@
-import { createUser, verifyEmail } from '../../services/auth.service.js';
-import validation from '../../middlewares/validation.middleware.js';
-import userSchema from '../../validations/user.validation.js';
+import passport from 'passport';
+import { registerService } from '../services/index.js';
+import validation from '../middlewares/validation.middleware.js';
+import { registerSchema, loginSchema } from '../validations/auth.validation.js';
 
 /**
  * Registers a new user in the system.
@@ -14,12 +15,14 @@ import userSchema from '../../validations/user.validation.js';
  */
 export const register = [
   // Middleware function that validates the request body against the Joi schema.
-  validation(userSchema),
+  validation(registerSchema),
   // Route handler that creates a new user using the request body.
   async (req, res, next) => {
     const body = req.body;
 
-    const { status, message, errors } = await createUser(body);
+    const { status, message, errors } = await registerService.registerUser(
+      body
+    );
 
     // If there are any errors returne, pass it to the error handling middleware.
     if (errors) return next(errors);
@@ -41,7 +44,7 @@ export const emailVerification = [
     const token = req.params.token;
 
     // Passing the token to the function call.
-    const result = await verifyEmail(token);
+    const result = await registerService.verifyEmail(token);
 
     // If the result contains an error property, pass it to the error handling middleware.
     if (result?.error) return next(result.error);
@@ -51,7 +54,16 @@ export const emailVerification = [
   }
 ];
 
+export const login = [
+  validation(loginSchema),
+  passport.authenticate('local', {
+    failureMessage: 'failed',
+    successMessage: 'success'
+  })
+];
+
 export default {
+  login,
   register,
   emailVerification
 };

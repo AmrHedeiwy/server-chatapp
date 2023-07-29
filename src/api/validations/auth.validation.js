@@ -19,31 +19,44 @@ import Joi from 'joi';
  */
 export const registerSchema = Joi.object({
   Firstname: Joi.string()
+    .trim()
     .pattern(/^[A-Za-z]{2,30}$/)
     .required(),
   Lastname: Joi.string()
+    .trim()
     .pattern(/^[A-Za-z]{2,30}$/)
     .required(),
   Username: Joi.string()
+    .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/)
     .required(),
-  Email: Joi.string().email().required(),
+  Email: Joi.string().trim().email().required(),
   Password: Joi.string()
+    .trim()
     .pattern(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
     .required(),
   RepeatPassword: Joi.string()
+    .trim()
     .empty('')
     .required()
     .valid(Joi.ref('Password'))
     .messages({
       'any.required': '"RepeatPassword" is not allowed to be empty'
     })
-    .strip()
+    .strip(),
+  TermsOfAgreement: Joi.boolean().valid(true).required().strip()
 }).options({ abortEarly: false });
 
-export const loginSchema = Joi.object({
+/**
+ * Defines the valitdation rules that execute when a
+ * user enters their sign in credentials using Joi library.
+ *
+ * @property {string} Email - Must be a valid email address and present.
+ * @property {string} Password - Must be present.
+ */
+export const signInSchema = Joi.object({
   Email: Joi.string().email().required(),
   Password: Joi.string().required()
 }).options({ abortEarly: false });

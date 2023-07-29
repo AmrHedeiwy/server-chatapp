@@ -15,20 +15,20 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default (User) => {
   /**
-   * Generates a unique user key based on the user's username
-   * and a 4-digit UUID.
+   * Generates a unique username using the user's provided username
+   * followed by a 4-digit UUID.
    * @example 'Emna#1636'
    *
    * @param {import('../models').User} user - The User model instance.
    *
    * The following properties used from the User model:
    * @property {string} Username - The user's Username.
-   * @property {string} Userkey - The user's Userkey.
    */
   User.beforeCreate(async (user) => {
-    const username = user.Username;
-    user.Userkey =
-      username + '#' + (parseInt(uuidv4().replace('-', ''), 16) % 10000);
+    // Generates a 4-digit UUID.
+    const uuidGenerator = parseInt(uuidv4().replace('-', ''), 16) % 10000;
+
+    user.Username = user.Username + '#' + uuidGenerator;
   });
 
   /**
@@ -87,17 +87,9 @@ export default (User) => {
     // Attempt to send an email to the user's email.
     try {
       await sgMail.send(msg);
-      return {
-        status: successMessages.create_user.code,
-        message: successMessages.create_user.message
-      };
     } catch (err) {
-      // Create a new EmailVericficationError object
-      const errorObject = new EmailVerificationError(
-        'failToSendEmailVerification',
-        err
-      );
-      return { error: errorObject };
+      // throw a new EmailVericficationError.
+      throw new EmailVerificationError('FailToSendEmailVerification', err);
     }
   });
 };

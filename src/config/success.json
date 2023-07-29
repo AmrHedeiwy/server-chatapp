@@ -1,6 +1,12 @@
 {
   "create_user": {
-    "message": "Thank you for registering! We've sent a verification email to the email address you provided. Please check your inbox and follow the instructions in the email to complete your account setup. If you don't receive the email within a few minutes, please check your spam folder or contact our support team for assistance.",
-    "code": 201
+    "message": "Your account has been created. Please check your email to verify it.",
+    "code": 201,
+    "redirect": "/signIn.html"
+  },
+  "login_user": {
+    "message": "You have successfully logged into your account.",
+    "code": 200,
+    "redirect": "/chat.html"
   }
 }

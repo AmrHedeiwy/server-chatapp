@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>Deiwy</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <!-- Google Fonts Roboto -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" />
+    <!-- MDB -->
+    <link rel="stylesheet" href="./css/mdb.dark.min.css" />
+    <link rel="stylesheet" href="./css/alert.css">
+</head>
+
+<body>
+    <div class="container min-vh-100 d-flex justify-content-center align-items-center">
+        <div>
+
+            <!-- App name -->
+            <h1 class="text-center mb-5" style="color: #b87eff;">Deiwy</h1>
+
+
+            <form id="signInForm" class="d-flex justify-content-center align-content-center" novalidate>
+                <div class="row col-md-6 col-10">
+                    <div class="col-md-12"><!-- Email input -->
+                        <div class="form-outline mb-4" style="padding: 0px;">
+                            <input type="email" id="signInEmail" class="form-control" required />
+                            <label class="form-label" for="signInEmail">Email address</label>
+                            <div id="Email" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="col"><!-- Password input -->
+                        <div class="form-outline mb-4" style="padding: 0px;">
+                            <input type="text" id="signInPassword" class="form-control" required />
+                            <label class="form-label" for="signInPassword">Password</label>
+                            <div id="Password" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12"><!-- Email input -->
+                        <div class="text-center mb-4">
+                            <!-- Simple link -->
+                            <a href="#!">Forgot password?</a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <!-- Submit button -->
+                        <button type="submit" class="btn btn-primary btn-block mb-4">Sign in</button>
+                    </div>
+
+                    <div class="col-md-12">
+                        <!-- Register buttons -->
+                        <div class="text-center">
+                            <p>Not a member? <a href="/register.html">Register</a></p>
+                            <p>or sign up with:</p>
+                            <button type="button" class="btn btn-secondary btn-floating mx-1">
+                                <i class="fab fa-facebook-f"></i>
+                            </button>
+
+                            <button type="button" class="btn btn-secondary btn-floating mx-1">
+                                <i class="fab fa-google"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- MDB -->
+    <script type="text/javascript" src="./js/interactive/mdb.min.js"></script>
+    <!-- Custom scripts -->
+    <script type="module" src="./js/signin.js"></script>
+    <script type="module" src="./js/interactive/Alert.js"></script>
+</body>
+
+</html>

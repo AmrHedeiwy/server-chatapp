@@ -22,8 +22,7 @@ export class BaseError extends Error {
 }
 
 /**
- * Error class for email verification-related errors. Extends the `BaseError`
- * class.
+ * Error class for email verification-related errors. Extends the `BaseError` class.
  *
  * @class
  * @extends BaseError
@@ -47,5 +46,17 @@ export class EmailVerificationError extends BaseError {
      * @type {Object|null}
      */
     this.errors = errors || null;
+  }
+}
+
+/**
+ * Error class for authetication errors. Extends the `BaseError` class.
+ *
+ * @class
+ * @extends BaseError
+ */
+export class AuthenticationError extends BaseError {
+  constructor() {
+    super();
   }
 }

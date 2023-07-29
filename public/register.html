@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>Deiwy</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <!-- Google Fonts Roboto -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" />
+    <!-- MDB -->
+    <link rel="stylesheet" href="./css/mdb.dark.min.css" />
+    <link rel="stylesheet" href="./css/alert.css">
+</head>
+
+<body>
+
+    <div class="container min-vh-100 d-flex justify-content-center align-items-center">
+
+        <div>
+            <!-- App name -->
+            <h1 class="text-center mb-5" style="color: #b87eff;">Deiwy</h1>
+
+
+            <form id="registerForm" novalidate>
+                <!-- 2 column grid layout with text inputs for the first and last names -->
+                <div class="row mb-4">
+                    <div class="col" id="registerFirstnameRow">
+                        <div class="form-outline">
+                            <input type="text" id="registerFirstname" class="form-control" autocomplete="off"
+                                required />
+                            <label class="form-label" for="registerFirstname">First name</label>
+                            <div id="Firstname" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="col" id="registerLastnameRow">
+                        <div class="form-outline">
+                            <input type="text" id="registerLastname" class="form-control" autocomplete="off" required />
+                            <label class="form-label" for="registerlastname">Last name</label>
+                            <div id="Lastname" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Username input -->
+                <div class="row" id="registerUsernameRow">
+                    <div class="col">
+                        <div class="form-outline mb-4">
+                            <input type="text" id="registerUsername" class="form-control" autocomplete="off" required />
+                            <label class="form-label" for="registerUsername">Username</label>
+                            <div id="Username" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Email input -->
+                <div class="row" id="registerEmailRow">
+                    <div class="col">
+                        <div class="form-outline mb-4">
+                            <input type="email" id="registerEmail" class="form-control" required />
+                            <label class="form-label" for="registerEmail">Email address</label>
+                            <div id="Email" class="invalid-feedback" style="max-width: fit-content;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password input -->
+                <div class="row" id="registerPasswordRow">
+                    <div class="col">
+                        <div class="form-outline mb-4">
+                            <input type="text" id="registerPassword" class="form-control" required />
+                            <label class="form-label" for="registerPassword">Password</label>
+                            <div id="Password" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Repeat password input -->
+                <div class="row mb-2" id="registerRepeatPasswordRow">
+                    <div class="col">
+                        <div class="form-outline mb-4">
+                            <input type="text" id="registerRepeatPassword" class="form-control" required />
+                            <label class="form-label" for="registerRepeatPassword">Repeat Password</label>
+                            <div id="RepeatPassword" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" id="registerTermsOfAgreementRow">
+                    <div class="col">
+                        <!-- Checkbox -->
+                        <div class="form-check d-flex justify-content-center mb-4">
+                            <input class="form-check-input me-2" type="checkbox" value="" id="registerTermsOfAgreement"
+                                required />
+                            <label class="form-check-label" for="registerTermsOfAgreement">
+                                I have read and agree to the terms
+                            </label>
+                            <div id="TermsOfAgreement" class="invalid-feedback"
+                                style="position:absolute; margin-right: 25px; margin-top: 1.5rem;">You must agree</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit button -->
+                <div class="row">
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary btn-block mb-4">Sign up</button>
+                    </div>
+                </div>
+
+                <!-- Register buttons -->
+                <div class="row">
+                    <div class="col">
+                        <div class="text-center">
+                            <p>or sign up with:</p>
+                            <button type="button" class="btn btn-secondary btn-floating mx-1">
+                                <i class="fab fa-facebook-f"></i>
+                            </button>
+
+                            <button type="button" class="btn btn-secondary btn-floating mx-1">
+                                <i class="fab fa-google"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- MDB -->
+    <script type="text/javascript" src="./js/interactive/mdb.min.js"></script>
+    <!-- Custom scripts -->
+    <script type="module" src="./js/register.js"></script>
+    <script type="module" src="./js/interactive/Alert.js"></script>
+</body>
+
+</html>

@@ -62,7 +62,7 @@ async function loadModels() {
       // Import the hooks and pass the model instance
       await import(hooksPath)
         .then((hooksModule) => {
-          hooksModule.default(model);
+          hooksModule.default(model, sequelize);
         })
         .catch((err) => {
           return;

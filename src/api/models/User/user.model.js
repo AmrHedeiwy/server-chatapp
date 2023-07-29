@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Defines the User model.
@@ -14,7 +15,7 @@ export default (sequelize, DataTypes) => {
  * @extends Model
  * 
  * @typedef {Object} User
- * @property {number} UserID - The unique ID of the user.
+ * @property {UUID} UserID - The unique ID of the user.
  * @property {string} Firstname - The first name of the user. Must be
    between 2 and 30 letters only.
  * @property {string} Lastname - The last name of the user. Must be
@@ -35,10 +36,11 @@ export default (sequelize, DataTypes) => {
   User.init(
     {
       UserID: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
-        autoIncrement: true,
-        primaryKey: true
+        primaryKey: true,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4
       },
       Firstname: {
         type: DataTypes.STRING,
@@ -63,9 +65,6 @@ export default (sequelize, DataTypes) => {
           notEmpty: true,
           is: /^[A-Za-z\d_-]{3,20}$/
         }
-      },
-      Userkey: {
-        type: DataTypes.STRING
       },
       Email: {
         type: DataTypes.STRING,
@@ -94,7 +93,8 @@ export default (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'User',
-      tableName: 'users'
+      tableName: 'users',
+      updatedAt: false
     }
   );
 

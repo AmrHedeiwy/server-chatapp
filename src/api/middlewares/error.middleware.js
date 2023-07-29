@@ -1,12 +1,12 @@
 import Joi from 'joi';
 import sequelize from 'sequelize';
-import { EmailVerificationError } from '../helpers/ErrorTypes.helper.js';
+import {
+  EmailVerificationError,
+  AuthenticationError
+} from '../helpers/ErrorTypes.helper.js';
 
 // Loading the validation, contraint, and server errors from errors.json file
 import errorsJSON from '../../config/errors.json' assert { type: 'json' };
-const validationErrors = errorsJSON.validations;
-const constraintErrors = errorsJSON.constraints;
-const serverErrors = errorsJSON.server;
 
 /**
  * Calls rhe appropriate middleware based on the error type.
@@ -29,10 +29,15 @@ const errorMiddleware = (error, req, res, next) => {
     error instanceof sequelize.ValidationError
   ) {
     validationError(error, req, res, next);
-
-    // fdffd
-  } else if (error instanceof EmailVerificationError) {
+  }
+  // Handle email verification errors.
+  else if (error instanceof EmailVerificationError) {
     emailVerificationError(error, req, res, next);
+  }
+
+  // Handles authentication errors.
+  else if (error instanceof AuthenticationError) {
+    authenticationError(error, req, res, next);
   }
 
   // Handle all other errors as server errors.
@@ -55,9 +60,9 @@ const errorMiddleware = (error, req, res, next) => {
  *  - Value: Appropriate error message based on the field name.
  * @example { Firstname: '<error_message>', Lastname: '<error_message>' }
  */
-async function validationError(error, req, res, next) {
+const validationError = (error, req, res, next) => {
   // Extracting the appropriate status code.
-  const statusCode = validationErrors.code;
+  const statusCode = errorsJSON.validationErrors.code;
 
   // Joi generates error.details (Array<object>) while Sequeize generates error.errors (Array<object>).
   const errorArray = error.details || error.errors;
@@ -112,7 +117,7 @@ async function validationError(error, req, res, next) {
         message = `${field} is required.`;
       } else {
         // Else extract the error message from errors.json file.
-        message = validationErrors.messages[field];
+        message = errorsJSON.validationErrors.messages[field];
       }
 
       // Add the field name as the key and the error message as the value to the accumulator.
@@ -124,8 +129,10 @@ async function validationError(error, req, res, next) {
   );
 
   // Send the formatted error object to the user.
-  res.status(statusCode).json(formattedValidationError);
-}
+  res
+    .status(statusCode)
+    .json({ type: 'ValidationError', details: formattedValidationError });
+};
 
 /**
  * For constraint errors.
@@ -143,19 +150,19 @@ async function validationError(error, req, res, next) {
  *  - Value: Appropriate error message based on the field name.
  * @example { Email: '<error_message>' }
  */
-async function constraintError(error, req, res, next) {
+const constraintError = (error, req, res, next) => {
   // Extracting field name.
   const field = error.errors[0].path;
 
-  // Extracting appropriate message for the error based on the field.
-  const message = constraintErrors.messages[field];
-
-  // Extracting the appropriate status code.
-  const statusCode = constraintErrors.code;
+  // Extracting appropriate message and status code for the error based on the field.
+  const message = errorsJSON.constraintErrors.messages[field];
+  const statusCode = errorsJSON.constraintErrors.code;
 
   // Sending the status code and the response object.
-  res.status(statusCode).json({ [field]: message });
-}
+  res
+    .status(statusCode)
+    .json({ type: 'ConstraintError', details: { message } });
+};
 
 /**
  * For email verification errors.
@@ -172,7 +179,7 @@ async function constraintError(error, req, res, next) {
  * Value: Error message.
  * @example { EmailVerificationError: '<error_message>' }
  */
-async function emailVerificationError(error, req, res, next) {
+const emailVerificationError = (error, req, res, next) => {
   var message;
   var statusCode;
 
@@ -182,26 +189,56 @@ async function emailVerificationError(error, req, res, next) {
    * Email verification errors could occur by:
    * - The server unable to send the email to the email prompted.
    * - The user clicks the email verification link but the server fails to find
-   * user in the database.
+   * user in the database. (Mostly due to the user clicking on an invalid email verification link)
    */
-  switch (error.type) {
-    case 'notFound':
-      message = serverErrors.UserNotFound.message;
-      statusCode = serverErrors.UserNotFound.code;
-      break;
-    case 'failToSendEmailVerification':
-      // Log the error to the server.
-      console.error(error);
+  if (error.type === 'InvalidVerificationLink') {
+    // Extracting appropriate error message based on the error type.
+    message =
+      errorsJSON.serverErrors.EmailVerification.InvalidVerificationLink.message;
 
-      message = serverErrors.EmailVerificationSendError.message;
-      statusCode = serverErrors.EmailVerificationSendError.code;
-      break;
-    default:
-      break;
+    // Add the error message to the flash message and redirect to the registration page.
+    req.flash('error', message);
+    res.redirect(`${process.env.CLIENT_URL}`);
+
+    return;
   }
 
-  res.status(statusCode).json({ EmailVerificationError: message });
-}
+  if (error.type === 'FailToSendEmailVerification') {
+    // Log the error to the server.
+    console.error(error);
+
+    // Extracting appropriate status code and error message based on the error type.
+    message = errorsJSON.serverErrors.EmailVerification.SendError.message;
+    statusCode = errorsJSON.serverErrors.EmailVerification.SendError.code;
+
+    res.status(statusCode).json({
+      type: 'EmailVerificationError',
+      details: { EmailVerificationSendError: message }
+    });
+
+    return;
+  }
+};
+
+/**
+ * For email verification errors.
+ *
+ * @middleware
+ * @param {Object} error - The object containg error information.
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information about the error.
+ */
+const authenticationError = (error, req, res, next) => {
+  // Extracting appropriate status code and error message.
+  const statusCode = errorsJSON.serverErrors.UserNotFound.code;
+  const message = errorsJSON.serverErrors.UserNotFound.message;
+
+  res
+    .status(statusCode)
+    .json({ type: 'AuthenticationError', details: { message } });
+};
 
 /**
  * For unexpected/server errors.
@@ -214,17 +251,15 @@ async function emailVerificationError(error, req, res, next) {
  * @returns {Object} Send an appropriate error message with
  * with status code 500 Internal Server Error.
  */
-async function serverError(error, req, res, next) {
+const serverError = (error, req, res, next) => {
   // Logging the error to the server.
   console.error(error);
 
-  // Extracting appropriate message.
-  const message = serverErrors.Unexpected.message;
+  // Extracting appropriate message and status code.
+  const message = errorsJSON.serverErrors.Unexpected.message;
+  const statusCode = errorsJSON.serverErrors.Unexpected.code;
 
-  // Extracting the appropriate status code.
-  const statusCode = serverErrors.Unexpected.code;
-
-  res.status(statusCode).json({ message });
-}
+  res.status(statusCode).json({ type: 'ServerError', details: { message } });
+};
 
 export default errorMiddleware;

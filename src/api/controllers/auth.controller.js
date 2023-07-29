@@ -1,7 +1,10 @@
 import passport from 'passport';
-import { registerService } from '../services/index.js';
+import { registerService } from '../services/auth/index.service.js';
 import validation from '../middlewares/validation.middleware.js';
-import { registerSchema, loginSchema } from '../validations/auth.validation.js';
+import {
+  registerSchema,
+  signInSchema
+} from '../validations/auth.validation.js';
 
 /**
  * Registers a new user in the system.
@@ -20,15 +23,15 @@ export const register = [
   async (req, res, next) => {
     const body = req.body;
 
-    const { status, message, errors } = await registerService.registerUser(
-      body
-    );
+    const { status, message, redirect, errors } =
+      await registerService.registerUser(body);
 
     // If there are any errors returne, pass it to the error handling middleware.
     if (errors) return next(errors);
 
+    req.flash('success', message);
     // Otherwise, set the response status to the status returned by createUser and send the message to the client as JSON.
-    res.status(status).json(message);
+    res.status(status).redirect(redirect);
   }
 ];
 
@@ -54,16 +57,83 @@ export const emailVerification = [
   }
 ];
 
-export const login = [
-  validation(loginSchema),
-  passport.authenticate('local', {
-    failureMessage: 'failed',
-    successMessage: 'success'
-  })
+/**
+ * sign in a new user in the system.
+ *
+ * @function Sign in
+ * @access Public
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ */
+export const signIn = [
+  // Middleware function that validates the request body against the Joi schema.
+  validation(signInSchema),
+  // Route handler that signs in a user using the request body.
+  async (req, res, next) => {
+    passport.authenticate(
+      'local',
+      { passReqToCallback: true },
+      async (err, user, info) => {
+        // Handle invalid email or password errors.
+        if (err) return next(err);
+
+        /**
+         * Authrntication successded.
+         *
+         * Add a passport object to the session
+         * containing the user's UserID.
+         * @example passport { user: UserID: <UUID> }
+         *
+         * Adds a user property to the request object.
+         * @example { UserID: <UUID> }
+         */
+        req.login(user, (err) => {
+          // Handle error.
+          if (err) return next(err);
+
+          // Adding the success message to the flash object.
+          req.flash('success', info.message);
+
+          // Redirect the user to their chat.
+          res.status(info.status).redirect(info.redirect);
+        });
+      }
+    )(req, res, next);
+  }
 ];
 
+/**
+ * Checks if the user is already signed in or has any flash messages.
+ *
+ * @function Sign in check
+ * @access Public
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ */
+export const signInCheck = (req, res, next) => {
+  // Check if user is signed in
+  if (req.user) {
+    return res.redirect('/chat.html');
+  }
+
+  const flashMessages = req.session.flash;
+
+  // Check if user has any flash messages
+  if (flashMessages) {
+    req.session.destroy();
+    return res.json(flashMessages);
+  }
+
+  res.json(false);
+};
+
 export default {
-  login,
   register,
-  emailVerification
+  emailVerification,
+  signIn,
+  signInCheck
 };

@@ -3,10 +3,11 @@ import db from '../../models/index.js';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
 import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
 
-const User = db.User;
-
 /**
  * Creates a new user using the user's register credentials.
+ *
+ * @async
+ * @function
  * @param {Object} data - Contains the user's data.
  * The object shuld have the following properties:
  * - Firstname
@@ -14,40 +15,41 @@ const User = db.User;
  * - Username
  * - Email
  * - Password
- * @returns {Object}  An object containing a status code, message,
- * and error object (if any).
+ * @throws {sequelize.ValidationError|sequelize.UniqueConstraintError} If an error occurred during
+ * the database transaction, an error object will be returned with error details.
  *
+ * @returns {Object}  An object containing the status code, message, redirect if the operation was successful.
  * The object contains the following properties:
  * - status: The status depending on the result of the opperation.
- * - message: A user-friendly message to be sent to the client indecating
- * the result of the operation.
- * - error: An error object containing details about any
- * errors that occurred during the operation. This property
- * will only be present if an error occurred.
+ * - message: A user-friendly message to be sent to the client indicating the result of the operation.
+ * - redirect: The URL to redirect to after a successful operation.
  *
- * If the operation is successful, the `status` and `message` properties
- * will be set using the stored status code and message from `successJSON` file.
- * If an error occurs, only the `error` property will be set to the err object.
+ * @returns {Object} An object containing the error details if an error occurred during the transaction.
+ * The object contains the following properties:
+ * - errors: The error object containing error details.
  */
 export const registerUser = async (data) => {
+  // Create a transaction.
+  const t = await db.sequelize.transaction();
+
   try {
-    await User.create(data, { validate: true });
+    // Attempt to save the user to the database.
+    await db.User.create(data, { validate: true, transaction: t });
+
+    // Commit the transaction if everything succeeded.
+    await t.commit();
+
+    // Return the status code and message to be sent to the client.
     return {
       status: successJSON.create_user.code,
-      message: successJSON.create_user.message
+      message: successJSON.create_user.message,
+      redirect: successJSON.create_user.redirect
     };
   } catch (err) {
-    /**
-     * Some Sequelize errors include the words "Sequelize" and "Unique" in the error name.
-     * This line of code removes those words to keep the error format consistent
-     * throught the whole program.
-     *
-     * For example:
-     * - SequelizeValidationError --> ValidationError
-     * - SequelizeUniqueConstraintError --> ConstraintError
-     */
-    err.type = err.name.replace('Sequelize', '').replace('Unique', '');
+    // Rollback the transaction if anything fails.
+    await t.rollback();
 
+    // Return the `err` object containing the error details.
     return { errors: err };
   }
 };
@@ -56,10 +58,11 @@ export const registerUser = async (data) => {
  * Verifies an email verification token and updates the user
  * record in the database.
  *
+ * @async
+ * @function
  * @param {string} token - The email verification token to verify.
- * @returns {void|{error: err}} - Returns with no value if the verification
- * is successful, or returns an object with an `error` property containing
- * the err object if an error occurs.
+ * @throws {EmailVerificationError} If the email is not found in the database.
+ * @returns {void} Returns with no value if the verification is successful.
  */
 export const verifyEmail = async (token) => {
   try {
@@ -67,15 +70,15 @@ export const verifyEmail = async (token) => {
     const decoded = jwt.verify(token, 'mysec');
 
     // Find the user in the database using the decoded user ID.
-    const user = await User.findByPk(decoded.UserID);
+    const user = await db.User.findByPk(decoded.UserID);
 
     // If the user is not found, throw an EmailVerificationError.
-    if (!user) throw new EmailVerificationError('notFound');
+    if (!user) throw new EmailVerificationError('InvalidVerificationLink');
 
     // Set the user's IsVerified flag to true and save the changes to the database
     await user.update({ IsVerified: true });
 
-    // Return no value to indeicate success
+    // Return no value to indicate success
     return;
   } catch (err) {
     // If an error occurs, return an object with an `error` property containing the err object.

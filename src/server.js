@@ -1,70 +1,119 @@
+/**
+ * This module sets up an Express app instance, an HTTP server instance, and a Socket.io instance.
+ * It also connects to a Redis instance and initializes session storage, and mounts routes and error handling middleware on the app.
+ *
+ * @module server.js
+ */
+
 import express from 'express';
 import session from 'express-session';
-import passport from 'passport';
+import path, { dirname } from 'path';
+import { passport } from './api/services/auth/index.service.js';
+import RedisStore from 'connect-redis';
+import { createClient } from 'redis';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
+import flash from 'connect-flash';
 
-const port = process.env.PORT || 3000;
-
-// Importing the sequelize instnace
+// Importing the Sequelize instnace.
 import db from './api/models/index.js';
 
-// Default CORS option
-const corsOptions = { origin: process.env.CLIENT_URL };
+// Set the server port.
+const port = process.env.PORT || 3000;
 
-// Creating an Express app instance, an HTTP server instance, and Socket.io instance
+// Set the public directory path.
+const publicPath = path
+  .join(dirname(import.meta.url), '../public')
+  .replace('file:\\', '');
+
+// Create instances of the Express app, HTTP server, and Socket.io.
 const app = express();
 const server = createServer(app);
-const io = new Server(server, { cors: corsOptions });
+const io = new Server(server);
 
-// Fixing CORS problem
-app.use(cors(corsOptions));
+// Serve static files from the public directory
+app.use(express.static(publicPath));
 
-// Setting our session
-app.use(
-  session({
-    secret: 'sec',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24 // Equals 1 day
-    }
-  })
-);
-import { strategyService } from './api/services/index.js';
-app.use(passport.initialize(strategyService));
+// Initialize the Redis client and store.
+const redisClient = createClient();
+redisClient.connect().catch(console.error);
+const redisStore = new RedisStore({
+  client: redisClient,
+  prefix: 'session:',
+  ttl: 6000 // Equals 1 day
+});
+
+// Configure session middleware.
+const sessionMiddleware = session({
+  secret: 'sec',
+  saveUninitialized: false,
+  resave: false,
+  store: redisStore,
+  cookie: {
+    maxAge: 1000 * 60 * 24 * 24, // Equals 1 day
+    secure: false,
+    httpOnly: true
+  }
+});
+
+// Initialize session storage, Passport middleware, and flash middleware.
+app.use(sessionMiddleware);
 app.use(passport.session());
+app.use(passport.initialize());
+app.use(flash());
 
-// Parsing request body as json
+// Parse request body as JSON and URL-encoded.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// For testing purposes
-io.on('connection', (socket) => {
-  console.log(socket.id);
-  socket.emit('message', `User with socketID ${socket.id} has joined`);
-});
-
-// Importing routes and error handling middleware
+// Import routes and error handling middleware.
 import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
 
-// Mountion routes and error handling middleware on the app
+// Mount routes and error handling middleware on the app.
 app.use(routes);
 app.use(errorMiddleware);
 
+// Set up Socket.io middleware.
+const wrapper = (middlware) => (socket, next) =>
+  middlware(socket.request, {}, next);
+io.use(wrapper(sessionMiddleware));
+io.use(wrapper(flash()));
+
+// code bellow is for testing purposes
+// Authenticate Socket.io connections.
+io.use(async (socket, next) => {
+  if (!socket.request.session.passport?.user) {
+    next(new Error('not auth'));
+  }
+  next();
+});
+
+// Handle Socket.io connections.
+io.on('connection', (socket) => {
+  // Handling flash messages
+  const flashMessages = socket.request.session.flash;
+  if (flashMessages) {
+    Object.entries(flashMessages).forEach(([type, message]) => {
+      socket.emit('flash', { type, message });
+    });
+    delete socket.request.session.flash;
+    socket.request.session.save();
+  }
+  // console.log(socket.request);
+  // socket.emit('message', `User with socketID ${socket.id} has joined`);
+});
+// code above is for testing purposes
+
 /**
- * Setup the PostgreSQL database and start the server.
+ * Synchronize the Sequelize database tables with the models and start the server.
  *
  * @function main
  */
 async function main() {
-  // Synchronizing the databsae tables with the models
   await db.sequelize.sync();
-  // Starting the server and listening on specifed port
   server.listen(port, () => {
-    console.log(`server running on port ${port}`);
+    console.log(`server running on port: ${port}`);
   });
 }
 

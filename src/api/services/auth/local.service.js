@@ -58,9 +58,9 @@ const localStrategy = new Strategy(customFields, async function (
     // Remove the password field from the user object and pass it to the done() callback with a success message
     delete user.dataValues.Password;
     return done(null, user.dataValues, {
-      message: successJSON.login_user.message,
-      status: successJSON.login_user.code,
-      redirect: successJSON.login_user.redirect
+      message: successJSON.signin_user.message,
+      status: successJSON.signin_user.code,
+      redirect: successJSON.signin_user.redirect
     });
   } catch (err) {
     return done(err);

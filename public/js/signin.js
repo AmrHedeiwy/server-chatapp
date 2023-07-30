@@ -4,20 +4,28 @@ const signInForm = document.querySelector('#signInForm');
 
 signInForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const formElements = {
     signInEmail: '',
     signInPassword: ''
   };
 
+  // Getting the values of the fields
   document.querySelectorAll('input').forEach((input) => {
     if (input.id in formElements) {
       formElements[input.id] = input.value;
     }
   });
 
+  // Reseting all the styles to its original form.
+  for (const key in formElements) {
+    document.querySelector(`#${key}`).classList.remove('is-invalid');
+    document.querySelector(`#${key}`).innerHTML = '';
+  }
+
+  // Formating the key names
   const formatedData = Object.entries(formElements).reduce(
     (acc, [key, value]) => {
+      // removing the word `signIn` from the key name.
       key = key.replace('signIn', '');
       acc[key] = value;
       return acc;
@@ -25,13 +33,13 @@ signInForm.addEventListener('submit', async (e) => {
     {}
   );
 
+  // Make the sign in request to the server
   const { error, redirect } = await signInUserReq(formatedData);
+
+  // Check for errors
   if (error) {
-    for (const key in formElements) {
-      document.querySelector(`#${key}`).classList.remove('is-invalid');
-      document.querySelector(`#${key}`).innerHTML = '';
-    }
     switch (error.type) {
+      // Showing each error based on their type
       case 'ValidationError':
         Object.keys(formatedData).forEach((inputKey) => {
           if (inputKey in error.details) {
@@ -51,9 +59,11 @@ signInForm.addEventListener('submit', async (e) => {
         });
         break;
     }
-
+    // return nothing to stop the rest of the funciton from executing
     return;
   }
+
+  // reset the form and redirect the user if successfull.
   signInForm.reset();
   window.location.href = redirect;
 });

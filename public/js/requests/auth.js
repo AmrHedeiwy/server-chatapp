@@ -50,7 +50,7 @@ export async function signInCheckReq() {
   };
 
   try {
-    return await fetch('/signInCheck', reqParams).then((response) => {
+    return await fetch('/auth/signInCheck', reqParams).then((response) => {
       if (response.ok) {
         return response;
       }

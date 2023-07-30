@@ -32,9 +32,11 @@ registerForm.addEventListener('submit', async (e) => {
     console.log(document.querySelector(`#${key}Row`));
     document.querySelector(`#${key}Row`).style.paddingBottom = '';
   }
-  // Formating
+
+  // Formating the key names
   const formatedData = Object.entries(formElements).reduce(
     (acc, [key, value]) => {
+      // removing the word `register` from the key name.
       key = key.replace('register', '');
       acc[key] = value;
       return acc;
@@ -42,9 +44,10 @@ registerForm.addEventListener('submit', async (e) => {
     {}
   );
 
+  // Make the register request to the server
   const { error, redirect } = await registerUserReq(formatedData);
-  console.log(error);
 
+  // Check for errors
   if (error) {
     // Showing each error based on their type
     switch (error.type) {
@@ -79,8 +82,11 @@ registerForm.addEventListener('submit', async (e) => {
         break;
     }
 
+    // return nothing to stop the rest of the funciton from executing
     return;
   }
+
+  // reset the form and redirect the user if successfull.
   registerForm.reset();
   window.location.href = redirect;
 });

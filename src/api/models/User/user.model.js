@@ -78,9 +78,8 @@ export default (sequelize, DataTypes) => {
       },
       Password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         validate: {
-          notEmpty: true,
           is: /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&*]{8,}$/
         }
       },

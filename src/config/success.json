@@ -4,8 +4,8 @@
     "code": 201,
     "redirect": "/signIn.html"
   },
-  "login_user": {
-    "message": "You have successfully logged into your account.",
+  "signin_user": {
+    "message": "You have successfully signed into your account.",
     "code": 200,
     "redirect": "/chat.html"
   }

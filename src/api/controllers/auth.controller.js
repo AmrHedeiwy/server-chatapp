@@ -58,6 +58,33 @@ export const emailVerification = [
 ];
 
 /**
+ * Checks if the user is already signed in or has any flash messages.
+ *
+ * @function Sign in check
+ * @access Public
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ */
+export const signInCheck = (req, res, next) => {
+  // Check if user is signed in
+  if (req.user) {
+    return res.redirect('/chat.html');
+  }
+
+  const flashMessages = req.session.flash;
+
+  // Check if user has any flash messages
+  if (flashMessages) {
+    req.session.destroy();
+    return res.json(flashMessages);
+  }
+
+  res.json(false);
+};
+
+/**
  * sign in a new user in the system.
  *
  * @function Sign in
@@ -104,36 +131,48 @@ export const signIn = [
   }
 ];
 
-/**
- * Checks if the user is already signed in or has any flash messages.
- *
- * @function Sign in check
- * @access Public
- *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The next middleware in the chain.
- */
-export const signInCheck = (req, res, next) => {
-  // Check if user is signed in
-  if (req.user) {
-    return res.redirect('/chat.html');
+export const facebookSignUp = passport.authenticate('facebook', {
+  scope: ['email']
+});
+
+export const facebookSignUpCallback = [
+  async (req, res, next) => {
+    passport.authenticate(
+      'facebook',
+      { failureRedirect: '/login', passReqToCallback: true },
+      async (err, user, info) => {
+        // Handle invalid email or password errors.
+        if (err) return next(err);
+
+        /**
+         * Authrntication successded.
+         *
+         * Add a passport object to the session
+         * containing the user's UserID.
+         * @example passport { user: UserID: <UUID> }
+         *
+         * Adds a user property to the request object.
+         * @example { UserID: <UUID> }
+         */
+        req.login(user, (err) => {
+          // Handle error.
+          if (err) return next(err);
+
+          // Adding the success message to the flash object.
+          req.flash('success', info.message);
+
+          // Redirect the user to their chat.
+          res.status(info.status).redirect(info.redirect);
+        });
+      }
+    )(req, res, next);
   }
-
-  const flashMessages = req.session.flash;
-
-  // Check if user has any flash messages
-  if (flashMessages) {
-    req.session.destroy();
-    return res.json(flashMessages);
-  }
-
-  res.json(false);
-};
-
+];
 export default {
   register,
   emailVerification,
+  signInCheck,
   signIn,
-  signInCheck
+  facebookSignUp,
+  facebookSignUpCallback
 };

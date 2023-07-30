@@ -7,7 +7,6 @@ import {
 
 // Loading the validation, contraint, and server errors from errors.json file
 import errorsJSON from '../../config/errors.json' assert { type: 'json' };
-
 /**
  * Calls rhe appropriate middleware based on the error type.
  *
@@ -62,7 +61,7 @@ const errorMiddleware = (error, req, res, next) => {
  */
 const validationError = (error, req, res, next) => {
   // Extracting the appropriate status code.
-  const statusCode = errorsJSON.validationErrors.code;
+  const statusCode = errorsJSON.validations.code;
 
   // Joi generates error.details (Array<object>) while Sequeize generates error.errors (Array<object>).
   const errorArray = error.details || error.errors;

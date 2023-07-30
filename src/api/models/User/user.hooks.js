@@ -50,8 +50,11 @@ export default (User) => {
     // Check if the user changes their password.
     if (user.changed('Password')) {
       const password = user.Password;
-      // Store and hash the plain text password using 12 salt rounds.
-      user.Password = await bcrypt.hash(password, 12);
+
+      if (password) {
+        // Store and hash the plain text password using 12 salt rounds.
+        user.Password = await bcrypt.hash(password, 12);
+      }
     }
   });
 

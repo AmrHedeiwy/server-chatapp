@@ -8,8 +8,13 @@ router.post('/register', authController.register);
 // Email verification route
 router.get('/verify-email/:token', authController.emailVerification);
 
-// Sign in route
-router.post('/signin', authController.signIn);
+// Check users session when visting login page
 router.get('/signInCheck', authController.signInCheck);
 
+// Sign in using local strategy
+router.post('/signin', authController.signIn);
+
+// sign up using facebook strategy
+router.get('/facebook', authController.facebookSignUp);
+router.get('/facebook/callback', authController.facebookSignUpCallback);
 export default router;

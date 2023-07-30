@@ -1,34 +1,33 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
-import { Strategy } from 'passport-facebook';
+import { Strategy } from 'passport-google-oauth2';
 import db from '../../models/index.js';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
 
 /**
- * A new instance of the Passport Facebook Strategy.
+ * A new instance of the Passport Google Strategy.
  *
  * @async
  * @function
  * @returns {Promise<object>} A Promise that resolves with the authenticated user object, without the password field.
  */
-const facebookStrategy = new Strategy(
+const googleStrategy = new Strategy(
   {
-    clientID: process.env.FACEBOOK_APP_ID,
-    clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: 'http://localhost:3000/auth/facebook/callback',
-    profileFields: ['id', 'first_name', 'last_name', 'email']
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: 'http://localhost:3000/auth/google/callback'
   },
-  async function (accessToken, refreshToken, profile, done) {
-    const { first_name, last_name, email } = profile._json;
+  async function (request, accessToken, refreshToken, profile, done) {
+    const { given_name, family_name, email, email_verified } = profile._json;
 
     // Attempt to find or create the user.
     const [user, created] = await db.User.findOrCreate({
       where: { Email: email },
       defaults: {
-        Firstname: first_name,
-        Lastname: last_name,
-        Username: (first_name + last_name).toLowerCase(),
-        IsVerified: true
+        Firstname: given_name,
+        Lastname: family_name,
+        Username: (given_name + family_name).toLowerCase(),
+        IsVerified: email_verified
       }
     });
 
@@ -46,4 +45,4 @@ const facebookStrategy = new Strategy(
   }
 );
 
-export default facebookStrategy;
+export default googleStrategy;

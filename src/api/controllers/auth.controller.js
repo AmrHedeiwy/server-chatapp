@@ -6,20 +6,19 @@ import {
   signInSchema
 } from '../validations/auth.validation.js';
 
-/**
- * Registers a new user in the system.
- *
- * @function register
- * @access Public
- *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The next middleware in the chain.
- */
 export const register = [
   // Middleware function that validates the request body against the Joi schema.
   validation(registerSchema),
-  // Route handler that creates a new user using the request body.
+  /**
+   * Registers a new user in the system.
+   *
+   * @function register
+   * @access Public
+   *
+   * @param {Object} req - The HTTP request object.
+   * @param {Object} res - The HTTP response object.
+   * @param {Function} next - The next middleware in the chain.
+   */
   async (req, res, next) => {
     const body = req.body;
 
@@ -41,21 +40,19 @@ export const register = [
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
  */
-export const emailVerification = [
-  async (req, res, next) => {
-    // Extracting the verification token from the request parameters.
-    const token = req.params.token;
+export const emailVerification = async (req, res, next) => {
+  // Extracting the verification token from the request parameters.
+  const token = req.params.token;
 
-    // Passing the token to the function call.
-    const result = await registerService.verifyEmail(token);
+  // Passing the token to the function call.
+  const result = await registerService.verifyEmail(token);
 
-    // If the result contains an error property, pass it to the error handling middleware.
-    if (result?.error) return next(result.error);
+  // If the result contains an error property, pass it to the error handling middleware.
+  if (result?.error) return next(result.error);
 
-    // If the verification is successful, we redirect the user to the login page.
-    res.redirect(process.env.CLIENT_URl);
-  }
-];
+  // If the verification is successful, we redirect the user to the login page.
+  res.redirect(process.env.CLIENT_URl);
+};
 
 /**
  * Checks if the user is already signed in or has any flash messages.
@@ -84,20 +81,19 @@ export const signInCheck = (req, res, next) => {
   res.json(false);
 };
 
-/**
- * sign in a new user in the system.
- *
- * @function Sign in
- * @access Public
- *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The next middleware in the chain.
- */
 export const signIn = [
   // Middleware function that validates the request body against the Joi schema.
   validation(signInSchema),
-  // Route handler that signs in a user using the request body.
+  /**
+   * sign in a new user.
+   *
+   * @function Sign in
+   * @access Public
+   *
+   * @param {Object} req - The HTTP request object.
+   * @param {Object} res - The HTTP response object.
+   * @param {Function} next - The next middleware in the chain.
+   */
   async (req, res, next) => {
     passport.authenticate(
       'local',
@@ -131,48 +127,129 @@ export const signIn = [
   }
 ];
 
+/**
+ * Sign up a user using facebook.
+ *
+ * Redirects the user to facebook page to select their facebook account.
+ */
 export const facebookSignUp = passport.authenticate('facebook', {
   scope: ['email']
 });
 
-export const facebookSignUpCallback = [
-  async (req, res, next) => {
-    passport.authenticate(
-      'facebook',
-      { failureRedirect: '/login', passReqToCallback: true },
-      async (err, user, info) => {
-        // Handle invalid email or password errors.
+/**
+ * Callback when the user chooses their facebook account.
+ *
+ * @function facebookSignUpCallback
+ * @access Public
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ */
+export const facebookSignUpCallback = async (req, res, next) => {
+  passport.authenticate(
+    // Passport strategy.
+    'facebook',
+    // Passport options.
+    { failureRedirect: '/auth/register', passReqToCallback: true },
+    /**
+     * @param {boolean} err - If there are any errors.
+     * @param {object} user - The user's credentials.
+     * @param {object} info - The page the user is redirected to.
+     */
+    async (err, user, info) => {
+      // Handle invalid email or password errors.
+      if (err) return next(err);
+
+      /**
+       * Authrntication successded.
+       *
+       * Add a passport object to the session
+       * containing the user's UserID.
+       * @example passport { user: UserID: <UUID> }
+       *
+       * Adds a user property to the request object.
+       * @example { UserID: <UUID> }
+       */
+      req.login(user, (err) => {
+        // Handle error.
         if (err) return next(err);
 
-        /**
-         * Authrntication successded.
-         *
-         * Add a passport object to the session
-         * containing the user's UserID.
-         * @example passport { user: UserID: <UUID> }
-         *
-         * Adds a user property to the request object.
-         * @example { UserID: <UUID> }
-         */
-        req.login(user, (err) => {
-          // Handle error.
-          if (err) return next(err);
+        // Adding the success message to the flash object.
+        req.flash('success', info.message);
 
-          // Adding the success message to the flash object.
-          req.flash('success', info.message);
+        // Redirect the user to their chat.
+        res.status(info.status).redirect(info.redirect);
+      });
+    }
+  )(req, res, next);
+};
 
-          // Redirect the user to their chat.
-          res.status(info.status).redirect(info.redirect);
-        });
-      }
-    )(req, res, next);
-  }
-];
+/**
+ * Sign up a user using google.
+ *
+ * Redirects the user to google page to select their google account.
+ */
+export const googleSignUp = passport.authenticate('google', {
+  scope: ['email', 'profile']
+});
+
+/**
+ * Callback when the user chooses their google account.
+ *
+ * @function googleSignUpCallback
+ * @access Public
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ */
+export const googleSignUpCallback = async (req, res, next) => {
+  passport.authenticate(
+    // Passport strategy.
+    'google',
+    // Passport options.
+    { failureRedirect: '/auth/register', passReqToCallback: true },
+    /**
+     * @param {boolean} err - If there are any errors.
+     * @param {object} user - The user's credentials.
+     * @param {object} info - The page the user is redirected to.
+     */
+    async (err, user, info) => {
+      // Handle invalid email or password errors.
+      if (err) return next(err);
+
+      /**
+       * Authrntication successded.
+       *
+       * Add a passport object to the session
+       * containing the user's UserID.
+       * @example passport { user: UserID: <UUID> }
+       *
+       * Adds a user property to the request object.
+       * @example { UserID: <UUID> }
+       */
+      req.login(user, (err) => {
+        // Handle error.
+        if (err) return next(err);
+
+        // Adding the success message to the flash object.
+        req.flash('success', info.message);
+
+        // Redirect the user to their chat.
+        res.status(info.status).redirect(info.redirect);
+      });
+    }
+  )(req, res, next);
+};
+
 export default {
   register,
   emailVerification,
   signInCheck,
   signIn,
   facebookSignUp,
-  facebookSignUpCallback
+  facebookSignUpCallback,
+  googleSignUp,
+  googleSignUpCallback
 };

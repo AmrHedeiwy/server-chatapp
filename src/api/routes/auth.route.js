@@ -17,4 +17,9 @@ router.post('/signin', authController.signIn);
 // sign up using facebook strategy
 router.get('/facebook', authController.facebookSignUp);
 router.get('/facebook/callback', authController.facebookSignUpCallback);
+
+// sign up using google strategy
+router.get('/google', authController.googleSignUp);
+router.get('/google/callback', authController.googleSignUpCallback);
+
 export default router;

@@ -51,7 +51,7 @@ export const emailVerification = async (req, res, next) => {
   if (result?.error) return next(result.error);
 
   // If the verification is successful, we redirect the user to the login page.
-  res.redirect(process.env.CLIENT_URl);
+  res.redirect('/signIn.html');
 };
 
 /**

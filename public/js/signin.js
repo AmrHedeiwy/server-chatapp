@@ -74,6 +74,7 @@ async function checkInfo() {
     return (window.location.href = response.url);
   }
   const flashMessages = await response.json();
+
   if (flashMessages) {
     Object.entries(flashMessages).forEach(([key, value]) => {
       new Alert({

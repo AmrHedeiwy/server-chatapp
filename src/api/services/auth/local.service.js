@@ -5,7 +5,10 @@
  */
 
 import db from '../../models/index.js';
-import { AuthenticationError } from '../../helpers/ErrorTypes.helper.js';
+import {
+  AuthenticationError,
+  EmailVerificationError
+} from '../../helpers/ErrorTypes.helper.js';
 import { Strategy } from 'passport-local';
 import bcrypt from 'bcrypt';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
@@ -23,15 +26,11 @@ const customFields = {
 };
 
 /**
- * A new instance of the Passport Local Strategy configured with the customFields object.
- *
- * @async
- * @function
- * @param {string} Email - The user's email address.
- * @param {string} Password - The user's password.
- * @param {Function} done - The callback function to call with the authenticated user object.
- * @throws {AuthenticationError} If the user cannot be authenticated.
- * @returns {Promise<object>} A Promise that resolves with the authenticated user object, without the password field.
+ * Local Strategy for Passport authentication.
+ * @constructor
+ * @param {object} customFields - The Email and Password fields.
+ * @param {function} verifyCallback - The verify callback function that handles authentication and user registration.
+ * @returns {object} - A new instance of the Local Strategy.
  */
 const localStrategy = new Strategy(customFields, async function (
   Email,
@@ -39,20 +38,25 @@ const localStrategy = new Strategy(customFields, async function (
   done
 ) {
   try {
-    // Find the user by email in the database
+    // Find the user by their Email in the database.
     const user = await db.User.findOne({ where: { Email } });
 
-    // If the user is not found, throw an AuthenticationError
+    // If the user is not found, throw an AuthenticationError.
     if (!user) {
       throw new AuthenticationError('Incorrect email <localstrategy error>');
     }
 
-    // Compare the user's hashed password with the plaintext password
+    // Compare the user's hashed password with the plaintext password.
     const isMatch = await bcrypt.compare(Password, user.dataValues.Password);
 
-    // If the passwords don't match, throw an AuthenticationError
+    // If the passwords don't match, throw an AuthenticationError.
     if (!isMatch) {
       throw new AuthenticationError('Incorrect password <localstrategy error>');
+    }
+
+    // Check if the user's account is verified.
+    if (!user.dataValues.IsVerified) {
+      throw new EmailVerificationError('NotVerified');
     }
 
     // Remove the password field from the user object and pass it to the done() callback with a success message

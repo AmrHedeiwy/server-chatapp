@@ -60,3 +60,16 @@ export class AuthenticationError extends BaseError {
     super();
   }
 }
+
+/**
+ * Error class for social media authentication errors. Extends the `BaseError` class.
+ *
+ * @class
+ * @extends BaseError
+ */
+export class SocialMediaAuthenticationError extends BaseError {
+  constructor(details) {
+    super();
+    this.details = details || null;
+  }
+}

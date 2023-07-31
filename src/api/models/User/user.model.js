@@ -42,6 +42,16 @@ export default (sequelize, DataTypes) => {
         unique: true,
         defaultValue: DataTypes.UUIDV4
       },
+      GoogleID: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+      },
+      FacebookID: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+      },
       Firstname: {
         type: DataTypes.STRING,
         allowNull: false,

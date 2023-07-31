@@ -111,7 +111,7 @@ io.on('connection', (socket) => {
  * @function main
  */
 async function main() {
-  await db.sequelize.sync({ force: true });
+  await db.sequelize.sync();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);
   });

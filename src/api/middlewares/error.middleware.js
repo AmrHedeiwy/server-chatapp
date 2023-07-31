@@ -1,12 +1,16 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: './src/config/.env' });
 import Joi from 'joi';
 import sequelize from 'sequelize';
 import {
   EmailVerificationError,
-  AuthenticationError
+  AuthenticationError,
+  SocialMediaAuthenticationError
 } from '../helpers/ErrorTypes.helper.js';
 
 // Loading the validation, contraint, and server errors from errors.json file
 import errorsJSON from '../../config/errors.json' assert { type: 'json' };
+
 /**
  * Calls rhe appropriate middleware based on the error type.
  *
@@ -37,6 +41,11 @@ const errorMiddleware = (error, req, res, next) => {
   // Handles authentication errors.
   else if (error instanceof AuthenticationError) {
     authenticationError(error, req, res, next);
+  }
+
+  // Handles social media authentication errors.
+  else if (error instanceof SocialMediaAuthenticationError) {
+    socialMediaAuthenticationError(error, req, res, next);
   }
 
   // Handle all other errors as server errors.
@@ -154,8 +163,8 @@ const constraintError = (error, req, res, next) => {
   const field = error.errors[0].path;
 
   // Extracting appropriate message and status code for the error based on the field.
-  const message = errorsJSON.constraintErrors.messages[field];
-  const statusCode = errorsJSON.constraintErrors.code;
+  const message = errorsJSON.constraints.messages[field];
+  const statusCode = errorsJSON.constraints.code;
 
   // Sending the status code and the response object.
   res
@@ -179,48 +188,54 @@ const constraintError = (error, req, res, next) => {
  * @example { EmailVerificationError: '<error_message>' }
  */
 const emailVerificationError = (error, req, res, next) => {
-  var message;
-  var statusCode;
+  let message;
+  let statusCode;
 
   /**
    * Extracting the appropriate error message depending on the type.
    *
    * Email verification errors could occur by:
-   * - The server unable to send the email to the email prompted.
-   * - The user clicks the email verification link but the server fails to find
-   * user in the database. (Mostly due to the user clicking on an invalid email verification link)
+   * - The user has not verified their email account.
+   * - The verification link is invalid or has expired.
+   * - The server fails to send the email.
    */
-  if (error.type === 'InvalidVerificationLink') {
-    // Extracting appropriate error message based on the error type.
-    message =
-      errorsJSON.serverErrors.EmailVerification.InvalidVerificationLink.message;
+  switch (error.type) {
+    case 'NotVerified':
+      // Extracting appropriate status code and error message.
+      statusCode = errorsJSON.server.EmailVerification.NotVerified.code;
+      message = errorsJSON.server.EmailVerification.NotVerified.message;
 
-    // Add the error message to the flash message and redirect to the registration page.
-    req.flash('error', message);
-    res.redirect(`${process.env.CLIENT_URL}`);
+      res
+        .status(statusCode)
+        .json({ type: 'NotVerified', details: { message } });
+      break;
+    case 'VerificationLink':
+      // Extracting appropriate status code and error message.
+      message = errorsJSON.server.EmailVerification.VerificationLink.message;
+      statusCode = errorsJSON.server.EmailVerification.VerificationLink.code;
 
-    return;
-  }
+      // Add the error message to the flash message and redirect to the registration page.
+      req.flash('error', message);
+      res.status(statusCode).redirect('/signIn.html');
+      break;
+    case 'FailToSendEmailVerification':
+      // Log the error to the server.
+      console.error(error);
 
-  if (error.type === 'FailToSendEmailVerification') {
-    // Log the error to the server.
-    console.error(error);
+      // Extracting appropriate status code and error message based on the error type.
+      message = errorsJSON.server.EmailVerification.SendError.message;
+      statusCode = errorsJSON.server.EmailVerification.SendError.code;
 
-    // Extracting appropriate status code and error message based on the error type.
-    message = errorsJSON.serverErrors.EmailVerification.SendError.message;
-    statusCode = errorsJSON.serverErrors.EmailVerification.SendError.code;
-
-    res.status(statusCode).json({
-      type: 'EmailVerificationError',
-      details: { EmailVerificationSendError: message }
-    });
-
-    return;
+      res.status(statusCode).json({
+        type: 'EmailVerificationError',
+        details: { message }
+      });
+      break;
   }
 };
 
 /**
- * For email verification errors.
+ * If the email address in not found or the password was invalid.
  *
  * @middleware
  * @param {Object} error - The object containg error information.
@@ -231,12 +246,52 @@ const emailVerificationError = (error, req, res, next) => {
  */
 const authenticationError = (error, req, res, next) => {
   // Extracting appropriate status code and error message.
-  const statusCode = errorsJSON.serverErrors.UserNotFound.code;
-  const message = errorsJSON.serverErrors.UserNotFound.message;
+  const statusCode = errorsJSON.server.UserNotFound.code;
+  const message = errorsJSON.server.UserNotFound.message;
 
   res
     .status(statusCode)
     .json({ type: 'AuthenticationError', details: { message } });
+};
+
+/**
+ * For errors that occur during the social media authentication process.
+ *
+ * @middleware
+ * @param {Object} error - The object containg error information.
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information about the error.
+ */
+const socialMediaAuthenticationError = (error, req, res, next) => {
+  var statusCode;
+
+  // Checking if the error is related to sequelize unique constraint error
+  if (error.details instanceof sequelize.UniqueConstraintError) {
+    // Extracting field name.
+    const field = error.details.errors[0].path;
+
+    // Extracting appropriate status code and error message.
+    const message = errorsJSON.constraints.messages[field];
+    statusCode = errorsJSON.constraints.code;
+
+    // Set the flash object to the error message.
+    req.flash('error', message);
+  } else {
+    // Extracting appropriate status code and error message.
+    const message = errorsJSON.server.Unexpected.message;
+    statusCode = errorsJSON.server.Unexpected.code;
+
+    // Set the flash object to the error message.
+    req.flash('error', message);
+
+    // Logging the error to the console.
+    console.error(error);
+  }
+
+  // Redirect the user to sign in page.
+  res.status(statusCode).redirect('/signIn.html');
 };
 
 /**
@@ -255,8 +310,8 @@ const serverError = (error, req, res, next) => {
   console.error(error);
 
   // Extracting appropriate message and status code.
-  const message = errorsJSON.serverErrors.Unexpected.message;
-  const statusCode = errorsJSON.serverErrors.Unexpected.code;
+  const message = errorsJSON.server.Unexpected.message;
+  const statusCode = errorsJSON.server.Unexpected.code;
 
   res.status(statusCode).json({ type: 'ServerError', details: { message } });
 };

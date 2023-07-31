@@ -11,7 +11,7 @@ import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
 import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KE);
 
 export default (User) => {
   /**
@@ -69,6 +69,9 @@ export default (User) => {
    * @property {string} Email - The user's email.
    */
   User.afterSave(async (user) => {
+    // Skip emial verification process if the user registers using google or facebook
+    if (user.GoogleID || user.FacebookID) return;
+
     // Extacting the user's UserID, Firstname, Email.
     const { UserID, Firstname, Email } = user;
 

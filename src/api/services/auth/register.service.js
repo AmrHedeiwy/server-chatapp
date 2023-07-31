@@ -73,7 +73,7 @@ export const verifyEmail = async (token) => {
     const user = await db.User.findByPk(decoded.UserID);
 
     // If the user is not found, throw an EmailVerificationError.
-    if (!user) throw new EmailVerificationError('InvalidVerificationLink');
+    if (!user) throw new EmailVerificationError('VerificationLink');
 
     // Set the user's IsVerified flag to true and save the changes to the database
     await user.update({ IsVerified: true });

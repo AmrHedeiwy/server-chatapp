@@ -2,11 +2,16 @@
   "create_user": {
     "message": "Your account has been created. Please check your email to verify it.",
     "code": 201,
-    "redirect": "/signIn.html"
+    "redirect": "/email-verification.html"
   },
   "signin_user": {
     "message": "You have successfully signed into your account.",
     "code": 200,
     "redirect": "/chat.html"
+  },
+  "user_verified": {
+    "message": "You have successfully verified your account. You can now sign in.",
+    "code": 200,
+    "redirect": "/sign-in.html"
   }
 }

@@ -7,7 +7,7 @@ import passport from 'passport';
 import registerService from './register.service.js';
 import localStrategyService from './local.service.js';
 import facebookStrategyService from './facebook.service.js';
-import googleStrategyService from './google.sevice.js';
+import googleStrategyService from './google.service.js';
 import { serializeUser, deserializeUser } from './serialization.service.js';
 
 // Local strategy

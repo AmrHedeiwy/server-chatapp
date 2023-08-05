@@ -3,9 +3,11 @@ dotenv.config({ path: './src/config/.env' });
 import Joi from 'joi';
 import sequelize from 'sequelize';
 import {
-  EmailVerificationError,
+  EmailError,
   AuthenticationError,
-  SocialMediaAuthenticationError
+  SocialMediaAuthenticationError,
+  VerificationCodeError,
+  UserNotFoundError
 } from '../helpers/ErrorTypes.helper.js';
 
 // Loading the validation, contraint, and server errors from errors.json file
@@ -33,9 +35,20 @@ const errorMiddleware = (error, req, res, next) => {
   ) {
     validationError(error, req, res, next);
   }
-  // Handle email verification errors.
-  else if (error instanceof EmailVerificationError) {
-    emailVerificationError(error, req, res, next);
+
+  // Handle emailing-related errors.
+  else if (error instanceof EmailError) {
+    emailError(error, req, res, next);
+  }
+
+  // Handle code verification errors.
+  else if (error instanceof VerificationCodeError) {
+    verificationCodeError(error, req, res, next);
+  }
+
+  // Handle user not found errors.
+  else if (error instanceof UserNotFoundError) {
+    userNotFoundError(error, req, res, next);
   }
 
   // Handles authentication errors.
@@ -63,10 +76,7 @@ const errorMiddleware = (error, req, res, next) => {
  * @returns {Object} A response object containg information about the error with
  * status code 400 Bad Request.
  *
- * The response object contains the following:
- *  - Key: Field name where the error occured.
- *  - Value: Appropriate error message based on the field name.
- * @example { Firstname: '<error_message>', Lastname: '<error_message>' }
+ * @example { type: 'ConstraintError', details: { Firstname: '<error_message>', Lastname: '<error_message>' } }
  */
 const validationError = (error, req, res, next) => {
   // Extracting the appropriate status code.
@@ -125,7 +135,7 @@ const validationError = (error, req, res, next) => {
         message = `${field} is required.`;
       } else {
         // Else extract the error message from errors.json file.
-        message = errorsJSON.validationErrors.messages[field];
+        message = errorsJSON.validations.messages[field];
       }
 
       // Add the field name as the key and the error message as the value to the accumulator.
@@ -153,10 +163,7 @@ const validationError = (error, req, res, next) => {
  * @returns {Object} A response object containg information about the error with
  * status code 422 Unprocessable Entity.
  *
- * The response object contains the following:
- *  - Key: Field name where the error occured.
- *  - Value: Appropriate error message based on the field name.
- * @example { Email: '<error_message>' }
+ * @example { type: 'ConstraintError', details: { message: '<error_message>'} }
  */
 const constraintError = (error, req, res, next) => {
   // Extracting field name.
@@ -180,58 +187,71 @@ const constraintError = (error, req, res, next) => {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} A response object containg information about the error.
+ * @returns {Object} A response object containg information about the error with
+ * appropriate status code based on the error type.
  *
- * The response object contains the following:
- * Key: EmailVerificationError.
- * Value: Error message.
- * @example { EmailVerificationError: '<error_message>' }
+ * Email errors could occur by:
+ * - The user has not verified their email. (500 Internal Server Error)
+ * - The server fails to send the email to the user. (403 Forbidden)
+ *
+ * @example { type: 'EmailError', details: { message: '<error_message>' } }
  */
-const emailVerificationError = (error, req, res, next) => {
-  let message;
-  let statusCode;
+const emailError = (error, req, res, next) => {
+  const statusCode = errorsJSON.server.Email[error.type].code;
+  const message = errorsJSON.server.Email[error.type].message;
 
-  /**
-   * Extracting the appropriate error message depending on the type.
-   *
-   * Email verification errors could occur by:
-   * - The user has not verified their email account.
-   * - The verification link is invalid or has expired.
-   * - The server fails to send the email.
-   */
-  switch (error.type) {
-    case 'NotVerified':
-      // Extracting appropriate status code and error message.
-      statusCode = errorsJSON.server.EmailVerification.NotVerified.code;
-      message = errorsJSON.server.EmailVerification.NotVerified.message;
+  res.status(statusCode).json({
+    type: 'EmailError',
+    details: { message }
+  });
+};
 
-      res
-        .status(statusCode)
-        .json({ type: 'NotVerified', details: { message } });
-      break;
-    case 'VerificationLink':
-      // Extracting appropriate status code and error message.
-      message = errorsJSON.server.EmailVerification.VerificationLink.message;
-      statusCode = errorsJSON.server.EmailVerification.VerificationLink.code;
+/**
+ * For verification code errors.
+ *
+ * @middleware
+ * @param {Object} error - The object containg error information.
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information about the error with
+ * appropriate status code based on the error type.
+ *
+ * Email errors could occur by:
+ * - The verification code has expried. (410 Gone)
+ * - The verification code the user entered is invalid. (400 Bad Request)
+ *
+ * @example { type: 'VerificationCode', details: { message: '<error_message>' } }
+ */
+const verificationCodeError = (error, req, res, next) => {
+  const statusCode = errorsJSON.server.VerificationCode[error.type].code;
+  const message = errorsJSON.server.VerificationCode[error.type].message;
 
-      // Add the error message to the flash message and redirect to the registration page.
-      req.flash('error', message);
-      res.status(statusCode).redirect('/signIn.html');
-      break;
-    case 'FailToSendEmailVerification':
-      // Log the error to the server.
-      console.error(error);
+  res
+    .status(statusCode)
+    .json({ type: 'VerificationCode', details: { message } });
+};
 
-      // Extracting appropriate status code and error message based on the error type.
-      message = errorsJSON.server.EmailVerification.SendError.message;
-      statusCode = errorsJSON.server.EmailVerification.SendError.code;
+/**
+ * For user not found errors.
+ *
+ * @middleware
+ * @param {Object} error - The object containg error information.
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The next middleware in the chain.
+ * @returns {Object} A response object containg information about the error with
+ * status code 404 Not Found.
+ *
+ * @example { type: 'UserNotFound', details: { message: '<error_message>' } }
+ */
+const userNotFoundError = (error, req, res, next) => {
+  // Extracting appropriate status code and error message.
+  statusCode = errorsJSON.server.UserNotFound.code;
+  message = errorsJSON.server.UserNotFound.message;
 
-      res.status(statusCode).json({
-        type: 'EmailVerificationError',
-        details: { message }
-      });
-      break;
-  }
+  // Add the error message to the flash message and redirect to the registration page.
+  res.status(statusCode).json({ type: 'UserNotFound', details: { message } });
 };
 
 /**
@@ -242,12 +262,15 @@ const emailVerificationError = (error, req, res, next) => {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} A response object containg information about the error.
+ * @returns {Object} A response object containg information about the error with
+ * status code 400 Bad Request.
+ *
+ * @example { type: 'AuthenticationError', details: { message: '<error_message>' } }
  */
 const authenticationError = (error, req, res, next) => {
   // Extracting appropriate status code and error message.
-  const statusCode = errorsJSON.server.UserNotFound.code;
-  const message = errorsJSON.server.UserNotFound.message;
+  const statusCode = errorsJSON.server.signin.code;
+  const message = errorsJSON.server.signin.message;
 
   res
     .status(statusCode)
@@ -262,26 +285,31 @@ const authenticationError = (error, req, res, next) => {
  * @param {Object} req - The HTTP request object.
  * @param {Object} res - The HTTP response object.
  * @param {Function} next - The next middleware in the chain.
- * @returns {Object} A response object containg information about the error.
+ * @returns {URL} Redirect the user to the sign-up page.
+ *
+ * Error occurence:
+ * - If the email is already being used.
+ * - Any other error that could occur during the social-media
+ * account selection.
  */
 const socialMediaAuthenticationError = (error, req, res, next) => {
   var statusCode;
 
-  // Checking if the error is related to sequelize unique constraint error
+  // Checking if the error is related to sequelize unique constraint error.
   if (error.details instanceof sequelize.UniqueConstraintError) {
     // Extracting field name.
     const field = error.details.errors[0].path;
 
     // Extracting appropriate status code and error message.
-    const message = errorsJSON.constraints.messages[field];
     statusCode = errorsJSON.constraints.code;
+    const message = errorsJSON.constraints.messages[field];
 
     // Set the flash object to the error message.
     req.flash('error', message);
   } else {
     // Extracting appropriate status code and error message.
-    const message = errorsJSON.server.Unexpected.message;
     statusCode = errorsJSON.server.Unexpected.code;
+    const message = errorsJSON.server.Unexpected.message;
 
     // Set the flash object to the error message.
     req.flash('error', message);
@@ -290,8 +318,8 @@ const socialMediaAuthenticationError = (error, req, res, next) => {
     console.error(error);
   }
 
-  // Redirect the user to sign in page.
-  res.status(statusCode).redirect('/signIn.html');
+  // Redirect the user to the sign-in page.
+  res.status(statusCode).redirect('/sign-in.html');
 };
 
 /**

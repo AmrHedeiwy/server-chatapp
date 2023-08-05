@@ -8,7 +8,7 @@ router.get('/', (req, res, next) => {
   if (req.session && req.user) {
     return res.redirect('/chat.html');
   }
-  res.redirect('/signIn.html');
+  res.redirect('/sign-in.html');
 });
 
 router.use('/auth', authRouter);

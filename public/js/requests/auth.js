@@ -60,3 +60,49 @@ export async function signInCheckReq() {
     console.error(JSON.parse(await err.text()));
   }
 }
+
+export async function emailVerificationCheckReq(token) {
+  const reqParams = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  try {
+    return await fetch(
+      `/auth/emailVerificationCheck?token=${token}`,
+      reqParams
+    ).then((response) => {
+      if (response.ok) {
+        return response;
+      }
+      throw response;
+    });
+  } catch (err) {
+    console.error(JSON.parse(await err.text()));
+  }
+}
+
+export async function emailVerificationReq(token, verificationCode) {
+  const body = { Token: token, VerificationCode: verificationCode };
+
+  const reqParams = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  };
+
+  try {
+    return await fetch(`/auth/verify-email`, reqParams).then((response) => {
+      if (response.ok) {
+        return response;
+      }
+      throw response;
+    });
+  } catch (err) {
+    return err;
+  }
+}

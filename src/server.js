@@ -4,16 +4,16 @@
  *
  * @module server.js
  */
-
-import express from 'express';
-import session from 'express-session';
-import path, { dirname } from 'path';
-import { passport } from './api/services/auth/index.service.js';
-import RedisStore from 'connect-redis';
-import { createClient } from 'redis';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import express from 'express';
+import session from 'express-session';
+import { passport } from './api/services/auth/index.service.js';
 import flash from 'connect-flash';
+import RedisStore from 'connect-redis';
+import { redisClient } from './config/redisClient.js';
+import path, { dirname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 // Importing the Sequelize instnace.
 import db from './api/models/index.js';
@@ -34,9 +34,7 @@ const io = new Server(server);
 // Serve static files from the public directory
 app.use(express.static(publicPath));
 
-// Initialize the Redis client and store.
-const redisClient = createClient();
-redisClient.connect().catch(console.error);
+// Initialize the Redis store.
 const redisStore = new RedisStore({
   client: redisClient,
   prefix: 'session:',

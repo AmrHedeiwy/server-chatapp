@@ -18,21 +18,31 @@
     "code": 422
   },
   "server": {
-    "UserNotFound": {
+    "signin": {
       "message": "Invalid email or password.",
       "code": 400
     },
-    "EmailVerification": {
-      "VerificationLink": {
-        "message": "Verification link is invalid or has expired.",
-        "code": 410
-      },
-      "SendError": {
-        "message": "We're sorry, but we were unable to send a verification email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
+    "Email": {
+      "FailedToSend": {
+        "message": "We're sorry, but we were unable to send an email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
         "code": 500
       },
       "NotVerified": {
         "message": "Please verify your email and try again.",
+        "code": 403
+      }
+    },
+    "UserNotFound": {
+      "message": "User not found. Please make sure you have registered an account.",
+      "code": 404
+    },
+    "VerificationCode": {
+      "Expired": {
+        "message": "The verification code has expired.",
+        "code": 410
+      },
+      "Invalid": {
+        "message": "The verification code is invalid",
         "code": 400
       }
     },

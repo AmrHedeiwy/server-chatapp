@@ -7,7 +7,7 @@
 import db from '../../models/index.js';
 import {
   AuthenticationError,
-  EmailVerificationError
+  EmailError
 } from '../../helpers/ErrorTypes.helper.js';
 import { Strategy } from 'passport-local';
 import bcrypt from 'bcrypt';
@@ -56,7 +56,7 @@ const localStrategy = new Strategy(customFields, async function (
 
     // Check if the user's account is verified.
     if (!user.dataValues.IsVerified) {
-      throw new EmailVerificationError('NotVerified');
+      throw new EmailError('NotVerified');
     }
 
     // Remove the password field from the user object and pass it to the done() callback with a success message

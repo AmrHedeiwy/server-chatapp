@@ -22,30 +22,22 @@ export class BaseError extends Error {
 }
 
 /**
- * Error class for email verification-related errors. Extends the `BaseError` class.
+ * Error class for email-related errors. Extends the `BaseError` class.
  *
  * @class
  * @extends BaseError
  * @param {string} type - The error type.
- * @param {Object|null} errors - Additional error detials.
  */
-export class EmailVerificationError extends BaseError {
-  constructor(type, errors) {
+export class EmailError extends BaseError {
+  constructor(type) {
     super();
 
     /**
-     * The type of the email verification error.
-     *
-     * @type {string}
+     * Types:
+     * - 'NotVerified' -> The user has not verified their email.
+     * - 'FailedToSend' -> The server fails to send the email to the user.
      */
     this.type = type;
-
-    /**
-     * Additonal error details, if any.
-     *
-     * @type {Object|null}
-     */
-    this.errors = errors || null;
   }
 }
 
@@ -66,10 +58,47 @@ export class AuthenticationError extends BaseError {
  *
  * @class
  * @extends BaseError
+ * @param {string} details - Additional information about the error.
+ *
+ * Error occurence:
+ * - If the email is already being used.
+ * - Any other error that could occur during the social-media
+ * account selection.
  */
 export class SocialMediaAuthenticationError extends BaseError {
   constructor(details) {
     super();
+
     this.details = details || null;
+  }
+}
+
+/**
+ * Error class for verification code errors. Extends the `BaseError` class.
+ *
+ * @class
+ * @extends BaseError
+ * @param {string} type - The error type.
+ */
+export class VerificationCodeError extends BaseError {
+  constructor(type) {
+    super();
+
+    /**
+     * The type of the email error.
+     *
+     * Types:
+     * - 'Expired' -> The verification code has expired.
+     * - 'Invalid' -> The verification code the user entered is invalid.
+     *
+     * @type {string}
+     */
+    this.type = type || null;
+  }
+}
+
+export class UserNotFoundError extends BaseError {
+  constructor() {
+    super();
   }
 }

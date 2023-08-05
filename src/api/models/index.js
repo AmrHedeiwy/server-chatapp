@@ -65,6 +65,7 @@ async function loadModels() {
           hooksModule.default(model, sequelize);
         })
         .catch((err) => {
+          console.error(err);
           return;
         });
     }
@@ -73,12 +74,12 @@ async function loadModels() {
 
 await loadModels();
 
-// Call the `associate` function for each model, if it exists
-Object.keys(db).forEach((modelName) => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
-});
+// // Call the `associate` function for each model, if it exists
+// Object.keys(db).forEach((modelName) => {
+//   if (db[modelName].associate) {
+//     db[modelName].associate(db);
+//   }
+// });
 
 // Add the Sequelize instance to the `db` and export it
 db.sequelize = sequelize;

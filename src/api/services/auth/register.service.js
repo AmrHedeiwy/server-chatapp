@@ -1,87 +1,103 @@
 import jwt from 'jsonwebtoken';
 import db from '../../models/index.js';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
-import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
+import {
+  UserNotFoundError,
+  VerificationCodeError
+} from '../../helpers/ErrorTypes.helper.js';
+import { redisClient } from '../../../config/redisClient.js';
 
 /**
- * Creates a new user using the user's register credentials.
+ * Registers a new user with the provided data.
  *
- * @async
- * @function
- * @param {Object} data - Contains the user's data.
- * The object shuld have the following properties:
- * - Firstname
- * - Lastname
- * - Username
- * - Email
- * - Password
- * @throws {sequelize.ValidationError|sequelize.UniqueConstraintError} If an error occurred during
- * the database transaction, an error object will be returned with error details.
- *
- * @returns {Object}  An object containing the status code, message, redirect if the operation was successful.
- * The object contains the following properties:
- * - status: The status depending on the result of the opperation.
- * - message: A user-friendly message to be sent to the client indicating the result of the operation.
- * - redirect: The URL to redirect to after a successful operation.
- *
- * @returns {Object} An object containing the error details if an error occurred during the transaction.
- * The object contains the following properties:
- * - errors: The error object containing error details.
+ * @param {Object} data - The user data to be registered.
+ * @returns {Promise<Object>} - A Promise that resolves to an object containing the registration status, details, and user's email.
+ * @throws {Error} - Thrown when an error occurs during the registration process.
  */
 export const registerUser = async (data) => {
-  // Create a transaction.
+  // Start a database transaction
   const t = await db.sequelize.transaction();
 
   try {
-    // Attempt to save the user to the database.
-    await db.User.create(data, { validate: true, transaction: t });
+    // Create a new user with the provided data, validating the input and using the transaction
+    const user = await db.User.create(data, { validate: true, transaction: t });
 
-    // Commit the transaction if everything succeeded.
+    // Commit the transaction
     await t.commit();
 
-    // Return the status code and message to be sent to the client.
+    // Encrypt the user's ID for security
+    const encryptedID = jwt.sign(user.dataValues.UserID, 'mysec');
+
+    // Construct the redirect URL with the encrypted ID
+    const redirectURL = `${successJSON.create_user.redirect}?token=${encryptedID}`;
+
+    // Return the success response with the status, message, redirect URL, and user's email
     return {
       status: successJSON.create_user.code,
       message: successJSON.create_user.message,
-      redirect: successJSON.create_user.redirect
+      redirect: redirectURL,
+      // To display the user's email when they are redirected to the email-verification page.
+      email: user.dataValues.Email
     };
   } catch (err) {
-    // Rollback the transaction if anything fails.
+    console.log(err);
+    // Rollback the transaction if an error occurs
     await t.rollback();
 
-    // Return the `err` object containing the error details.
+    // Return the error response
     return { errors: err };
   }
 };
 
 /**
- * Verifies an email verification token and updates the user
- * record in the database.
+ * Verifies the user's email using the provided verification code.
  *
  * @async
- * @function
- * @param {string} token - The email verification token to verify.
- * @throws {EmailVerificationError} If the email is not found in the database.
- * @returns {void} Returns with no value if the verification is successful.
+ * @param {string} UserID - The unique identifier of the user.
+ * @param {string} VerificationCode - The verification code provided by the user.
+ * @returns {Promise<Object>} - A Promise that resolves to an object containing the verification status.
+ * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.
+ * @throws {UserNotFoundError} - Thrown when the user is not found in the database.
  */
-export const verifyEmail = async (token) => {
+export const verifyEmail = async (UserID, VerificationCode) => {
   try {
-    // Verify the token using the secret.
-    const decoded = jwt.verify(token, 'mysec');
+    // Retrieve the stored verification code from Redis
+    const store = JSON.parse(
+      await redisClient.get(`email_verification:${UserID}`)
+    );
 
-    // Find the user in the database using the decoded user ID.
-    const user = await db.User.findByPk(decoded.UserID);
+    // Throw an error if the stored verification code is not found (expired)
+    if (!store) {
+      throw new VerificationCodeError('Expired');
+    }
 
-    // If the user is not found, throw an EmailVerificationError.
-    if (!user) throw new EmailVerificationError('VerificationLink');
+    // Throw an error if the provided verification code does not match the stored code
+    if (store.verificationCode !== VerificationCode) {
+      throw new VerificationCodeError('Invalid');
+    }
 
-    // Set the user's IsVerified flag to true and save the changes to the database
-    await user.update({ IsVerified: true });
+    // Delete the verification code from Redis
+    await redisClient.del(`email_verification:${UserID}`);
 
-    // Return no value to indicate success
-    return;
+    // Update the user's IsVerified status in the database
+    const result = await db.User.update(
+      { IsVerified: true },
+      { where: { UserID } }
+    );
+
+    // Throw an error if the user is not found in the database
+    if (result != 1) {
+      throw new UserNotFoundError('NotFound');
+    }
+
+    // Return a success response
+    return {
+      message: successJSON.user_verified.message,
+      status: successJSON.user_verified.code,
+      redirect: successJSON.user_verified.redirect
+    };
   } catch (err) {
-    // If an error occurs, return an object with an `error` property containing the err object.
+    // Return an error response
     return { error: err };
   }
 };

@@ -32,8 +32,10 @@ export const deserializeUser = async (user, done) => {
    * If the user does not exist pass false as
    * the second parameter to the callback function.
    */
-  if (existingUser) done(null, user);
-  else done(null, false);
+  if (existingUser) {
+    delete user.Password;
+    done(null, user);
+  } else done(null, false);
 };
 
 export default { serializeUser, deserializeUser };

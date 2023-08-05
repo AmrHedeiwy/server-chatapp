@@ -6,10 +6,11 @@ import authController from '../controllers/auth.controller.js';
 router.post('/register', authController.register);
 
 // Email verification route.
-router.get('/verify-email/:token', authController.emailVerification);
+router.post('/verify-email', authController.emailVerification);
 
-// Check users session when visting login page.
+// Check users session when visting login or email verification pages.
 router.get('/signInCheck', authController.signInCheck);
+router.get('/emailVerificationCheck', authController.emailVerificationCheck);
 
 // Sign in using local strategy.
 router.post('/signin', authController.signIn);

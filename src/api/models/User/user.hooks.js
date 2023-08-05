@@ -7,11 +7,12 @@ dotenv.config({ path: './src/config/.env' });
 */
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
-import { EmailVerificationError } from '../../helpers/ErrorTypes.helper.js';
+import { EmailError } from '../../helpers/ErrorTypes.helper.js';
+import { redisClient } from '../../../config/redisClient.js';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KE);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default (User) => {
   /**
@@ -19,14 +20,16 @@ export default (User) => {
    * followed by a 4-digit UUID.
    * @example 'Emna#1636'
    *
-   * @param {import('../models').User} user - The User model instance.
+   * @param {import('./user.model.js').User} user - The User model instance.
    *
    * The following properties used from the User model:
    * @property {string} Username - The user's Username.
    */
   User.beforeCreate(async (user) => {
     // Generates a 4-digit UUID.
-    const uuidGenerator = parseInt(uuidv4().replace('-', ''), 16) % 10000;
+    const uuidGenerator = String(
+      parseInt(uuidv4().replace(/-/g, ''), 16) % 10000
+    ).padStart(4, '0');
 
     user.Username = user.Username + '#' + uuidGenerator;
   });
@@ -69,33 +72,44 @@ export default (User) => {
    * @property {string} Email - The user's email.
    */
   User.afterSave(async (user) => {
-    // Skip emial verification process if the user registers using google or facebook
+    // Skip email verification process if the user registers using google or facebook
     if (user.GoogleID || user.FacebookID) return;
 
     // Extacting the user's UserID, Firstname, Email.
     const { UserID, Firstname, Email } = user;
 
-    // Generates a JSON Web Token (JWT) containing the provided user ID.
-    const verficationToken = jwt.sign({ UserID }, 'mysec');
+    // Generate a 6-digit verification code
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
+
+    redisClient.setEx(
+      `email_verification:${UserID}`,
+      60 * 60,
+      JSON.stringify({ email: Email, verificationCode })
+    );
 
     // Custom email message.
     const msg = {
       to: Email,
       from: 'amr.hedeiwy@gmail.com',
-      subject: 'Verify your email address',
-      html: `<p>Dear ${Firstname},</p>
-    <p>Please click the following link to verify your email address:</p>
-    <p><a href="${process.env.BASE_URL}/auth/verify-email/${verficationToken}">Verify Email</a></p>
-    <p>Regards,</p>
-    <p>Deiwy Team</p>`
+      subject: 'Email Verification Code',
+      html: `
+      <p>Hello ${Firstname},</p>
+      <p>Thank you for registering with our service. To complete the registration process, please enter the following verification code:</p>
+      <h1>${verificationCode}</h1>
+      <p>Please enter this code on the registration page to verify your email address.</p>
+      <p>If you did not request this verification code, please ignore this email.</p>
+      <p>Best regards,</p>
+      <p>Amr Hedeiwy</p>
+    `
     };
 
     // Attempt to send an email to the user's email.
     try {
       await sgMail.send(msg);
     } catch (err) {
+      console.error(err);
       // throw a new EmailVericficationError.
-      throw new EmailVerificationError('FailToSendEmailVerification', err);
+      throw new EmailError('FailedToSend', err);
     }
   });
 };

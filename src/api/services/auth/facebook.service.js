@@ -4,6 +4,7 @@ import { Strategy } from 'passport-facebook';
 import db from '../../models/index.js';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
 import { SocialMediaAuthenticationError } from '../../helpers/ErrorTypes.helper.js';
+import sequelize from 'sequelize';
 
 /**
  * Facebook Strategy for Passport authentication.
@@ -19,13 +20,23 @@ const facebookStrategy = new Strategy(
     callbackURL: 'http://localhost:3000/auth/facebook/callback',
     profileFields: ['id', 'first_name', 'last_name', 'email']
   },
+  /**
+   * Authenticates and handles a user profile obtained from Facebook OAuth.
+   *
+   * @param {string} accessToken - The access token obtained from Facebook OAuth.
+   * @param {string} refreshToken - The refresh token obtained from Facebook OAuth.
+   * @param {Object} profile - The user profile obtained from Facebook OAuth.
+   * @param {function} done - The callback function to be called when authentication is complete.
+   * @returns {Promise<void>} - A promise that resolves when authentication is successful or rejects with an error.
+   * @throws {EmailError} - Thrown when the user is not verified.
+   * @throws {sequelize.UniqueConstraintError} - If the user already exists BUT without a FacebookID.
+   */
   async function (accessToken, refreshToken, profile, done) {
-    console.log(profile);
-    // Extract user information from the Facebook profile object.
+    // Extract user information from the Facebook profile object
     const { id, first_name, last_name, email } = profile._json;
 
     try {
-      // Find or create a new user based on their Facebook ID.
+      // Find or create a new user based on their Facebook ID
       const [user, created] = await db.User.findOrCreate({
         where: { FacebookID: id },
         defaults: {
@@ -37,21 +48,16 @@ const facebookStrategy = new Strategy(
         }
       });
 
-      // If the user is found or created successfully, return the user data and success message.
-      if (user) {
-        // Remove password field from user data before sending it to the client.
-        delete user.dataValues.Password;
-        done(null, user.dataValues, {
-          message: successJSON.signin_user.message,
-          status: successJSON.signin_user.code,
-          redirect: successJSON.signin_user.redirect
-        });
-      } else {
-        // If there is an error finding or creating the user, return a SocialMediaAuthenticationError.
-        done(new SocialMediaAuthenticationError('Passport Facebook Error'));
-      }
+      // If there is an error finding or creating the user, return a SocialMediaAuthenticationError
+      if (!user)
+        throw new SocialMediaAuthenticationError('Passport Facebook Error');
+
+      done(null, user.dataValues, {
+        message: successJSON.signin_user.message,
+        status: successJSON.signin_user.code,
+        redirect: successJSON.signin_user.redirect
+      });
     } catch (err) {
-      // If there is an exception thrown during authentication, return a SocialMediaAuthenticationError.
       done(new SocialMediaAuthenticationError(err));
     }
   }

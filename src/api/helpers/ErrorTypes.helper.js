@@ -4,17 +4,12 @@
  *
  * @class
  * @extends Error
- * @param {string} message - The error message
  */
 export class BaseError extends Error {
   constructor() {
     super();
 
-    /**
-     * The name of the error class.
-     *
-     * @type {string}
-     */
+    // Set the name to the name of the constuctor function
     this.name = this.constructor.name;
 
     Error.captureStackTrace(this, this.constructor);
@@ -22,48 +17,47 @@ export class BaseError extends Error {
 }
 
 /**
- * Error class for email-related errors. Extends the `BaseError` class.
+ * Represents an error related to email functionality.
  *
  * @class
  * @extends BaseError
- * @param {string} type - The error type.
+ * @param {string} type - The type of email error.
+ *
+ * Possible types:
+ * - 'NotVerified' -> The user has not verified their email.
+ * - 'FailedToSend' -> The server fails to send the email to the user.
  */
 export class EmailError extends BaseError {
   constructor(type) {
     super();
 
-    /**
-     * Types:
-     * - 'NotVerified' -> The user has not verified their email.
-     * - 'FailedToSend' -> The server fails to send the email to the user.
-     */
     this.type = type;
   }
 }
 
 /**
- * Error class for authetication errors. Extends the `BaseError` class.
+ * Represents an error that occurs when a user fails to sign in due to
+ * incorrect email or password.
  *
  * @class
  * @extends BaseError
  */
-export class AuthenticationError extends BaseError {
+export class SignInError extends BaseError {
   constructor() {
     super();
   }
 }
 
 /**
- * Error class for social media authentication errors. Extends the `BaseError` class.
+ * Represents an error that occurs during social media authenticaion.
  *
  * @class
  * @extends BaseError
- * @param {string} details - Additional information about the error.
+ * @param {string|null} details - Additional details about the error occurence.
  *
- * Error occurence:
- * - If the email is already being used.
- * - Any other error that could occur during the social-media
- * account selection.
+ * Possible values:
+ * - If the email is already being used (sequelize.UniqueConstraintError).
+ * - Any other error that could occur during the social-media account selection.
  */
 export class SocialMediaAuthenticationError extends BaseError {
   constructor(details) {
@@ -74,29 +68,43 @@ export class SocialMediaAuthenticationError extends BaseError {
 }
 
 /**
- * Error class for verification code errors. Extends the `BaseError` class.
+ * Represents an error that occurs during verification code validation.
  *
  * @class
  * @extends BaseError
- * @param {string} type - The error type.
+ * @param {string} type - The type of verification code error.
+ *
+ * Possible types:
+ * - 'Expired' -> The verification code has expired.
+ * - 'Invalid' -> The verification code the user entered is invalid.
  */
 export class VerificationCodeError extends BaseError {
   constructor(type) {
     super();
 
-    /**
-     * The type of the email error.
-     *
-     * Types:
-     * - 'Expired' -> The verification code has expired.
-     * - 'Invalid' -> The verification code the user entered is invalid.
-     *
-     * @type {string}
-     */
-    this.type = type || null;
+    this.type = type;
   }
 }
 
+/**
+ * Represents an error during reset password requests.
+ * This error is only generated during verification of the JWT token at the Joi resetPasswordSchema.
+ *
+ * @class
+ * @extends BaseError
+ */
+export class ResetPasswordError extends BaseError {
+  constructor() {
+    super();
+  }
+}
+
+/**
+ * Error class for User not found errors. Extends the `BaseError` class.
+ *
+ * @class
+ * @extends BaseError
+ */
 export class UserNotFoundError extends BaseError {
   constructor() {
     super();

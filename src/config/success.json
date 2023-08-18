@@ -5,13 +5,21 @@
     "redirect": "/email-verification.html"
   },
   "signin_user": {
-    "message": "You have successfully signed into your account.",
     "code": 200,
     "redirect": "/chat.html"
   },
   "user_verified": {
-    "message": "You have successfully verified your account. You can now sign in.",
+    "message": "You have successfully verified your account.",
     "code": 200,
     "redirect": "/sign-in.html"
+  },
+  "change_password": {
+    "message": "Congratulations! Your password has been successfully changed.",
+    "code": 200,
+    "redirect": "/sign-in.html"
+  },
+  "user_emailed": {
+    "message": "Your new verification code has been sent.",
+    "code": 200
   }
 }

@@ -53,48 +53,27 @@ export default (sequelize, DataTypes) => {
       },
       Firstname: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          notEmpty: true,
-          is: /^[A-Za-z]{2,30}$/
-        }
+        allowNull: false
       },
       Lastname: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          notEmpty: true,
-          is: /^[A-Za-z]{2,30}$/
-        }
+        allowNull: false
       },
       Username: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          notEmpty: true,
-          is: /^[A-Za-z\d_-]{3,20}$/
-        }
+        allowNull: false
       },
       Email: {
         type: DataTypes.STRING,
         unique: true,
-        allowNull: false,
-        validate: {
-          notEmpty: true,
-          isEmail: true,
-          isLowercase: true
-        }
+        allowNull: false
       },
       Password: {
         type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          is: /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&*]{8,}$/
-        }
+        allowNull: true
       },
       IsVerified: {
         type: DataTypes.BOOLEAN,
-        allowNull: false,
         defaultValue: false
       }
     },

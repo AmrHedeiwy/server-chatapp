@@ -11,9 +11,8 @@ import session from 'express-session';
 import { passport } from './api/services/auth/index.service.js';
 import flash from 'connect-flash';
 import RedisStore from 'connect-redis';
-import { redisClient } from './config/redisClient.js';
+import { redisClient } from './config/redis-client.js';
 import path, { dirname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 // Importing the Sequelize instnace.
 import db from './api/models/index.js';
@@ -76,13 +75,12 @@ app.use(errorMiddleware);
 const wrapper = (middlware) => (socket, next) =>
   middlware(socket.request, {}, next);
 io.use(wrapper(sessionMiddleware));
-io.use(wrapper(flash()));
 
 // code bellow is for testing purposes
 // Authenticate Socket.io connections.
 io.use(async (socket, next) => {
   if (!socket.request.session.passport?.user) {
-    next(new Error('not auth'));
+    return next(new Error('not auth'));
   }
   next();
 });
@@ -108,11 +106,9 @@ io.on('connection', (socket) => {
  *
  * @function main
  */
-async function main() {
+(async function main() {
   await db.sequelize.sync();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);
   });
-}
-
-main();
+})();

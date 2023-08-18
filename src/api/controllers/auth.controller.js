@@ -2,119 +2,146 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import { registerService } from '../services/auth/index.service.js';
 import validation from '../middlewares/validation.middleware.js';
+import mailerService from '../services/auth/mailer.service.js';
 import {
   registerSchema,
-  signInSchema
+  signInSchema,
+  resetPasswordSchema
 } from '../validations/auth.validation.js';
+import { setNewPassword } from '../services/auth/register.service.js';
 
 /**
- * Registers a new user by validating the registration data, creating a user record,
- * and generating an email verification token.
+ * Route handler for registering a user.
  *
- * @param {Array} register - An array of middleware functions for user registration.
- * @returns {Array} - An array of middleware functions for user registration.
+ * This route expects a POST request with the following parameters in the request body:
+ * - Firstname: The first name of the user.
+ * - Lastname: The last name of the user.
+ * - Username: The username of the user.
+ * - Email: The email address of the user.
+ * - Password: The password of the user.
+ * - ConfirmPassword: The re-entered password.
+ *
+ * This route performs the following steps:
+ * 1. Validates the request body at the validation middleware using the Joi registerSchema.
+ * 2. Adds the new user to the database using the addUser function.
+ * 3. Sends a verification code to the user's email for email verification using the beforeSave() hook in the User model.
+ * 4. If an error occurs during the saving process, it will be passed to the error handling middleware.
+ * 5. If the saving process is successful, a success flash message is stored in the req.flash object.
+ * 6. A needsVerification property is populated in the session with the following properties: 'Email', 'Firstname'.
+ * 7. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const register = [
-  // Middleware function that validates the request body against the Joi schema.
   validation(registerSchema),
-  /**
-   * Middleware function for registering a new user.
-   *
-   * @param {Object} req - The request object.
-   * @param {Object} res - The response object.
-   * @param {Function} next - The next middleware function.
-   */
   async (req, res, next) => {
     const body = req.body;
 
-    // Register the user and obtain the registration status, message, redirect URL, email, and errors.
-    const { status, message, redirect, email, errors } =
-      await registerService.registerUser(body);
+    const { status, message, redirect, user, error } =
+      await registerService.addUser(body);
 
-    // If errors occurred during registration, pass them to the error-handling middleware.
-    if (errors) return next(errors);
+    if (error) return next(error);
 
-    // Store the user's email as a token, for security, in the session to display it to the user in email verification page.
-    req.session.verification = {
-      needsVerification: true,
-      emailToken: await jwt.sign(email, 'mysec')
+    /**
+     * Populate the needsVerification object in the session.
+     *
+     * The needsVerification object is needed for the following reasons:
+     * - To allow the user to access the email-verification.html page.
+     * - To display the user's email in the email-verification.html page.
+     * - To display the user's first name in the email-verification.html page.
+     * - To use the email and the first name when resending the verifiaction code to the email.
+     * - To use the email as the key when searching in the redis store in order to validate the verification code.
+     */
+    req.session.needsVerification = {
+      Email: user.Email,
+      Firstname: user.Firstname
     };
 
-    // Flash a success message.
     req.flash('success', message);
 
-    // Redirect the user to the specified URL.
     res.status(status).redirect(redirect);
   }
 ];
 
 /**
- * Checks if email verification is required for the current session.
- * It also checks for any flash messages to display to the user.
+ * Route handler for sending verification code for email-verification.
  *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function.
- * @returns {void} - Returns nothing.
+ * This route expects a POST request with the following parameters in the request:
+ * - Firstname: The first name of the user.
+ * - Email: The email address to verify.
+ *
+ * These parameters are extracted from either:
+ * - 'req.user' : If the user is already signed in since PassportJS populates the user object to the request.
+ * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
+ * or changed their email.
+ *
+ * ** The needsVerification property will be populated to user's session at the the end of the route incase it does not exist **
+ *
+ * This route performs the following steps:
+ * 1. Sends the new verification code to the user's email using the sendVerificaitonCode function.
+ * 2. If an error occurs during the saving process, it will be passed to the error handling middleware.
+ * 3. If the emailing process is successful, a needsVerification property is populated to the session with the following properties:
+ * 'Email', 'Firstname'.
+ * 4. Finally, the response is sent with the appropriate status code and message.
  */
-export const emailVerificationCheck = async (req, res, next) => {
-  // Check if email verification is required.
-  if (!req.session.verification?.needsVerification) {
-    // Redirect to sign-in page if verification is not needed.
-    res.redirect('/sign-in.html');
-  } else {
-    // Verify the email token.
-    let email = jwt.verify(req.session.verification.emailToken, 'mysec');
+export const emailVerificationRequest = async (req, res, next) => {
+  const { Firstname, Email } = req.session?.needsVerification || req?.user;
 
-    // Extract the username and domain from the email.
-    const [username, domain] = email.split('@');
+  const { message, status, error } = await registerService.sendVerificationCode(
+    Firstname,
+    Email
+  );
+  if (error) return next(error);
 
-    // Mask the username by replacing middle characters with asterisks.
-    const maskedUsername =
-      username.charAt(0) +
-      '*'.repeat(username.length - 2) +
-      username.charAt(username.length - 1);
+  /**
+   * The needsVerification object is needed for the following reasons:
+   * - To allow the user to access the email-verification.html page.
+   * - To display the user's email in the email-verification.html page.
+   * - To display the user's first name in the email-verification.html page.
+   * - To use the email and the first name when resending the verifiaction code to the email.
+   * - To use the email as the key when searching in the redis store in order to validate the verification code.
+   */
+  req.session.needsVerification = {
+    Email,
+    Firstname
+  };
 
-    // Create a masked email by combining the masked username and domain.
-    const maskedEmail = `${maskedUsername}@${domain}`;
-
-    // Get flash messages from the session and delete them afterwards.
-    const flashMessages = req.session.flash;
-    delete req.session.flash;
-
-    // Send a JSON response with the masked email and flash messages.
-    res.json({ Email: maskedEmail, FlashMessages: flashMessages });
-  }
+  res.status(status).json(message);
 };
 
 /**
- * Handles the email verification process by validating the verification token
- * and verification code, and updating the user's verification status.
+ * Route handler for verifing the user's email.
  *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function.
+ * This route expects a POST request with the following parameters in the request body:
+ * - VerificationCode: The 6-digit verification code to verify the email.
+ *
+ * It also requires the following additional parameters:
+ * - Firstname: The first name of the user.
+ * - Email: The email address to verify.
+ *
+ * These additional parameters are extracted from either:
+ * - 'req.user' : If the user is already signed in since PassportJS populates the user object to the request.
+ * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
+ * or changed their email.
+ *
+ * This route performs the following steps:
+ * 1. Validates the verification code and updates their verification status to the database using the verifyEmail function.
+ * 3. If an error occurs during the verification process, it will be passed to the error handling middleware.
+ * 4. If the verificaiton is successful, we delete the needsVerification object from the session to prevent further access
+ * to the email verification page.
+ * 5. A success flash message is stored in the req.flash object.
+ * 6. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const emailVerification = async (req, res, next) => {
-  const { Token, VerificationCode } = req.body;
+  const { VerificationCode } = req.body;
 
-  // Verify the token and obtain the user ID.
-  const UserID = await jwt.verify(Token, 'mysec', async (err, decoded) => {
-    if (err) next(err);
-    return decoded;
-  });
+  const { Email } = req.session?.needsVerification || req.user;
 
-  // Verify the user's email and obtain the verification status, message, redirect URL, and error.
   const { message, status, redirect, error } =
-    await registerService.verifyEmail(UserID, VerificationCode);
+    await registerService.verifyEmail(Email, VerificationCode);
 
-  // If an error occurred during email verification, pass it to the error-handling middleware.
   if (error) return next(error);
 
-  // Delete the verification object from the session to prevent further access to the email verification page.
-  delete req.session.verification;
+  delete req.session.needsVerification;
 
-  // Flash a success message.
   req.flash('success', message);
 
   // Redirect the user to the specified URL
@@ -122,80 +149,218 @@ export const emailVerification = async (req, res, next) => {
 };
 
 /**
- * Checks if the user is already signed in and redirects them to their chat page if so.
- * It also checks for any flash messages to display to the user.
+ * Route handler for retrieving authentication information based on the requested page.
  *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function.
- * @returns {void} - Returns nothing.
+ * This route expects a GET request and expects the page name as a parameter in the URL.
+ *
+ * The available pages and their corresponding behaviors are as follows:
+ *
+ * 1. 'profile':
+ *     - If the user is not signed in, it redirects to the sign-in page with a 401 status code.
+ *
+ * 2. 'sign-in':
+ *    - If the user is already signed in, it redirects to the chat page.
+ *    - If the user needs to verify their email, it redirects to the email verification page.
+ *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
+ *    - If there are no flash messages, it returns a JSON response indicating there are no flash messages.
+ *
+ * 3. 'email-verification':
+ *    - If email verification is not required, it redirects to the sign-in page with a 401 status code.
+ *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
+ *    - It extracts the first name and email from the session, masks the email, and returns a JSON response with the masked email, first name, and flash messages.
+ *
+ * 4. 'reset-password':
+ *    - If the reset password session data is not available, it redirects to the sign-in page with a 401 status code.
+ *
+ * 5. 'forgot-password':
+ *    - It gets flash messages from the session, returns them as a JSON response, and clears the session.
  */
-export const signInCheck = (req, res, next) => {
-  // Check if the user is already signed in.
-  if (req.user) {
-    // Redirect to the chat page if the user is signed in.
-    return res.redirect('/chat.html');
-  }
-  // Get flash messages from the session.
-  const flashMessages = req.session.flash;
+export const getAuthInfo = async (req, res, next) => {
+  const { Page } = req.params;
 
-  // Check if there are any flash messages.
-  if (flashMessages) {
-    // Destroy the session to clear flash messages.
-    req.session.destroy();
-    // Send the flash messages as a JSON response.
-    return res.json(flashMessages);
+  // Profile
+  if (Page === 'profile') {
+    if (!req.isAuthenticated())
+      return res.status(401).redirect('/sign-in.html');
   }
 
-  // Send a JSON response indicating that there are no flash messages
-  res.json(false);
+  // Sign in
+  else if (Page === 'sign-in') {
+    // Redirect to their chat page if the user is signed in.
+    if (req.isAuthenticated()) return res.redirect('/chat.html');
+
+    // Redirect to email verification page if the user needs to verify their email
+    if (req.session.needsVerification)
+      return res.redirect('email-verification');
+
+    const flashMessages = req.session.flash;
+
+    if (flashMessages) {
+      // Destroy the session to clear flash messages.
+      req.session.destroy();
+      return res.json(flashMessages);
+    }
+
+    // Send a JSON response indicating that there are no flash messages
+    res.json(false);
+  }
+
+  // Email verificaiton
+  else if (Page === 'email-verification') {
+    // Redirect to sign-in page if email verification is not needed
+    if (!req.session.needsVerification)
+      return res.status(401).redirect('/sign-in.html');
+
+    const flashMessages = req.session.flash;
+    delete req.session.flash;
+
+    let { Firstname, Email } = req.session.needsVerification;
+
+    // Extract the username and domain from the email
+    const [username, domain] = Email.split('@');
+
+    // Mask the username by replacing middle characters with asterisks
+    const maskedUsername =
+      username.charAt(0) +
+      '*'.repeat(username.length - 2) +
+      username.charAt(username.length - 1);
+
+    /**
+     * Create a masked email by combining the masked username and domain
+     * @example Email: 'example@gmail.com' -> Masked: 'e*****e@gmail.com'
+     */
+    const maskedEmail = `${maskedUsername}@${domain}`;
+
+    res.status(200).json({
+      Email: maskedEmail,
+      Firstname,
+      FlashMessages: flashMessages
+    });
+  }
+
+  // reset password
+  else if (Page === 'reset-password') {
+    if (!req.session.resetPassword) return res.status(401).redirect('/sign-in');
+  }
+
+  // forgot password
+  else if (Page === 'forgot-password') {
+    const flashMessages = req.session.flash;
+    delete req.session.flash;
+
+    res.json({ FlashMessages: flashMessages });
+  }
 };
 
 /**
- * Authenticates a user by validating the sign-in data and using passport for authentication.
+ * Route handler for initiating a password reset request.
  *
- * @param {Array} signIn - An array of middleware functions for user sign-in.
- * @returns {Array} - An array of middleware functions for user sign-in.
+ * This route expects a POST request with the following parameters in the request body:
+ * - Email: The email address to send the request to.
+ *
+ * This route performs the following steps:
+ * 1. Checks if the user with the provided email exists using the checkUserExists function.
+ * 2. If an error occurs during the search process, it will be passed to the error handling middleware.
+ * 3. If the user is found, a JWT token is generated with the user's ID to expire in 15 minutes and used as the token in the URL.
+ * 4. Sends a reset password link to the user's email.
+ * 5. If an error occurs during the emailing process, it will be passed to the error handling middleware.
+ * 6. If the emailing process is successful, a resetPassword property is added to the session.
+ * 7. Finally, the response is sent with the appropriate status code and message.
+ */
+export async function forgotPasswordRequest(req, res, next) {
+  const { Email } = req.body;
+
+  const { user, error } = await registerService.checkUserExists('Email', Email);
+  if (error) return next(error);
+
+  const useridToken = jwt.sign(
+    {
+      UserID: user.UserID
+    },
+    'mysec',
+    { expiresIn: '15m' }
+  );
+
+  const { message, status, failed } = await mailerService(
+    'Password',
+    user.Firstname,
+    Email,
+    {
+      useridToken
+    }
+  );
+  if (failed) return next(failed);
+
+  // To allow the user to access the reset-password.html page.
+  req.session.resetPassword = true;
+
+  res.status(status).json(message);
+}
+
+/**
+ * Route handler for resetting a user's password.
+ *
+ * This route expects a POST request with the following parameters in the request body:
+ * - Token: The user's token for password reset.
+ * - NewPassword: The new password to set for the user.
+ *
+ * This route performs the following steps:
+ * 1. Validates the request body using the Joi resetPasswordSchema.
+ * 2. Sets the new password for the user using the setNewPassword function.
+ * 3. If an error occurs during the password reset process, it will be passed to the error handling middleware.
+ * 4. If the password reset is successful, a success flash message is stored in the req.flash object.
+ * 5. The resetPassword property in the session is deleted to prevent the user from visiting the page again.
+ * 6. Finally, the response is sent with the appropriate status code and redirect URL.
+ */
+export const resetPassword = [
+  validation(resetPasswordSchema),
+  async (req, res, next) => {
+    // The JWT Token is decoded during the validation using the resetPasswordSchema
+    const { Token, NewPassword } = req.body;
+
+    const { message, redirect, status, error } = await setNewPassword(
+      Token.UserID,
+      NewPassword
+    );
+    if (error) return next(error);
+
+    req.flash('success', message);
+    delete req.session.resetPassword;
+
+    res.status(status).redirect(redirect);
+  }
+];
+
+/**
+ * Route handler for user sign-in using local strategy.
+ *
+ * This route expects a POST request with the following parameters in the request body:
+ * - Email: The email address of the user.
+ * - Password: The password of the user.
+ *
+ * This route performs the following steps:
+ * 1. Validates the request body using the Joi signInSchema.
+ * 2. Authenticates the user using the Passport Local Strategy.
+ * 3. If an error occurs during the authentication process, it will be passed to the error handling middleware.
+ * 4. If the authentication is successful, the req.login method provided by PassportJS is called to sign in the user.
+ * 5. If the process is successful, the response is sent with the appropriate status code and redirect URL.
  */
 export const signIn = [
-  // Middleware function that validates the request body against the Joi schema.
   validation(signInSchema),
-  /**
-   * Middleware function for user sign-in.
-   *
-   * @param {Object} req - The request object.
-   * @param {Object} res - The response object.
-   * @param {Function} next - The next middleware function.
-   */
   async (req, res, next) => {
-    // Use passport to authenticate the user.
     passport.authenticate(
       'local',
       { passReqToCallback: true },
       async (err, user, info) => {
-        // Handle invalid email or password errors.
         if (err) return next(err);
 
         /**
-         * Authentication success.
-         *
-         * Add a passport object to the session
-         * containing the user's UserID.
-         * @example passport { user: UserID: <UUID> }
-         *
-         * Adds a user property to the request object.
-         * @example { UserID: <UUID> }
+         * Add a passport object to the session containing the user's UserID.
+         * @example passport { user: UserID: '<UUID>' }
          */
-
-        // Log in the user using req.login method provided by passport.
-        req.login(user, (err) => {
-          // Handle error.
+        req.logIn(user, (err) => {
           if (err) return next(err);
 
-          // Flash a success message.
-          req.flash('success', info.message);
-
-          // Redirect the user to the specified URL.
           res.status(info.status).redirect(info.redirect);
         });
       }
@@ -206,48 +371,31 @@ export const signIn = [
 /**
  * Initiates the Facebook sign-up process by authenticating the user using the 'facebook' strategy with specified scopes.
  *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function.
- * @returns {void} - Returns nothing.
+ * Scopes: 'email'
  */
 export const facebookSignUp = passport.authenticate('facebook', {
   scope: ['email']
 });
 
 /**
- * Facebook sign-up callback function that authenticates the user using the 'facebook' strategy.
+ * Route handler for facebook sign-up callback function that authenticates the user using the 'facebook' strategy.
  *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The next middleware in the chain.
- * @returns {void} - Returns nothing.
+ * This route performs the following steps:
+ * 1. If an error occurs during the authentication process, it will be passed to the error handling middleware.
+ * 2. If the authentication is successful, we call the req.login method provided by PassportJS to sign in the user.
+ * 3. If the process is successful, a success flash message is stored in the req.flash object.
+ * 4. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const facebookSignUpCallback = async (req, res, next) => {
   passport.authenticate(
     'facebook',
-    { failureRedirect: '/auth/register', passReqToCallback: true },
-    /**
-     * Callback function after authenticating the user.
-     *
-     * @param {boolean} err - Indicates if there are any errors.
-     * @param {object} user - The user's credentials.
-     * @param {object} info - The information about the status code and the page the user is redirected to.
-     * @returns {void} - Returns nothing.
-     */
+    { passReqToCallback: true },
     async (err, user, info) => {
       if (err) return next(err);
 
       /**
-       * Authentication successded.
-       *
-       * Add a passport object to the session
-       * containing the user's UserID.
-       * @example passport { user: UserID: <UUID> }
-       *
-       * Adds a user property to the request object containing all
-       * the user's data except the password.
-       * @example { UserID: <UUID>, Firstname: 'Amr', Lastname: 'Hedeiwy' }
+       * Add a passport object to the session containing the user's UserID.
+       * @example passport { user: UserID: '<UUID>' }
        */
       req.login(user, (err) => {
         if (err) return next(err);
@@ -262,38 +410,33 @@ export const facebookSignUpCallback = async (req, res, next) => {
 
 /**
  * Initiates the Google sign-up process by authenticating the user using the 'google' strategy with specified scopes.
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function.
- * @returns {void} - Returns nothing.
+ *
+ * Scopes: 'email', 'profile'
  */
 export const googleSignUp = passport.authenticate('google', {
   scope: ['email', 'profile']
 });
 
 /**
- * Google sign-up callback function that authenticates the user using the 'google' strategy.
+ * Route handler for google sign-up callback function that authenticates the user using the 'google' strategy.
  *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The next middleware in the chain.
- * @returns {void} - Returns nothing.
+ * This route performs the following steps:
+ * 1. If an error occurs during the authentication process, it will be passed to the error handling middleware.
+ * 2. If the authentication is successful, we call the req.login method provided by PassportJS to sign in the user.
+ * 3. If the process is successful, a success flash message is stored in the req.flash object.
+ * 4. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const googleSignUpCallback = async (req, res, next) => {
   passport.authenticate(
     'google',
-    { failureRedirect: '/auth/register', passReqToCallback: true },
-    /**
-     * Callback function after authenticating the user.
-     *
-     * @param {boolean} err - Indicates if there are any errors.
-     * @param {object} user - The user's credentials.
-     * @param {object} info - The information about the status code and the page the user is redirected to.
-     * @returns {void} - Returns nothing.
-     */
+    { passReqToCallback: true },
     async (err, user, info) => {
       if (err) return next(err);
 
+      /**
+       * Add a passport object to the session containing the user's UserID.
+       * @example passport { user: UserID: '<UUID>' }
+       */
       req.login(user, (err) => {
         if (err) return next(err);
 
@@ -307,12 +450,14 @@ export const googleSignUpCallback = async (req, res, next) => {
 
 export default {
   register,
+  emailVerificationRequest,
   emailVerification,
-  emailVerificationCheck,
+  forgotPasswordRequest,
+  resetPassword,
   signIn,
-  signInCheck,
   facebookSignUp,
   facebookSignUpCallback,
   googleSignUp,
-  googleSignUpCallback
+  googleSignUpCallback,
+  getAuthInfo
 };

@@ -3,8 +3,6 @@ import Joi from 'joi';
 /**
  * Returns middlware that validates the user's data.
  *
- * @async
- * @function
  * @param {Joi.schema} schema - The Joi schema to validate the request
  * object against.
  * @returns {Function} The next middleware in the chain.
@@ -39,20 +37,6 @@ const validation =
       req.body = value;
       next();
     } catch (err) {
-      // Ensuring a consistant error format.
-      err.details.forEach((error) => {
-        // Field name where the error occured.
-        error.path = error.path[0];
-
-        /**
-         * Names of validation errors.
-         * - Can be `is` which means the field does not follow
-         * a regex pattern.
-         * - Can be `string.empty` or `any.required` which means the
-         * field was left empty.
-         */
-        error.validatorName = error.type;
-      });
       next(err);
     }
   };

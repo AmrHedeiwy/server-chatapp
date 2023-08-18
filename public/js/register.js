@@ -1,4 +1,4 @@
-import { registerUserReq } from './requests/auth.js';
+import { sendServerRequest } from './requests/auth.js';
 
 const registerForm = document.querySelector('#registerForm');
 
@@ -10,7 +10,7 @@ registerForm.addEventListener('submit', async (e) => {
     registerUsername: '',
     registerEmail: '',
     registerPassword: '',
-    registerRepeatPassword: '',
+    registerConfirmPassword: '',
     registerTermsOfAgreement: false
   };
 
@@ -29,11 +29,14 @@ registerForm.addEventListener('submit', async (e) => {
   for (const key in formElements) {
     document.querySelector(`#${key}`).classList.remove('is-invalid');
     document.querySelector(`#${key}`).innerHTML = '';
-    console.log(document.querySelector(`#${key}Row`));
     document.querySelector(`#${key}Row`).style.paddingBottom = '';
   }
 
-  // Formating the key names
+  /**
+   * Formating the key names
+   *
+   * @example { registerEmail -> Email }
+   */
   const formatedData = Object.entries(formElements).reduce(
     (acc, [key, value]) => {
       // removing the word `register` from the key name.
@@ -44,8 +47,12 @@ registerForm.addEventListener('submit', async (e) => {
     {}
   );
 
-  // Make the register request to the server
-  const { error, redirect } = await registerUserReq(formatedData);
+  // Send request to register the user
+  const { error, redirect } = await sendServerRequest(
+    '/auth/register',
+    'POST',
+    formatedData
+  );
 
   // Check for errors
   if (error) {

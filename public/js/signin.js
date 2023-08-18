@@ -1,4 +1,4 @@
-import { signInUserReq, signInCheckReq } from './requests/auth.js';
+import { sendServerRequest } from './requests/auth.js';
 
 const signInForm = document.querySelector('#signInForm');
 
@@ -9,6 +9,12 @@ signInForm.addEventListener('submit', async (e) => {
     signInPassword: ''
   };
 
+  // Reseting all the styles to its original form.
+  for (const key in formElements) {
+    document.querySelector(`#${key}`).classList.remove('is-invalid');
+    document.querySelector(`#${key}`).innerHTML = '';
+  }
+
   // Getting the values of the fields
   document.querySelectorAll('input').forEach((input) => {
     if (input.id in formElements) {
@@ -16,13 +22,11 @@ signInForm.addEventListener('submit', async (e) => {
     }
   });
 
-  // Reseting all the styles to its original form.
-  for (const key in formElements) {
-    document.querySelector(`#${key}`).classList.remove('is-invalid');
-    document.querySelector(`#${key}`).innerHTML = '';
-  }
-
-  // Formating the key names
+  /**
+   * Formating the key names
+   *
+   * @example { signInEmail -> Email }
+   */
   const formatedData = Object.entries(formElements).reduce(
     (acc, [key, value]) => {
       // removing the word `signIn` from the key name.
@@ -33,9 +37,14 @@ signInForm.addEventListener('submit', async (e) => {
     {}
   );
 
-  // Make the sign in request to the server
-  const { error, redirect } = await signInUserReq(formatedData);
+  // Send request to sign in the user
+  const { error, redirect } = await sendServerRequest(
+    '/auth/sign-in',
+    'POST',
+    formatedData
+  );
 
+  console.log(error, redirect);
   // Check for errors
   if (error) {
     switch (error.type) {
@@ -68,22 +77,30 @@ signInForm.addEventListener('submit', async (e) => {
   window.location.href = redirect;
 });
 
-async function checkInfo() {
-  const response = await signInCheckReq();
-  if (response.redirected) {
-    return (window.location.href = response.url);
-  }
-  const flashMessages = await response.json();
+/**
+ * This funciton is executed when the reset-password.html page is loaded to check
+ * the user's session for the following reasons:
+ *
+ * 1. Check if they are aleady signed in and redirect them to their profile if so.
+ * 2. Check if user has any flash messages and display them.
+ */
+(async function getInfo() {
+  // Send request to retrive user information
+  const { message, redirect } = await sendServerRequest(
+    '/auth/info/sign-in',
+    'GET'
+  );
 
-  if (flashMessages) {
-    Object.entries(flashMessages).forEach(([key, value]) => {
+  if (redirect) {
+    return (window.location.href = redirect);
+  }
+  if (message) {
+    Object.entries(message).forEach(([type, message]) => {
       new Alert({
-        type: key,
-        message: value,
+        type: type,
+        message: message,
         withProgress: true
       });
     });
   }
-}
-
-checkInfo();
+})();

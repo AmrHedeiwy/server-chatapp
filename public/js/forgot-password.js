@@ -11,19 +11,24 @@ forgotPasswordForm.addEventListener('submit', async (e) => {
   const body = { Email: email };
 
   // Send request for forgot password
-  const { message, error } = await sendServerRequest(
+  const { message, error, redirect } = await sendServerRequest(
     '/auth/forgot-password',
     'POST',
     body
   );
 
+  if (redirect) return (window.location.href = redirect);
+
   // Check for errors
   if (error) {
-    new Alert({
-      type: 'error',
-      message: error.details.message,
-      withProgress: true
+    Object.entries(error.details).forEach(([key, value]) => {
+      new Alert({
+        type: 'error',
+        message: value,
+        withProgress: true
+      });
     });
+
     return;
   }
 

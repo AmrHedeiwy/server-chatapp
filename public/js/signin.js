@@ -44,12 +44,11 @@ signInForm.addEventListener('submit', async (e) => {
     formatedData
   );
 
-  console.log(error, redirect);
   // Check for errors
   if (error) {
-    switch (error.type) {
+    switch (error.name) {
       // Showing each error based on their type
-      case 'ValidationError':
+      case 'JoiValidationError':
         Object.keys(formatedData).forEach((inputKey) => {
           if (inputKey in error.details) {
             document
@@ -64,7 +63,8 @@ signInForm.addEventListener('submit', async (e) => {
         new Alert({
           type: 'error',
           message: error.details.message,
-          withProgress: true
+          withProgress: true,
+          duration: 7
         });
         break;
     }

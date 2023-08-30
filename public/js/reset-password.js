@@ -56,7 +56,7 @@ resetForgotPasswordForm.addEventListener('submit', async (e) => {
 
             // Calculate the height of the error message
             const errorHeight = document
-              .querySelector(`#${inputKey}`)
+              .querySelector(`#${inputKey}Feedback`)
               .getBoundingClientRect().height;
 
             // Add padding to the input container based on the height of the error message

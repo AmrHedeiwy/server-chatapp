@@ -101,10 +101,7 @@ class $Alert {
 
     // Remove an Alert message from the DOM.
     if (this.destroy) {
-      setTimeout(
-        () => this.alert.parentElement?.removeChild(this.alert),
-        this.expires ? 1000 : 500
-      );
+      setTimeout(() => this.alert.parentElement?.removeChild(this.alert), 500);
     }
   }
 

@@ -57,8 +57,8 @@ registerForm.addEventListener('submit', async (e) => {
   // Check for errors
   if (error) {
     // Showing each error based on their type
-    switch (error.type) {
-      case 'ValidationError':
+    switch (error.name) {
+      case 'JoiValidationError':
         Object.keys(formatedData).forEach((inputKey) => {
           if (inputKey in error.details) {
             document

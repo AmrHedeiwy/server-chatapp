@@ -55,7 +55,6 @@ const sessionMiddleware = session({
 
 // Initialize session storage, Passport middleware, and flash middleware.
 app.use(sessionMiddleware);
-app.use(passport.session());
 app.use(passport.initialize());
 app.use(flash());
 
@@ -66,6 +65,25 @@ app.use(express.urlencoded({ extended: true }));
 // Import routes and error handling middleware.
 import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
+
+const excludePassportSession = (req, res, next) => {
+  const url = req.url;
+
+  if (
+    url.endsWith('/sign-in') ||
+    url.endsWith('/chat') ||
+    url.endsWith('/profile')
+  ) {
+    // Exclude the register route from Passport session handling
+    return passport.session()(req, res, next);
+  }
+
+  // For other routes, continue with Passport session handling
+  return next();
+};
+
+// Apply the middleware to the routes
+app.use(excludePassportSession);
 
 // Mount routes and error handling middleware on the app.
 app.use(routes);

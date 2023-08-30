@@ -1,10 +1,27 @@
 import Joi from 'joi';
-import { ResetPasswordError } from '../helpers/ErrorTypes.helper.js';
-import jwt from 'jsonwebtoken';
+import { JoiValidationError } from '../helpers/ErrorTypes.helper.js';
 
 /**
- * Register Schema
+ * Formats an array of errors into a JoiValidationError object.
  *
+ * @param {Array} errors - The array of errors to be formatted.
+ * @returns {JoiValidationError} new instance of JoiValidationError with the formatted error.
+ */
+function errorFormatter(errors) {
+  const formattedError = errors.reduce((acc, err) => {
+    /**
+     * Pushes the error code and label to the array.
+     *
+     * @example acc.push({ code: 'string.empty', label: 'Email' })
+     */
+    acc.push({ code: err.code, label: err.local.label });
+
+    return acc;
+  }, []);
+  return new JoiValidationError(formattedError);
+}
+
+/**
  * Joi schema for validating the register request payload.
  *
  * @type {Joi.ObjectSchema}
@@ -51,11 +68,11 @@ export const registerSchema = Joi.object({
     })
     .strip(),
   TermsOfAgreement: Joi.boolean().valid(true).required().strip()
-}).options({ abortEarly: false });
+})
+  .options({ abortEarly: false })
+  .error(errorFormatter);
 
 /**
- * Sign in Schema
- *
  * Joi schema for validating the sign in request payload.
  *
  * @type {Joi.ObjectSchema}
@@ -65,28 +82,18 @@ export const registerSchema = Joi.object({
 export const signInSchema = Joi.object({
   Email: Joi.string().email().required(),
   Password: Joi.string().required()
-}).options({ abortEarly: false });
+})
+  .options({ abortEarly: false })
+  .error(errorFormatter);
 
 /**
- * Reset Password Schema
- *
  * Joi schema for validating the reset password request payload.
  *
  * @type {Joi.ObjectSchema}
- * @property {Joi.StringSchema} Token - The token for password reset, verified using the secret.
  * @property {Joi.StringSchema} NewPassword - The new password for the user.
  * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the new password, should match the 'NewPassword' field.
  */
 export const resetPasswordSchema = Joi.object({
-  Token: Joi.string()
-    .custom((value, helpers) => {
-      try {
-        return jwt.verify(value, 'mysec');
-      } catch (error) {
-        throw helpers.error('any.custom', error);
-      }
-    })
-    .error(new ResetPasswordError()),
   NewPassword: Joi.string()
     .trim()
     .pattern(
@@ -103,4 +110,16 @@ export const resetPasswordSchema = Joi.object({
       'any.required': '"ConfirmPassword" is not allowed to be empty'
     })
     .strip()
-});
+})
+  .unknown()
+  .error(errorFormatter);
+
+/**
+ * Joi schema for validating the sign in request payload.
+ *
+ * @type {Joi.ObjectSchema}
+ * @property {Joi.StringSchema} Email - Must be a valid email address and present.
+ */
+export const forgotPasswordRequestSchema = Joi.object({
+  Email: Joi.string().email().required()
+}).error(errorFormatter);

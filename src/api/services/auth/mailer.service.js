@@ -31,7 +31,7 @@ const sendEmail = async (type, Firstname, Email, options) => {
   };
 
   // Construct the email message based on the type
-  if (type == 'Email') {
+  if (type == 'verification-code') {
     msg.subject = 'Email Verification Code';
     msg.html = `
       <p>Hello ${Firstname},</p>
@@ -42,7 +42,7 @@ const sendEmail = async (type, Firstname, Email, options) => {
       <p>Best regards,</p>
       <p>Amr Hedeiwy</p>
     `;
-  } else if (type == 'Password') {
+  } else if (type == 'reset-password') {
     msg.subject = 'Password Reset Request';
     msg.html = `
       <p>Dear ${Firstname},</p>
@@ -53,7 +53,7 @@ const sendEmail = async (type, Firstname, Email, options) => {
       <p>If clicking the button above doesn't work, you can copy and paste the following URL into your browser's address bar:</p>
       <p>http://localhost:3000/reset-password.html?token=${options.useridToken}</p>
       <p>If you did not request a password reset, please disregard this email. Your account is secure, and no changes have been made.</p>
-      <p>Please note that the password reset link is valid for a limited time, typically within 15 minutes. If the link expires, you can request another password reset by visiting the [Forgot Password] page on our website.</p>
+      <p>Please note that the password reset link is valid for a limited time, typically within 1 hour. If the link expires, you can request another password reset by visiting the [Forgot Password] page on our website.</p>
       <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at amr.hedeiwy@gmail.com.</p>
       <p>Thank you for using Deiwy.</p>
       <p>Best regards,<br>Hedeiwy<br>Deiwy</p>
@@ -65,7 +65,7 @@ const sendEmail = async (type, Firstname, Email, options) => {
     await sgMail.send(msg);
 
     return {
-      message: successJSON.user_emailed.message,
+      message: successJSON.user_emailed.messages[type],
       status: successJSON.user_emailed.code
     };
   } catch (err) {

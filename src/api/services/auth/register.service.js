@@ -2,12 +2,14 @@ import db from '../../models/index.js';
 import successJSON from '../../../config/success.json' assert { type: 'json' };
 import {
   EmailError,
+  SequelizeConstraintError,
   UserNotFoundError,
   VerificationCodeError
 } from '../../helpers/ErrorTypes.helper.js';
 import { redisClient } from '../../../config/redis-client.js';
 import mailerService from './mailer.service.js';
 import crypto from 'crypto';
+import sequelize from 'sequelize';
 
 /**
  * Registers a new user.
@@ -40,7 +42,12 @@ export const addUser = async (data) => {
     await t.rollback();
 
     // Return the error response
-    return { error: err };
+    return {
+      error:
+        err instanceof sequelize.UniqueConstraintError
+          ? new SequelizeConstraintError(err)
+          : err
+    };
   }
 };
 
@@ -57,16 +64,16 @@ export const sendVerificationCode = async (firstname, email) => {
     // Generate a 6-digit verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString();
 
-    // Store the verification code in Redis with a TTL of 1 hour
+    // Store the verification code in Redis with a TTL of 15 minutes (code expires in 15 minutes)
     await redisClient.setEx(
       `email_verification:${email}`,
-      60 * 60,
+      60 * 15,
       JSON.stringify({ verificationCode })
     );
 
     // Send the verification code via email using the mailerService
     const { message, status, failed } = await mailerService(
-      'Email',
+      'verification-code',
       firstname,
       email,
       {

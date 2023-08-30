@@ -6,9 +6,17 @@ import mailerService from '../services/auth/mailer.service.js';
 import {
   registerSchema,
   signInSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  forgotPasswordRequestSchema
 } from '../validations/auth.validation.js';
 import { setNewPassword } from '../services/auth/register.service.js';
+import {
+  ipRateLimiter,
+  emailRateLimiter,
+  emailSkipSucessRequest
+} from '../middlewares/rate-limit.middleware.js';
+import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
+import { ResetPasswordError } from '../helpers/ErrorTypes.helper.js';
 
 /**
  * Route handler for registering a user.
@@ -22,15 +30,17 @@ import { setNewPassword } from '../services/auth/register.service.js';
  * - ConfirmPassword: The re-entered password.
  *
  * This route performs the following steps:
- * 1. Validates the request body at the validation middleware using the Joi registerSchema.
- * 2. Adds the new user to the database using the addUser function.
- * 3. Sends a verification code to the user's email for email verification using the beforeSave() hook in the User model.
- * 4. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 5. If the saving process is successful, a success flash message is stored in the req.flash object.
- * 6. A needsVerification property is populated in the session with the following properties: 'Email', 'Firstname'.
- * 7. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
+ * 2. Validates the request body at the validation middleware using the Joi registerSchema.
+ * 3. Adds the new user to the database using the addUser function.
+ * 4. Sends a verification code to the user's email for email verification using the beforeSave() hook in the User model.
+ * 5. If an error occurs during the saving process, it will be passed to the error handling middleware.
+ * 6. If the saving process is successful, a success flash message is stored in the req.flash object.
+ * 7. A needsVerification property is populated in the session with the following properties: 'Email', 'Firstname'.
+ * 8. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const register = [
+  ipRateLimiter,
   validation(registerSchema),
   async (req, res, next) => {
     const body = req.body;
@@ -68,44 +78,43 @@ export const register = [
  * - Firstname: The first name of the user.
  * - Email: The email address to verify.
  *
- * These parameters are extracted from either:
- * - 'req.user' : If the user is already signed in since PassportJS populates the user object to the request.
+ * These parameters are extracted from the follwoing:
  * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
  * or changed their email.
  *
- * ** The needsVerification property will be populated to user's session at the the end of the route incase it does not exist **
- *
  * This route performs the following steps:
- * 1. Sends the new verification code to the user's email using the sendVerificaitonCode function.
- * 2. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 3. If the emailing process is successful, a needsVerification property is populated to the session with the following properties:
+ * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
+ * 2. Sends the new verification code to the user's email using the sendVerificaitonCode function.
+ * 3. If an error occurs during the saving process, it will be passed to the error handling middleware.
+ * 4. If the emailing process is successful, a needsVerification property is populated to the session with the following properties:
  * 'Email', 'Firstname'.
- * 4. Finally, the response is sent with the appropriate status code and message.
+ * 5. Finally, the response is sent with the appropriate status code and message.
  */
-export const emailVerificationRequest = async (req, res, next) => {
-  const { Firstname, Email } = req.session?.needsVerification || req?.user;
+export const emailVerificationRequest = [
+  emailRateLimiter,
+  async (req, res, next) => {
+    const { Firstname, Email } = req.session?.needsVerification;
 
-  const { message, status, error } = await registerService.sendVerificationCode(
-    Firstname,
-    Email
-  );
-  if (error) return next(error);
+    const { message, status, error } =
+      await registerService.sendVerificationCode(Firstname, Email);
+    if (error) return next(error);
 
-  /**
-   * The needsVerification object is needed for the following reasons:
-   * - To allow the user to access the email-verification.html page.
-   * - To display the user's email in the email-verification.html page.
-   * - To display the user's first name in the email-verification.html page.
-   * - To use the email and the first name when resending the verifiaction code to the email.
-   * - To use the email as the key when searching in the redis store in order to validate the verification code.
-   */
-  req.session.needsVerification = {
-    Email,
-    Firstname
-  };
+    /**
+     * The needsVerification object is needed for the following reasons:
+     * - To allow the user to access the email-verification.html page.
+     * - To display the user's email in the email-verification.html page.
+     * - To display the user's first name in the email-verification.html page.
+     * - To use the email and the first name when resending the verifiaction code to the email.
+     * - To use the email as the key when searching in the redis store in order to validate the verification code.
+     */
+    req.session.needsVerification = {
+      Email,
+      Firstname
+    };
 
-  res.status(status).json(message);
-};
+    res.status(status).json(message);
+  }
+];
 
 /**
  * Route handler for verifing the user's email.
@@ -117,36 +126,39 @@ export const emailVerificationRequest = async (req, res, next) => {
  * - Firstname: The first name of the user.
  * - Email: The email address to verify.
  *
- * These additional parameters are extracted from either:
- * - 'req.user' : If the user is already signed in since PassportJS populates the user object to the request.
+ * These additional parameters are extracted from the following:
  * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
  * or changed their email.
  *
  * This route performs the following steps:
- * 1. Validates the verification code and updates their verification status to the database using the verifyEmail function.
+ * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
+ * 2. Validates the verification code and updates their verification status to the database using the verifyEmail function.
  * 3. If an error occurs during the verification process, it will be passed to the error handling middleware.
  * 4. If the verificaiton is successful, we delete the needsVerification object from the session to prevent further access
  * to the email verification page.
  * 5. A success flash message is stored in the req.flash object.
  * 6. Finally, the response is sent with the appropriate status code and redirect URL.
  */
-export const emailVerification = async (req, res, next) => {
-  const { VerificationCode } = req.body;
+export const emailVerification = [
+  emailRateLimiter,
+  async (req, res, next) => {
+    const { VerificationCode } = req.body;
 
-  const { Email } = req.session?.needsVerification || req.user;
+    const Email = req.session?.needsVerification.Email;
 
-  const { message, status, redirect, error } =
-    await registerService.verifyEmail(Email, VerificationCode);
+    const { message, status, redirect, error } =
+      await registerService.verifyEmail(Email, VerificationCode);
 
-  if (error) return next(error);
+    if (error) return next(error);
 
-  delete req.session.needsVerification;
+    delete req.session.needsVerification;
 
-  req.flash('success', message);
+    req.flash('success', message);
 
-  // Redirect the user to the specified URL
-  res.status(status).redirect(redirect);
-};
+    // Redirect the user to the specified URL
+    res.status(status).redirect(redirect);
+  }
+];
 
 /**
  * Route handler for retrieving authentication information based on the requested page.
@@ -191,7 +203,7 @@ export const getAuthInfo = async (req, res, next) => {
 
     // Redirect to email verification page if the user needs to verify their email
     if (req.session.needsVerification)
-      return res.redirect('email-verification');
+      return res.redirect('/email-verification.html');
 
     const flashMessages = req.session.flash;
 
@@ -240,7 +252,7 @@ export const getAuthInfo = async (req, res, next) => {
 
   // reset password
   else if (Page === 'reset-password') {
-    if (!req.session.resetPassword) return res.status(401).redirect('/sign-in');
+    if (!req.session.resetPassword) return next(new ResetPasswordError());
   }
 
   // forgot password
@@ -259,6 +271,8 @@ export const getAuthInfo = async (req, res, next) => {
  * - Email: The email address to send the request to.
  *
  * This route performs the following steps:
+ * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
+ * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
  * 1. Checks if the user with the provided email exists using the checkUserExists function.
  * 2. If an error occurs during the search process, it will be passed to the error handling middleware.
  * 3. If the user is found, a JWT token is generated with the user's ID to expire in 15 minutes and used as the token in the URL.
@@ -267,59 +281,70 @@ export const getAuthInfo = async (req, res, next) => {
  * 6. If the emailing process is successful, a resetPassword property is added to the session.
  * 7. Finally, the response is sent with the appropriate status code and message.
  */
-export async function forgotPasswordRequest(req, res, next) {
-  const { Email } = req.body;
+export const forgotPasswordRequest = [
+  ipRateLimiter,
+  emailRateLimiter,
+  validation(forgotPasswordRequestSchema),
+  async (req, res, next) => {
+    const { Email } = req.body;
 
-  const { user, error } = await registerService.checkUserExists('Email', Email);
-  if (error) return next(error);
+    const { user, error } = await registerService.checkUserExists(
+      'Email',
+      Email
+    );
+    if (error) return next(error);
 
-  const useridToken = jwt.sign(
-    {
-      UserID: user.UserID
-    },
-    'mysec',
-    { expiresIn: '15m' }
-  );
+    const useridToken = jwt.sign(
+      {
+        UserID: user.UserID
+      },
+      'mysec',
+      { expiresIn: '1h' }
+    );
 
-  const { message, status, failed } = await mailerService(
-    'Password',
-    user.Firstname,
-    Email,
-    {
-      useridToken
-    }
-  );
-  if (failed) return next(failed);
+    const { message, status, failed } = await mailerService(
+      'reset-password',
+      user.Firstname,
+      Email,
+      {
+        useridToken
+      }
+    );
+    if (failed) return next(failed);
 
-  // To allow the user to access the reset-password.html page.
-  req.session.resetPassword = true;
+    // To allow the user to access the reset-password.html page.
+    req.session.resetPassword = true;
 
-  res.status(status).json(message);
-}
+    res.status(status).json(message);
+  }
+];
 
 /**
  * Route handler for resetting a user's password.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Token: The user's token for password reset.
+ * - UserID: The user's ID to identify the user from the database.
  * - NewPassword: The new password to set for the user.
  *
  * This route performs the following steps:
- * 1. Validates the request body using the Joi resetPasswordSchema.
- * 2. Sets the new password for the user using the setNewPassword function.
- * 3. If an error occurs during the password reset process, it will be passed to the error handling middleware.
- * 4. If the password reset is successful, a success flash message is stored in the req.flash object.
- * 5. The resetPassword property in the session is deleted to prevent the user from visiting the page again.
- * 6. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
+ * 2. Decodes the reset password information using the resetPasswordDecoder middleware.
+ * 3. Validates the request body parameters against the resetPasswordSchema using the validation middleware.
+ * 4. Calls the setNewPassword function to set the new password for the user, providing the UserID and NewPassword.
+ * 5. If an error occurs during the password reset process, it is passed to the error handling middleware.
+ * 6. If the password reset is successful, a success flash message is stored in the req.flash object.
+ * 7. The resetPassword property in the session is deleted to prevent the user from visiting the page again.
+ * 8. Finally, the response is sent with the appropriate status code and redirect URL.
  */
 export const resetPassword = [
+  ipRateLimiter,
+  resetPasswordDecoder,
   validation(resetPasswordSchema),
   async (req, res, next) => {
-    // The JWT Token is decoded during the validation using the resetPasswordSchema
-    const { Token, NewPassword } = req.body;
+    const { UserID, NewPassword } = req.body;
 
     const { message, redirect, status, error } = await setNewPassword(
-      Token.UserID,
+      UserID,
       NewPassword
     );
     if (error) return next(error);
@@ -340,13 +365,17 @@ export const resetPassword = [
  *
  * This route performs the following steps:
  * 1. Validates the request body using the Joi signInSchema.
- * 2. Authenticates the user using the Passport Local Strategy.
- * 3. If an error occurs during the authentication process, it will be passed to the error handling middleware.
- * 4. If the authentication is successful, the req.login method provided by PassportJS is called to sign in the user.
- * 5. If the process is successful, the response is sent with the appropriate status code and redirect URL.
+ * 2. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
+ * 3. Applies the skipEmailRequest middleware to skip rate limiting for successful requests.
+ * 3. Authenticates the user using the Passport Local Strategy.
+ * 4. If an error occurs during the authentication process, it will be passed to the error handling middleware.
+ * 5. If the authentication is successful, the req.login method provided by PassportJS is called to sign in the user.
+ * 6. If the process is successful, the response is sent with the appropriate status code and redirect URL.
  */
 export const signIn = [
   validation(signInSchema),
+  emailRateLimiter,
+  emailSkipSucessRequest,
   async (req, res, next) => {
     passport.authenticate(
       'local',

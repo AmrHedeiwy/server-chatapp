@@ -19,7 +19,10 @@
     "redirect": "/sign-in.html"
   },
   "user_emailed": {
-    "message": "Your new verification code has been sent.",
+    "messages": {
+      "verification-code": "Your new verification code has been sent. Check your email and follow the instructions to verify your email.",
+      "reset-password": "Password reset link sent. Check your email and follow the instructions to reset your password."
+    },
     "code": 200
   }
 }

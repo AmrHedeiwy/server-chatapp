@@ -23,10 +23,6 @@ const validation =
    *
    * If the validation fails:
    * - The next() function is called passing an error object.
-   *
-   * The error object contains the following properties:
-   * - type: Type of error.
-   * - details: Additional error detials.
    */
   async (req, res, next) => {
     const body = req.body;

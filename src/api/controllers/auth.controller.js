@@ -167,37 +167,28 @@ export const emailVerification = [
  *
  * The available pages and their corresponding behaviors are as follows:
  *
- * 1. 'profile':
- *     - If the user is not signed in, it redirects to the sign-in page with a 401 status code.
- *
- * 2. 'sign-in':
+ * 1. 'sign-in':
  *    - If the user is already signed in, it redirects to the chat page.
  *    - If the user needs to verify their email, it redirects to the email verification page.
  *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
  *    - If there are no flash messages, it returns a JSON response indicating there are no flash messages.
  *
- * 3. 'email-verification':
+ * 2. 'email-verification':
  *    - If email verification is not required, it redirects to the sign-in page with a 401 status code.
  *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
  *    - It extracts the first name and email from the session, masks the email, and returns a JSON response with the masked email, first name, and flash messages.
  *
- * 4. 'reset-password':
+ * 3. 'reset-password':
  *    - If the reset password session data is not available, it redirects to the sign-in page with a 401 status code.
  *
- * 5. 'forgot-password':
+ * 4. 'forgot-password':
  *    - It gets flash messages from the session, returns them as a JSON response, and clears the session.
  */
 export const getAuthInfo = async (req, res, next) => {
   const { Page } = req.params;
 
-  // Profile
-  if (Page === 'profile') {
-    if (!req.isAuthenticated())
-      return res.status(401).redirect('/sign-in.html');
-  }
-
   // Sign in
-  else if (Page === 'sign-in') {
+  if (Page == 'sign-in') {
     // Redirect to their chat page if the user is signed in.
     if (req.isAuthenticated()) return res.redirect('/chat.html');
 
@@ -218,7 +209,7 @@ export const getAuthInfo = async (req, res, next) => {
   }
 
   // Email verificaiton
-  else if (Page === 'email-verification') {
+  else if (Page == 'email-verification') {
     // Redirect to sign-in page if email verification is not needed
     if (!req.session.needsVerification)
       return res.status(401).redirect('/sign-in.html');
@@ -251,12 +242,12 @@ export const getAuthInfo = async (req, res, next) => {
   }
 
   // reset password
-  else if (Page === 'reset-password') {
+  else if (Page == 'reset-password') {
     if (!req.session.resetPassword) return next(new ResetPasswordError());
   }
 
   // forgot password
-  else if (Page === 'forgot-password') {
+  else if (Page == 'forgot-password') {
     const flashMessages = req.session.flash;
     delete req.session.flash;
 

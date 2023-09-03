@@ -72,6 +72,10 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true
       },
+      Image: {
+        type: DataTypes.BLOB,
+        allowNull: true
+      },
       IsVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

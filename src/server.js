@@ -14,18 +14,18 @@ import RedisStore from 'connect-redis';
 import { redisClient } from './config/redis-client.js';
 import path, { dirname } from 'path';
 
-// Importing the Sequelize instnace.
+// Importing the Sequelize instnace
 import db from './api/models/index.js';
 
-// Set the server port.
+// Set the server port
 const port = process.env.PORT || 3000;
 
-// Set the public directory path.
+// Set the public directory path
 const publicPath = path
   .join(dirname(import.meta.url), '../public')
   .replace('file:\\', '');
 
-// Create instances of the Express app, HTTP server, and Socket.io.
+// Create instances of the Express app, HTTP server, and Socket.io
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
@@ -33,14 +33,14 @@ const io = new Server(server);
 // Serve static files from the public directory
 app.use(express.static(publicPath));
 
-// Initialize the Redis store.
+// Initialize the Redis store
 const redisStore = new RedisStore({
   client: redisClient,
   prefix: 'session:',
   ttl: 6000 // Equals 1 day
 });
 
-// Configure session middleware.
+// Configure session middleware
 const sessionMiddleware = session({
   secret: 'sec',
   saveUninitialized: false,
@@ -53,27 +53,23 @@ const sessionMiddleware = session({
   }
 });
 
-// Initialize session storage, Passport middleware, and flash middleware.
+// Initialize session storage, Passport middleware, and flash middleware
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(flash());
 
-// Parse request body as JSON and URL-encoded.
+// Parse request body as JSON and URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import routes and error handling middleware.
+// Import routes and error handling middleware
 import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
 
 const excludePassportSession = (req, res, next) => {
   const url = req.url;
 
-  if (
-    url.endsWith('/sign-in') ||
-    url.endsWith('/chat') ||
-    url.endsWith('/profile')
-  ) {
+  if (url.endsWith('/sign-in') || url.endsWith('/') || url.endsWith('/view')) {
     // Exclude the register route from Passport session handling
     return passport.session()(req, res, next);
   }
@@ -85,17 +81,17 @@ const excludePassportSession = (req, res, next) => {
 // Apply the middleware to the routes
 app.use(excludePassportSession);
 
-// Mount routes and error handling middleware on the app.
+// Mount routes and error handling middleware on the app
 app.use(routes);
 app.use(errorMiddleware);
 
-// Set up Socket.io middleware.
+// Set up Socket.io middleware
 const wrapper = (middlware) => (socket, next) =>
   middlware(socket.request, {}, next);
 io.use(wrapper(sessionMiddleware));
 
 // code bellow is for testing purposes
-// Authenticate Socket.io connections.
+// Authenticate Socket.io connections
 io.use(async (socket, next) => {
   if (!socket.request.session.passport?.user) {
     return next(new Error('not auth'));
@@ -103,7 +99,10 @@ io.use(async (socket, next) => {
   next();
 });
 
-// Handle Socket.io connections.
+import { isAuthSocket } from './api/middlewares/auth.middleware.js';
+isAuthSocket(io);
+
+// Handle Socket.io connections
 io.on('connection', (socket) => {
   // Handling flash messages
   const flashMessages = socket.request.session.flash;

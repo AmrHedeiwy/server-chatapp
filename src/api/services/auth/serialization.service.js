@@ -8,7 +8,7 @@ import db from '../../models/index.js';
  * @returns {object} The serialized user object.
  */
 export const serializeUser = (user, done) => {
-  done(null, { UserID: user.UserID, IsVerified: user.IsVerified });
+  done(null, { UserID: user.UserID });
 };
 
 /**

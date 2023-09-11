@@ -33,6 +33,7 @@ const validation =
       req.body = value;
       next();
     } catch (err) {
+      console.log(err);
       next(err);
     }
   };

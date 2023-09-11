@@ -69,8 +69,12 @@ import errorMiddleware from './api/middlewares/error.middleware.js';
 const excludePassportSession = (req, res, next) => {
   const url = req.url;
 
-  if (url.endsWith('/sign-in') || url.endsWith('/') || url.endsWith('/view')) {
-    // Exclude the register route from Passport session handling
+  if (
+    url.endsWith('/sign-in') ||
+    url.endsWith('/') ||
+    url.endsWith('/view') ||
+    url.endsWith('/edit')
+  ) {
     return passport.session()(req, res, next);
   }
 

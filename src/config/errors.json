@@ -76,6 +76,13 @@
         "/sign-in": "Too many sign in attempts. Please try again later"
       },
       "status": 429
+    },
+    "Image": {
+      "messages": {
+        "FileFormat": "Invalid file format. Please upload an image file.",
+        "FileToLarge": "File too large."
+      },
+      "status": 400
     }
   }
 }

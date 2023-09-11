@@ -96,8 +96,7 @@ export const sendVerificationCode = async (firstname, email) => {
  * @param {string} email - The email address of the user.
  * @param {string} verificationCode - The verification code provided by the user.
  * @returns {Promise<Object>} A promise that resolves with a success message, status and redirect page, or rejects with an error object.
- * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.
- * @throws {UserNotFoundError} - Thrown when the user is not found in the database.
+ * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.\
  */
 export const verifyEmail = async (email, verificationCode) => {
   try {
@@ -120,15 +119,7 @@ export const verifyEmail = async (email, verificationCode) => {
     await redisClient.del(`email_verification:${email}`);
 
     // Update the user's IsVerified status in the database
-    const result = await db.User.update(
-      { IsVerified: true },
-      { where: { Email: email } }
-    );
-
-    // Throw an error if the user is not found in the database
-    if (result != 1) {
-      throw new UserNotFoundError('NotFound');
-    }
+    await db.User.update({ IsVerified: true }, { where: { Email: email } });
 
     return {
       message: successJSON.user_verified.message,

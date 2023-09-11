@@ -274,3 +274,21 @@ export class SequelizeConstraintError extends BaseError {
     return { status, message };
   }
 }
+
+/**
+ * Represents an error that occurs when invalid file format is chosen.
+ *
+ * @class InvalidFileFormat
+ * @extends BaseError
+ */
+export class InvalidFileFormat extends BaseError {
+  constructor() {
+    super();
+  }
+
+  getResponse() {
+    const message = errorsJson.server.Image.messages.FileFormat;
+    const status = errorsJson.server.Image.status;
+    return { message, status };
+  }
+}

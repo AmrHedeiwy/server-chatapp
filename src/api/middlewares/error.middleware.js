@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
 
 import errorsJson from '../../config/errors.json' assert { type: 'json' };
+import { MulterError } from 'multer';
 
 /**
  * Error middleware for handling and formatting errors in the application.
@@ -27,6 +28,13 @@ const errorMiddleware = (error, req, res, next) => {
       // Ensure that the message is an object
       details: message instanceof Object ? message : { message }
     });
+  } else if (error instanceof MulterError) {
+    const status = errorsJson.server.Image.status;
+    const message = errorsJson.server.Image.messages.FileToLarge;
+
+    return res
+      .status(status)
+      .json({ type: 'MulterError', details: { message } });
   }
 
   // If the error object does not have getResponse method, log the error

@@ -20,9 +20,13 @@
   },
   "user_emailed": {
     "messages": {
-      "verification-code": "Your new verification code has been sent. Check your email and follow the instructions to verify your email.",
+      "verification-code": "A verification code has been sent. Check your email and follow the instructions to verify your email.",
       "reset-password": "Password reset link sent. Check your email and follow the instructions to reset your password."
     },
     "code": 200
+  },
+  "update_profile": {
+    "changed": { "message": "Profile successfully updated.", "status": 200 },
+    "unchanged": { "status": 204, "message": "No changes made." }
   }
 }

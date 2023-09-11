@@ -4,6 +4,7 @@ const signInForm = document.querySelector('#signInForm');
 
 signInForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const formElements = {
     signInEmail: '',
     signInPassword: ''

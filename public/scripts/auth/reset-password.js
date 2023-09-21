@@ -1,4 +1,4 @@
-import { sendServerRequest } from './requests/auth.js';
+import { sendServerRequest } from '../requests/auth.js';
 
 const resetForgotPasswordForm = document.querySelector('#reset-password');
 

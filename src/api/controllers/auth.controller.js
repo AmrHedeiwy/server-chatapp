@@ -356,7 +356,7 @@ export const resetPassword = [
  *
  * This route performs the following steps:
  * 1. Validates the request body using the Joi signInSchema.
- * 2. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
+ * 2. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
  * 3. Applies the skipEmailRequest middleware to skip rate limiting for successful requests.
  * 3. Authenticates the user using the Passport Local Strategy.
  * 4. If an error occurs during the authentication process, it will be passed to the error handling middleware.

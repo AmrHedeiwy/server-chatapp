@@ -11,7 +11,8 @@ const emailRouteLimits = {
   '/request-email-verification': { count: 3, expire: 60 * 10 },
   '/verify-email': { count: 4, expire: 60 * 5 },
   '/forgot-password': { count: 3, expire: 60 * 10 },
-  '/sign-in': { count: 5, expire: 60 * 5 }
+  '/sign-in': { count: 5, expire: 60 * 5 },
+  '/edit': { count: 4, expire: 60 * 60 }
 };
 
 /**
@@ -56,7 +57,8 @@ export const ipRateLimiter = async (req, res, next) => {
  */
 export const emailRateLimiter = async (req, res, next) => {
   // Retrieve the email address from the session or request body
-  const email = req.session.needsVerification?.Email || req.body.Email;
+  const email =
+    req.session.needsVerification?.Email || req.user?.Email || req.body.Email;
 
   // Get the current route being accessed
   const route = req.url;
@@ -99,7 +101,10 @@ export const emailSkipSucessRequest = async (req, res, next) => {
     // Check if the response status is less than 400
     if (this.statusCode < 400) {
       // Retrieve the email from the session or request body
-      const email = req.session.needsVerification?.Email || req.body.Email;
+      const email =
+        req.session.needsVerification?.Email ||
+        req?.user.Email ||
+        req.body.Email;
 
       // Get the route from the request URL
       const route = req.url;
@@ -115,5 +120,39 @@ export const emailSkipSucessRequest = async (req, res, next) => {
     originalEnd.call(this, chunk, encoding);
   };
 
+  next();
+};
+
+/**
+ * UserID Rate Limiter Middleware
+ *
+ * This middleware function limits the number of requests associated with a specific UserID
+ * within a certain time frame.
+ */
+export const userIdRateLimiter = async (req, res, next) => {
+  // Retrieve the email address from the session or request body
+  const userId = req.user.UserID;
+
+  // Get the current route being accessed
+  const route = req.url;
+
+  // Generate a unique identifier based on the route and email address
+  const uniqueIdentifier = route + userId;
+
+  // Execute multiple Redis commands atomically
+  const response = await redisClient
+    .multi()
+    .incr(uniqueIdentifier) // Increment the counter for the unique identifier
+    .expire(uniqueIdentifier, emailRouteLimits[route].expire) // Set an expiration time based on the email route limit configuration
+    .exec();
+
+  // Retrieve the counter value from the Redis response
+  const counter = response[0];
+
+  // If the limit is exceeded, invoke the next middleware with a RateLimitError
+  if (counter > emailRouteLimits[route].count)
+    return next(new RateLimitError(route));
+
+  // If the limit is not exceeded, proceed to the next middleware
   next();
 };

@@ -73,7 +73,8 @@
         "/verify-email": "Too many attempts have been made. Please try again later.",
         "/forgot-password": "Too many password reset attempts have been made. Please try again later.",
         "/reset-password": "Too many attempts have been made. Please try again later.",
-        "/sign-in": "Too many sign in attempts. Please try again later"
+        "/sign-in": "Too many sign in attempts. Please try again later.",
+        "/edit": "You have exceeded the limit for profile modifications. Please try again later."
       },
       "status": 429
     },

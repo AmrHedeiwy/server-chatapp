@@ -1,4 +1,4 @@
-import { sendServerRequest } from './requests/auth.js';
+import { sendServerRequest } from '../requests/auth.js';
 
 const signInForm = document.querySelector('#signInForm');
 

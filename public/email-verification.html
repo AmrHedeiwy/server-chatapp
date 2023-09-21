@@ -13,15 +13,16 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" />
     <!-- MDB -->
     <link rel="stylesheet" href="./css/mdb.dark.min.css" />
+    <!-- Alert -->
     <link rel="stylesheet" href="./css/alert.css">
+    <!-- Verification code -->
     <link rel="stylesheet" href="./css/verificationCode.css">
 </head>
 
 <body style="background-color:rgb(25, 24, 21);">
-
     <div class="mask d-flex align-items-center h-100"">
         <div class=" container">
-        <div class="row justify-content-center">
+        <div class=" row justify-content-center">
             <div class="col-xl-7 col-md-8">
                 <form class="" id="emailVerificationCode">
                     <div class="container text-center">
@@ -40,8 +41,6 @@
 
                         <!-- Submit button -->
                         <button type="submit" class="btn btn-primary btn-block">Verify Code</button>
-
-
                     </div>
                 </form>
                 <!-- Simple link -->
@@ -53,11 +52,13 @@
         </div>
     </div>
     </div>
+
     <!-- MDB -->
-    <script type=" text/javascript" src="./js/interactive/mdb.min.js"></script>
+    <script src="./scripts/interactive/mdb.min.js"></script>
+    <!-- Alert -->
+    <script src="./scripts/interactive/Alert.js"></script>
     <!-- Custom scripts -->
-    <script type="module" src="./js/emailVerification.js"></script>
-    <script type="module" src="./js/interactive/Alert.js"></script>
+    <script type="module" src="./scripts/auth/emailVerification.js"></script>
 </body>
 
 </html>

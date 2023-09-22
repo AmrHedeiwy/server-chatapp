@@ -1,4 +1,4 @@
-import { sendServerRequest } from '../requests/auth.js';
+import { sendAuthRequest } from '../requests/auth.js';
 
 const forgotPasswordForm = document.querySelector('#forgot-password');
 
@@ -11,7 +11,7 @@ forgotPasswordForm.addEventListener('submit', async (e) => {
   const body = { Email: email };
 
   // Send request for forgot password
-  const { message, error, redirect } = await sendServerRequest(
+  const { message, error, redirect } = await sendAuthRequest(
     '/auth/forgot-password',
     'POST',
     body
@@ -53,7 +53,7 @@ forgotPasswordForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message } = await sendServerRequest(
+  const { message } = await sendAuthRequest(
     '/auth/info/forgot-password',
     'GET'
   );

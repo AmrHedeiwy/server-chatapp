@@ -1,4 +1,4 @@
-import { sendServerRequest } from '../requests/auth.js';
+import { sendAuthRequest } from '../requests/auth.js';
 
 const signInForm = document.querySelector('#signInForm');
 
@@ -39,7 +39,7 @@ signInForm.addEventListener('submit', async (e) => {
   );
 
   // Send request to sign in the user
-  const { error, redirect } = await sendServerRequest(
+  const { error, redirect } = await sendAuthRequest(
     '/auth/sign-in',
     'POST',
     formatedData
@@ -87,7 +87,7 @@ signInForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message, redirect } = await sendServerRequest(
+  const { message, redirect } = await sendAuthRequest(
     '/auth/info/sign-in',
     'GET'
   );

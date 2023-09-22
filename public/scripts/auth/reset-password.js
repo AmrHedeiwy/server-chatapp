@@ -1,4 +1,4 @@
-import { sendServerRequest } from '../requests/auth.js';
+import { sendAuthRequest } from '../requests/auth.js';
 
 const resetForgotPasswordForm = document.querySelector('#reset-password');
 
@@ -35,7 +35,7 @@ resetForgotPasswordForm.addEventListener('submit', async (e) => {
   };
 
   // Send request to reset the user's password
-  const { redirect, error } = await sendServerRequest(
+  const { redirect, error } = await sendAuthRequest(
     '/auth/reset-password',
     'POST',
     body
@@ -95,7 +95,7 @@ resetForgotPasswordForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { redirect } = await sendServerRequest(
+  const { redirect } = await sendAuthRequest(
     '/auth/info/reset-password',
     'GET'
   );

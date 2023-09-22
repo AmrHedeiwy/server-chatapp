@@ -55,6 +55,13 @@ router.get('/info/:Page', authController.getAuthInfo);
 router.post('/sign-in', authController.signIn);
 
 /**
+ * Signs out a user.
+ * Endpoint: POST /auth/sign-out
+ * Controller: authController.signOut
+ */
+router.post('/sign-out', authController.signOut);
+
+/**
  * Initiates the Facebook sign-up process.
  * Endpoint: GET /auth/facebook
  * Controller: authController.facebookSignUp

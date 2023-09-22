@@ -1,4 +1,4 @@
-export async function sendServerRequest(url, method, body) {
+export async function sendAuthRequest(url, method, body) {
   // The request options
   const requestOptions = {
     method,

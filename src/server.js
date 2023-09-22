@@ -71,6 +71,7 @@ const excludePassportSession = (req, res, next) => {
 
   if (
     url.endsWith('/sign-in') ||
+    url.endsWith('/sign-out') ||
     url.endsWith('/') ||
     url.endsWith('/view') ||
     url.endsWith('/edit')

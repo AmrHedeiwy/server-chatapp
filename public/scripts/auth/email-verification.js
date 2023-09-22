@@ -1,4 +1,4 @@
-import { sendServerRequest } from '../requests/auth.js';
+import { sendAuthRequest } from '../requests/auth.js';
 
 const emailVerificationCodeForm = document.querySelector(
   '#emailVerificationCode'
@@ -22,7 +22,7 @@ emailVerificationCodeForm.addEventListener('submit', async (e) => {
   const body = { VerificationCode: verificationCode };
 
   // Send request to verify the verification code
-  const { error, redirect } = await sendServerRequest(
+  const { error, redirect } = await sendAuthRequest(
     '/auth/verify-email',
     'POST',
     body
@@ -52,7 +52,7 @@ resendEmail.addEventListener('click', async (e) => {
   const body = { Firstname: name.innerHTML, Email: email.innerHTML };
 
   // Send request to resend the verification code
-  const { message, error } = await sendServerRequest(
+  const { message, error } = await sendAuthRequest(
     '/auth/request-email-verification',
     'POST',
     body
@@ -88,7 +88,7 @@ resendEmail.addEventListener('click', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message, redirect } = await sendServerRequest(
+  const { message, redirect } = await sendAuthRequest(
     `/auth/info/email-verification`,
     'GET'
   );

@@ -15,6 +15,7 @@ import {
   emailRateLimiter,
   emailSkipSucessRequest
 } from '../middlewares/rate-limit.middleware.js';
+import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
 import { ResetPasswordError } from '../helpers/ErrorTypes.helper.js';
 
@@ -389,6 +390,23 @@ export const signIn = [
 ];
 
 /**
+ * Route handler for user sign-out.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Logs out the user by calling req.logout() and redirecting to the sign-in page.
+ */
+export const signOut = [
+  isAuthExpress,
+  (req, res, next) => {
+    req.logout((options, done) => {
+      req.session.destroy(); // To prevent new session getting stored in redis
+      res.redirect('/sign-in.html');
+    });
+  }
+];
+
+/**
  * Initiates the Facebook sign-up process by authenticating the user using the 'facebook' strategy with specified scopes.
  *
  * Scopes: 'email'
@@ -475,6 +493,7 @@ export default {
   forgotPasswordRequest,
   resetPassword,
   signIn,
+  signOut,
   facebookSignUp,
   facebookSignUpCallback,
   googleSignUp,

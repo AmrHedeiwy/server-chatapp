@@ -1,4 +1,4 @@
-import { sendServerRequest } from '../requests/auth.js';
+import { sendAuthRequest } from '../requests/auth.js';
 
 const registerForm = document.querySelector('#registerForm');
 
@@ -48,7 +48,7 @@ registerForm.addEventListener('submit', async (e) => {
   );
 
   // Send request to register the user
-  const { error, redirect } = await sendServerRequest(
+  const { error, redirect } = await sendAuthRequest(
     '/auth/register',
     'POST',
     formatedData

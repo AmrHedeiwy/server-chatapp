@@ -1,7 +1,7 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import { normalRequest } from '../requests/normal.js';
 
 async function signOut() {
-  const { error, redirect } = await sendAuthRequest('/auth/sign-out', 'POST');
+  const { error, redirect } = await normalRequest('/auth/sign-out', 'POST');
 
   if (error) {
     new Alert({

@@ -8,7 +8,7 @@ import db from '../../models/index.js';
 import { EmailError, SignInError } from '../../helpers/ErrorTypes.helper.js';
 import { Strategy } from 'passport-local';
 import bcrypt from 'bcrypt';
-import successJSON from '../../../config/success.json' assert { type: 'json' };
+import successJson from '../../../config/success.json' assert { type: 'json' };
 
 /**
  * An object specifying the custom field names to use for the local authentication strategy.
@@ -62,10 +62,7 @@ const localStrategy = new Strategy(
       delete user.dataValues.Password;
 
       // Call the done callback with the authenticated user object and success message, status and redirect page
-      return done(null, user.dataValues, {
-        status: successJSON.signin_user.code,
-        redirect: successJSON.signin_user.redirect
-      });
+      return done(null, user.dataValues, successJson.signin_user);
     } catch (err) {
       // Call the done callback with the error if an error occurs during authentication
       return done(err);

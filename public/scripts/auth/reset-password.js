@@ -1,27 +1,21 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import {
+  addFieldStyles,
+  removeFieldStyles
+} from '../interactive/fieldStyles.js';
+import { normalRequest } from '../requests/normal.js';
 
 const resetForgotPasswordForm = document.querySelector('#reset-password');
+
+const fields = ['Password', 'ConfirmPassword'];
+const inputFields = {
+  Password: document.getElementById('PasswordInput'),
+  ConfirmPassword: document.getElementById('ConfirmPasswordInput')
+};
 
 resetForgotPasswordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const formElements = {
-    Password: '',
-    ConfirmPassword: ''
-  };
-
-  // Reseting all the styles to its original form.
-  for (const key in formElements) {
-    document.querySelector(`#${key}`).classList.remove('is-invalid');
-    document.querySelector(`#${key}`).innerHTML = '';
-    document.querySelector(`#${key}Row`).style.paddingBottom = '';
-  }
-  // Getting the values of the fields
-  document.querySelectorAll('input').forEach((input) => {
-    if (input.id in formElements) {
-      formElements[input.id] = input.value;
-    }
-  });
+  removeFieldStyles(fields);
 
   // Extract the token from the URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -30,40 +24,23 @@ resetForgotPasswordForm.addEventListener('submit', async (e) => {
   // Construct the request body
   const body = {
     Token,
-    NewPassword: formElements.Password,
-    ConfirmPassword: formElements.ConfirmPassword
+    NewPassword: inputFields.Password.value,
+    ConfirmPassword: inputFields.ConfirmPassword.value
   };
 
   // Send request to reset the user's password
-  const { redirect, error } = await sendAuthRequest(
+  const { redirect, error } = await normalRequest(
     '/auth/reset-password',
     'POST',
-    body
+    JSON.stringify(body)
   );
 
   // Check for errors
   if (error) {
-    // Showing each error based on their type
+    // Showing each error based on their name
     switch (error.type) {
       case 'ValidationError':
-        Object.keys(formElements).forEach((inputKey) => {
-          if (inputKey in error.details) {
-            document.querySelector(`#${inputKey}`).classList.add('is-invalid');
-
-            console.log(error.details[inputKey]);
-            document.querySelector(`#${inputKey}Feedback`).innerHTML =
-              error.details[inputKey];
-
-            // Calculate the height of the error message
-            const errorHeight = document
-              .querySelector(`#${inputKey}Feedback`)
-              .getBoundingClientRect().height;
-
-            // Add padding to the input container based on the height of the error message
-            document.querySelector(`#${inputKey}Row`).style.paddingBottom =
-              errorHeight + 'px';
-          }
-        });
+        addFieldStyles(fields, error);
         break;
       default:
         new Alert({
@@ -95,10 +72,7 @@ resetForgotPasswordForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { redirect } = await sendAuthRequest(
-    '/auth/info/reset-password',
-    'GET'
-  );
+  const { redirect } = await normalRequest('/auth/info/reset-password', 'GET');
 
   if (redirect) {
     return (window.location.href = redirect);

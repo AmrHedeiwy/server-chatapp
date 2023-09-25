@@ -1,64 +1,40 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import {
+  addFieldStyles,
+  removeFieldStyles
+} from '../interactive/fieldStyles.js';
+import { normalRequest } from '../requests/normal.js';
 
 const signInForm = document.querySelector('#signInForm');
+
+const fields = ['Email', 'Password'];
+const inputFields = {
+  Email: document.getElementById('EmailInput'),
+  Password: document.getElementById('PasswordInput')
+};
 
 signInForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const formElements = {
-    signInEmail: '',
-    signInPassword: ''
+  removeFieldStyles(fields);
+
+  const body = {
+    Email: inputFields.Email.value,
+    Password: inputFields.Password.value
   };
 
-  // Reseting all the styles to its original form.
-  for (const key in formElements) {
-    document.querySelector(`#${key}`).classList.remove('is-invalid');
-    document.querySelector(`#${key}`).innerHTML = '';
-  }
-
-  // Getting the values of the fields
-  document.querySelectorAll('input').forEach((input) => {
-    if (input.id in formElements) {
-      formElements[input.id] = input.value;
-    }
-  });
-
-  /**
-   * Formating the key names
-   *
-   * @example { signInEmail -> Email }
-   */
-  const formatedData = Object.entries(formElements).reduce(
-    (acc, [key, value]) => {
-      // removing the word `signIn` from the key name.
-      key = key.replace('signIn', '');
-      acc[key] = value;
-      return acc;
-    },
-    {}
-  );
-
   // Send request to sign in the user
-  const { error, redirect } = await sendAuthRequest(
+  const { error, redirect } = await normalRequest(
     '/auth/sign-in',
     'POST',
-    formatedData
+    JSON.stringify(body)
   );
 
   // Check for errors
   if (error) {
     switch (error.name) {
-      // Showing each error based on their type
+      // Showing each error based on their name
       case 'JoiValidationError':
-        Object.keys(formatedData).forEach((inputKey) => {
-          if (inputKey in error.details) {
-            document
-              .querySelector(`#signIn${inputKey}`)
-              .classList.add('is-invalid');
-            document.querySelector(`#${inputKey}`).innerHTML =
-              error.details[inputKey];
-          }
-        });
+        addFieldStyles(fields, error);
         break;
       default:
         new Alert({
@@ -87,7 +63,7 @@ signInForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message, redirect } = await sendAuthRequest(
+  const { message, redirect } = await normalRequest(
     '/auth/info/sign-in',
     'GET'
   );

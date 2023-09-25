@@ -41,6 +41,7 @@ router.post('/forgot-password', authController.forgotPasswordRequest);
 router.post('/reset-password', authController.resetPassword);
 
 /**
+ *
  * Retrieves user session information for a specific page.
  * Endpoint: GET /auth/info/:Page
  * Controller: authController.getAuthInfo

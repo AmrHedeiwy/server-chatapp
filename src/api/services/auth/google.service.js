@@ -6,8 +6,7 @@ import {
   EmailError,
   SocialMediaAuthenticationError
 } from '../../helpers/ErrorTypes.helper.js';
-import successJSON from '../../../config/success.json' assert { type: 'json' };
-import sequelize from 'sequelize';
+import successJson from '../../../config/success.json' assert { type: 'json' };
 
 /**
  * Google Strategy for Passport authentication.
@@ -58,11 +57,7 @@ const googleStrategy = new Strategy(
       if (!user)
         throw new SocialMediaAuthenticationError('Passport Google Error');
 
-      done(null, user.dataValues, {
-        message: successJSON.signin_user.message,
-        status: successJSON.signin_user.code,
-        redirect: successJSON.signin_user.redirect
-      });
+      done(null, user.dataValues, successJson.signin_user);
     } catch (err) {
       done(new SocialMediaAuthenticationError(err));
     }

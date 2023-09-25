@@ -1,34 +1,48 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import {
+  addFieldStyles,
+  removeFieldStyles
+} from '../interactive/fieldStyles.js';
+import { normalRequest } from '../requests/normal.js';
 
 const forgotPasswordForm = document.querySelector('#forgot-password');
+
+const fields = ['Email'];
+const inputElements = {
+  Email: document.getElementById('EmailInput')
+};
 
 forgotPasswordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const email = document.querySelector('#emailInput').value;
+  removeFieldStyles(fields);
 
   // Construct the request body
-  const body = { Email: email };
+  const body = { Email: inputElements.Email.value };
 
   // Send request for forgot password
-  const { message, error, redirect } = await sendAuthRequest(
+  const { message, error, redirect } = await normalRequest(
     '/auth/forgot-password',
     'POST',
-    body
+    JSON.stringify(body)
   );
 
   if (redirect) return (window.location.href = redirect);
 
   // Check for errors
   if (error) {
-    Object.entries(error.details).forEach(([key, value]) => {
-      new Alert({
-        type: 'error',
-        message: value,
-        withProgress: true
-      });
-    });
-
+    switch (error.name) {
+      // Showing each error based on their name
+      case 'JoiValidationError':
+        addFieldStyles(fields, error);
+        break;
+      default:
+        new Alert({
+          type: 'error',
+          message: error.details.message,
+          withProgress: true,
+          duration: 7
+        });
+    }
     return;
   }
 
@@ -53,10 +67,7 @@ forgotPasswordForm.addEventListener('submit', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message } = await sendAuthRequest(
-    '/auth/info/forgot-password',
-    'GET'
-  );
+  const { message } = await normalRequest('/auth/info/forgot-password', 'GET');
 
   const { FlashMessages } = message;
   if (FlashMessages) {

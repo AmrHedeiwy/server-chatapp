@@ -1,4 +1,4 @@
-export async function sendProfileRequest(url, method, body) {
+export async function formDataRequest(url, method, body) {
   // The request options
   const requestOptions = {
     method,
@@ -19,6 +19,7 @@ export async function sendProfileRequest(url, method, body) {
     // If a success message was returned
     else return await res.json();
   } catch (err) {
+    console.log(err, err.redirected, err.url);
     // Return the error
     return { error: await err.json() };
   }

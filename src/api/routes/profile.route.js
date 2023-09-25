@@ -14,6 +14,13 @@ router.get('/view', profileController.view);
  * Endpoint: PATCH /profile/edit
  * Controller: profileController.edit
  */
-router.patch('/edit', profileController.edit);
+router.post('/edit', profileController.edit);
+
+/**
+ * Changes the user's password.
+ * Endpoint: POST /profile/change-password
+ * Controller: profileController.changePassword
+ */
+router.post('/change-password', profileController.changePassword);
 
 export default router;

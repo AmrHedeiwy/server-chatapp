@@ -2,9 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
 import { Strategy } from 'passport-facebook';
 import db from '../../models/index.js';
-import successJSON from '../../../config/success.json' assert { type: 'json' };
+import successJson from '../../../config/success.json' assert { type: 'json' };
 import { SocialMediaAuthenticationError } from '../../helpers/ErrorTypes.helper.js';
-import sequelize from 'sequelize';
 
 /**
  * Facebook Strategy for Passport authentication.
@@ -52,11 +51,7 @@ const facebookStrategy = new Strategy(
       if (!user)
         throw new SocialMediaAuthenticationError('Passport Facebook Error');
 
-      done(null, user.dataValues, {
-        message: successJSON.signin_user.message,
-        status: successJSON.signin_user.code,
-        redirect: successJSON.signin_user.redirect
-      });
+      done(null, user.dataValues, successJson.signin_user);
     } catch (err) {
       done(new SocialMediaAuthenticationError(err));
     }

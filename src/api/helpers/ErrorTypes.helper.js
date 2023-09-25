@@ -233,7 +233,7 @@ export class JoiValidationError extends BaseError {
       let message;
       // Checking for Required field validation errors.
       if (code === 'string.empty' || code === 'any.required') {
-        message = `${label} is required.`;
+        message = `Field is required.`;
       } else {
         // Else extract the error message from errors.json file.
         message = errorsJson.validations.messages[label];
@@ -289,6 +289,18 @@ export class InvalidFileFormat extends BaseError {
   getResponse() {
     const message = errorsJson.server.Image.messages.FileFormat;
     const status = errorsJson.server.Image.status;
+    return { message, status };
+  }
+}
+
+export class ChangePasswordError extends BaseError {
+  constructor() {
+    super();
+  }
+
+  getResponse() {
+    const message = errorsJson.server.ChangePassword.message;
+    const status = errorsJson.server.ChangePassword.status;
     return { message, status };
   }
 }

@@ -14,7 +14,7 @@ export default (sequelize, DataTypes) => {
  * @extends Model
  * 
  * @typedef {Object} User
- * @property {UUID} UserID - The unique ID of the user.
+ * @property {uuid} UserID - The unique ID of the user.
  * @property {string} Firstname - The first name of the user. Must be
    between 2 and 30 letters only.
  * @property {string} Lastname - The last name of the user. Must be

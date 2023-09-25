@@ -1,5 +1,8 @@
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
-import { editProfileSchema } from '../validations/profile.validation.js';
+import {
+  editProfileSchema,
+  changePasswordSchema
+} from '../validations/profile.validation.js';
 import { userIdRateLimiter } from '../middlewares/rate-limit.middleware.js';
 import validation from '../middlewares/validation.middleware.js';
 
@@ -39,7 +42,7 @@ export const view = [
  * 7. If an error occurs during the save operation, passes the error to the error handling middleware.
  * 8. If the user's email is updated, logs out the user, sets the needsVerification session variable,
  * flashes a success message, and redirects the user to the email verification page.
- * 9. If the user's email is not updated, sends a JSON response with the updated user and success message.
+ * 9. If the user's email is not updated, the response is sent with the appropriate status code and message.
  */
 export const edit = [
   isAuthExpress,
@@ -49,7 +52,7 @@ export const edit = [
   async (req, res, next) => {
     if (req.file?.buffer) req.body.Buffer = req.file.buffer;
 
-    const { status, message, user, error } =
+    const { status, message, redirect, user, error } =
       await profileService.saveNewCredentials(req.body, req.user);
 
     if (error) return next(error);
@@ -62,7 +65,7 @@ export const edit = [
           Firstname: firstname
         };
         req.flash('success', message);
-        res.status(status).redirect('/email-verification.html');
+        res.status(status).redirect(redirect);
       });
       return;
     }
@@ -70,4 +73,39 @@ export const edit = [
   }
 ];
 
-export default { view, edit };
+/**
+ * Route handler for editing the user's profile.
+ *
+ * This route expects a PATCH request with the following OPTIONAL parameters in the request body:
+ * - CurrentPassword: The user's current password.
+ * - NewPassword: The new password to be set.
+ * - ConfirmPassword: The re-entered password.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Applies UserID rate limiting using the userIdRateLimiter middleware to prevent abuse.
+ * 3. Validates the request body at the validation middleware using the Joi changePasswordSchema.
+ * 4. Updates the user's password using the setChangePassword function.
+ * 5. If an error occurs during the password change process, the error is passed to the error handling middleware.
+ * 6. If the password change is successful, the response is sent with the appropriate status code and message.
+
+ */
+export const changePassword = [
+  isAuthExpress,
+  userIdRateLimiter,
+  validation(changePasswordSchema),
+  async (req, res, next) => {
+    const { CurrentPassword, NewPassword } = req.body;
+
+    const { status, message, error } = await profileService.setChangePassword(
+      CurrentPassword,
+      NewPassword,
+      req.user.UserID
+    );
+    if (error) return next(error);
+
+    res.status(status).json(message);
+  }
+];
+
+export default { view, edit, changePassword };

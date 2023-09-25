@@ -2,12 +2,16 @@ import sharp from 'sharp';
 import db from '../../models/index.js';
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import sequelize from 'sequelize';
-import { SequelizeConstraintError } from '../../helpers/ErrorTypes.helper.js';
+import {
+  ChangePasswordError,
+  SequelizeConstraintError
+} from '../../helpers/ErrorTypes.helper.js';
+import bcrypt from 'bcrypt';
 
 /**
  * Saves new credentials and updates the user's profile.
- * @param {Object} data - The data containing the new credentials and profile information.
- * @param {Object} cuurrentUser - The credentials of the current user whose profile is being updated.
+ * @param {object} data - The data containing the new credentials and profile information.
+ * @param {object} currentUser - The credentials of the current user whose profile is being updated.
  * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
  * @throws {SequelizeErrors} - Sequelize can throw different error classes based on what failed, but it will mostly throw a ConstaintError.
  */
@@ -50,13 +54,14 @@ export const saveNewCredentials = async (data, currentUser) => {
      */
     return {
       message: data.Email
-        ? successJson.update_profile.changed.message +
-          ' Please verify your email.'
-        : successJson.update_profile.changed.message,
-      status: successJson.update_profile.changed.status,
+        ? successJson.update_profile.message + ' Please verify your email.'
+        : successJson.update_profile.message,
+      status: successJson.update_profile.status,
+      redirect: successJson.update_profile.redirect,
       user: updatedUser
     };
   } catch (err) {
+    console.log(err);
     return {
       error:
         err instanceof sequelize.UniqueConstraintError
@@ -66,6 +71,37 @@ export const saveNewCredentials = async (data, currentUser) => {
   }
 };
 
+/**
+ * Saves a new password and updates the user's profile.
+ * @param {string} currentPassword - The user's current password.
+ * @param {string} newPassword - The new password to be set.
+ * @param {uuid} userId - The ID of the user.
+ * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
+ * @throws {ChangePasswordError} - If the current password does not match the user's stored password.
+ */
+export const setChangePassword = async (
+  currentPassword,
+  newPassword,
+  userId
+) => {
+  try {
+    const user = await db.User.findByPk(userId);
+
+    // Compare the provided password with the user's hashed password
+    const isMatch = await bcrypt.compare(currentPassword, user.Password);
+
+    if (!isMatch) throw new ChangePasswordError();
+
+    user.Password = newPassword;
+    user.save();
+
+    return successJson.change_password;
+  } catch (err) {
+    return { error: err };
+  }
+};
+
 export default {
-  saveNewCredentials
+  saveNewCredentials,
+  setChangePassword
 };

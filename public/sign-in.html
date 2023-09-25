@@ -19,64 +19,74 @@
 
 <body style="background-color:rgb(25, 24, 21);">
     <div class="container min-vh-100 d-flex justify-content-center align-items-center">
-        <div>
-
+        <form id="signInForm" novalidate>
             <!-- App name -->
-            <h1 class="text-center mb-5" style="color: #b87eff;">Deiwy</h1>
-
-
-            <form id="signInForm" class="d-flex justify-content-center align-content-center" novalidate>
-                <div class="row col-md-6 col-10">
-                    <div class="col-md-12"><!-- Email input -->
-                        <div class="form-outline mb-4" style="padding: 0px;">
-                            <input type="email" id="signInEmail" class="form-control" required />
-                            <label class="form-label" for="signInEmail">Email address</label>
-                            <div id="Email" class="invalid-feedback"></div>
-                        </div>
-                    </div>
-                    <div class="col"><!-- Password input -->
-                        <div class="form-outline mb-4" style="padding: 0px;">
-                            <input type="text" id="signInPassword" class="form-control" required />
-                            <label class="form-label" for="signInPassword">Password</label>
-                            <div id="Password" class="invalid-feedback"></div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <div class="text-center mb-4">
-                            <!-- Simple link -->
-                            <a href="/forgot-password.html">Forgot password?</a>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <!-- Submit button -->
-                        <button type="submit" class="btn btn-primary btn-block mb-4">Sign in</button>
-                    </div>
-
-                    <div class="col-md-12">
-                        <!-- Register buttons -->
-                        <div class="text-center">
-                            <p>Not a member? <a href="/register.html">Register</a></p>
-                            <p>or sign up with:</p>
-                            <!-- Facebook -->
-                            <a class="btn text-white btn-floating mx-1" style="background-color: #3b5998;"
-                                href="/auth/facebook" role="button">
-                                <i class="fab fa-facebook-f"></i>
-                            </a>
-
-                            <!-- Google -->
-                            <a class="btn text-white btn-floating mx-1" style="background-color: #dd4b39;"
-                                href="/auth/google" role="button">
-                                <i class="fab fa-google"></i>
-                            </a>
-                        </div>
-                    </div>
-
+            <div class="row">
+                <div class="col d-flex justify-content-center align-items-center">
+                    <h1 class="text-center mb-5" style="color: #b87eff;">Deiwy</h1>
                 </div>
-            </form>
-        </div>
+            </div>
 
+            <!-- Email input -->
+            <div class="row" id="EmailRow">
+                <div class="col">
+                    <div class="form-outline mb-4">
+                        <input type="email" id="EmailInput" class="form-control" required />
+                        <label class="form-label" for="EmailInput">Email address</label>
+                        <div id="EmailFeedback" class="invalid-feedback"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password input -->
+            <div class="row" id="PasswordRow">
+                <div class="col">
+                    <div class="form-outline mb-4">
+                        <input type="text" id="PasswordInput" class="form-control" required />
+                        <label class="form-label" for="PasswordInput">Password</label>
+                        <div id="PasswordFeedback" class="invalid-feedback"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fogot Password Link -->
+            <div class="row">
+                <div class="col">
+                    <div class="text-center mb-4">
+                        <a href="/forgot-password.html">Forgot password?</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit button -->
+            <div class="row">
+                <div class="col">
+
+                    <button type="submit" class="btn btn-primary btn-block mb-4">Sign in</button>
+                </div>
+            </div>
+
+            <!-- Registeration -->
+            <div class="row d-flex justify-content-center text-center">
+                <div class="col-12">
+                    <p>Not a member? <a href="/register.html">Register</a></p>
+                </div>
+                <div class="col-12">
+                    <p>or sign up with:</p>
+                    <!-- Facebook -->
+                    <a class="btn text-white btn-floating mx-1" style="background-color: #3b5998;" href="/auth/facebook"
+                        role="button">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+
+                    <!-- Google -->
+                    <a class="btn text-white btn-floating mx-1" style="background-color: #dd4b39;" href="/auth/google"
+                        role="button">
+                        <i class="fab fa-google"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
     </div>
 
     <!-- MDB -->

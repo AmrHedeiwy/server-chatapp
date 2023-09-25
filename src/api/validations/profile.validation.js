@@ -48,3 +48,25 @@ export const editProfileSchema = Joi.object({
 })
   .options({ abortEarly: false })
   .error(errorFormatter);
+
+export const changePasswordSchema = Joi.object({
+  CurrentPassword: Joi.string().required(),
+  NewPassword: Joi.string()
+    .trim()
+    .pattern(
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    )
+    .required()
+    .label('Password'),
+  ConfirmPassword: Joi.string()
+    .trim()
+    .empty('')
+    .required()
+    .valid(Joi.ref('NewPassword'))
+    .messages({
+      'any.required': '"ConfirmPassword" is not allowed to be empty'
+    })
+    .strip()
+})
+  .options({ abortEarly: false })
+  .error(errorFormatter);

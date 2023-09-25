@@ -3,7 +3,7 @@ dotenv.config({ path: './src/config/.env' });
 
 import sgMail from '@sendgrid/mail';
 import { EmailError } from '../../helpers/ErrorTypes.helper.js';
-import successJSON from '../../../config/success.json' assert { type: 'json' };
+import successJson from '../../../config/success.json' assert { type: 'json' };
 
 // Configure SendGrid API key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -65,8 +65,8 @@ const sendEmail = async (type, Firstname, Email, options) => {
     await sgMail.send(msg);
 
     return {
-      message: successJSON.user_emailed.messages[type],
-      status: successJSON.user_emailed.code
+      message: successJson.user_emailed.messages[type],
+      status: successJson.user_emailed.status
     };
   } catch (err) {
     return { failed: new EmailError('FailedToSend', err) };

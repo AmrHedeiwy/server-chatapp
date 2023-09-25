@@ -1,13 +1,13 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import { normalRequest } from '../requests/normal.js';
 
-const emailVerificationCodeForm = document.querySelector(
-  '#emailVerificationCode'
+const emailVerificationCodeForm = document.getElementById(
+  'emailVerificationCodeForm'
 );
-const resendEmail = document.querySelector('#resend-email');
 
-const name = document.querySelector('#firstname');
-
-const email = document.querySelector('#email');
+const displayElements = {
+  Firstname: document.getElementById('FirstnameDisplay'),
+  Email: document.getElementById('EmailDisplay')
+};
 
 emailVerificationCodeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -22,10 +22,10 @@ emailVerificationCodeForm.addEventListener('submit', async (e) => {
   const body = { VerificationCode: verificationCode };
 
   // Send request to verify the verification code
-  const { error, redirect } = await sendAuthRequest(
+  const { error, redirect } = await normalRequest(
     '/auth/verify-email',
     'POST',
-    body
+    JSON.stringify(body)
   );
 
   if (redirect) {
@@ -45,17 +45,11 @@ emailVerificationCodeForm.addEventListener('submit', async (e) => {
   emailVerificationCodeForm.reset();
 });
 
-resendEmail.addEventListener('click', async (e) => {
-  e.preventDefault();
-
-  // Construct the request body
-  const body = { Firstname: name.innerHTML, Email: email.innerHTML };
-
+async function resendVerificationCode() {
   // Send request to resend the verification code
-  const { message, error } = await sendAuthRequest(
+  const { message, error } = await normalRequest(
     '/auth/request-email-verification',
-    'POST',
-    body
+    'POST'
   );
 
   // Display any success messages
@@ -75,7 +69,7 @@ resendEmail.addEventListener('click', async (e) => {
       withProgress: true
     });
   }
-});
+}
 
 /**
  * This funciton is executed when the email-verificaiton.html page is loaded to check
@@ -88,7 +82,7 @@ resendEmail.addEventListener('click', async (e) => {
  */
 (async function getInfo() {
   // Send request to retrive user information
-  const { message, redirect } = await sendAuthRequest(
+  const { message, redirect } = await normalRequest(
     `/auth/info/email-verification`,
     'GET'
   );
@@ -98,8 +92,8 @@ resendEmail.addEventListener('click', async (e) => {
   }
 
   const { Email, Firstname, FlashMessages } = message;
-  email.innerHTML = Email;
-  name.innerHTML = Firstname;
+  displayElements.Firstname.innerHTML = Firstname;
+  displayElements.Email.innerHTML = Email;
 
   if (FlashMessages) {
     Object.entries(FlashMessages).forEach(([key, value]) => {
@@ -111,3 +105,5 @@ resendEmail.addEventListener('click', async (e) => {
     });
   }
 })();
+
+window.resendVerificationCode = resendVerificationCode;

@@ -249,7 +249,8 @@
                             </div>
                             <div class="col-md-12 mt-3 mb-3 justify-content-center">
                                 <!-- Simple link -->
-                                <a href="/change-password.html">change password?</a>
+                                <a data-mdb-toggle="modal" data-mdb-target="#editProfileModal"
+                                    style="cursor: pointer;">change password?</a>
                             </div>
                         </div>
                     </div>
@@ -259,6 +260,8 @@
                             Profile</button>
                     </div>
                 </form>
+
+
             </div>
 
             <div id="bottom-bar" class="btn-group" role="group">
@@ -330,6 +333,55 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="background: url('./img/back.png'); ">
+                    <div class="modal-header translucent">
+                        <h5 class="modal-title text-white" id="exampleModalLabel">Change Password</h5>
+                        <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-white translucent" id="change-password-modal">
+
+                        <div class="row mt-2" id="CurrentPasswordRow">
+                            <div class="col">
+                                <div class="form-outline mb-4">
+                                    <input type="text" id="CurrentPasswordInput" class="form-control text-white" />
+                                    <label class="form-label text-secondary" for="CurrentPasswordInput">Current
+                                        Password</label>
+                                    <div id="CurrentPasswordFeedback" class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="PasswordRow">
+                            <div class="col">
+                                <div class="form-outline mb-4">
+                                    <input type="text" id="PasswordInput" class="form-control text-white" required />
+                                    <label class="form-label text-secondary" for="PasswordInput">New Password</label>
+                                    <div id="PasswordFeedback" class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row" id="ConfirmPasswordRow">
+                            <div class="col">
+                                <div class="form-outline mb-2">
+                                    <input type="text" id="ConfirmPasswordInput" class="form-control text-white" />
+                                    <label class="form-label text-secondary" for="ConfirmPasswordInput">Confirm
+                                        Password</label>
+                                    <div id="ConfirmPasswordFeedback" class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer translucent">
+                        <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Close</button>
+                        <button type="button" id="change-password-button" class="btn btn-primary"
+                            onclick="changePassword()">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MDB -->
@@ -342,6 +394,7 @@
     <script type="module" src="./scripts/chat/socketio-handler.js"></script>
     <script src="./scripts/chat/page-events.js"></script>
     <script type="module" src="./scripts/auth/sign-out.js"></script>
+    <script type="module" src="./scripts/auth/change-password.js"></script>
     <!-- JQuery -->
     <script src='https://code.jquery.com/jquery-2.2.4.min.js'></script>
     <script>

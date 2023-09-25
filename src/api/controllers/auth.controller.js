@@ -9,7 +9,7 @@ import {
   resetPasswordSchema,
   forgotPasswordRequestSchema
 } from '../validations/auth.validation.js';
-import { setNewPassword } from '../services/auth/register.service.js';
+import { setResetPassword } from '../services/auth/register.service.js';
 import {
   ipRateLimiter,
   emailRateLimiter,
@@ -75,7 +75,7 @@ export const register = [
 /**
  * Route handler for sending verification code for email-verification.
  *
- * This route expects a POST request with the following parameters in the request:
+ * This route expects a POST request with the following parameters in the request session:
  * - Firstname: The first name of the user.
  * - Email: The email address to verify.
  *
@@ -96,6 +96,7 @@ export const emailVerificationRequest = [
   async (req, res, next) => {
     const { Firstname, Email } = req.session?.needsVerification;
 
+    console.log(Firstname, Email);
     const { message, status, error } =
       await registerService.sendVerificationCode(Firstname, Email);
     if (error) return next(error);
@@ -189,7 +190,7 @@ export const getAuthInfo = async (req, res, next) => {
   const { Page } = req.params;
 
   // Sign in
-  if (Page == 'sign-in') {
+  if (Page == 'sign-in' || Page == 'register') {
     // Redirect to their chat page if the user is signed in.
     if (req.isAuthenticated()) return res.redirect('/chat.html');
 
@@ -335,7 +336,7 @@ export const resetPassword = [
   async (req, res, next) => {
     const { UserID, NewPassword } = req.body;
 
-    const { message, redirect, status, error } = await setNewPassword(
+    const { message, redirect, status, error } = await setResetPassword(
       UserID,
       NewPassword
     );
@@ -438,8 +439,6 @@ export const facebookSignUpCallback = async (req, res, next) => {
       req.login(user, (err) => {
         if (err) return next(err);
 
-        req.flash('success', info.message);
-
         res.status(info.status).redirect(info.redirect);
       });
     }
@@ -477,8 +476,6 @@ export const googleSignUpCallback = async (req, res, next) => {
        */
       req.login(user, (err) => {
         if (err) return next(err);
-
-        req.flash('success', info.message);
 
         res.status(info.status).redirect(info.redirect);
       });

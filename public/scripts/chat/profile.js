@@ -1,8 +1,8 @@
-import { sendProfileRequest } from '../requests/profile.js';
+import { formDataRequest } from '../requests/formData.js';
 
 let userProfile = {};
 
-const profileCredentialsDisplayElements = {
+const profileCredentialsDisplayAndInputElements = {
   Firstname: document.querySelectorAll('#Firstname'),
   Lastname: document.querySelectorAll('#Lastname'),
   Email: document.querySelectorAll('#Email'),
@@ -17,7 +17,7 @@ const editProfileForm = document.querySelector('#editProfileForm');
 
 (async function getProfile() {
   // Send a request to retrieve the user's profile information
-  const { redirect, user } = await sendProfileRequest(`/profile/view`, 'GET');
+  const { redirect, user } = await formDataRequest(`/profile/view`, 'GET');
 
   if (redirect) {
     return (window.location.href = redirect);
@@ -35,7 +35,7 @@ editProfileForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   // Reseting all the styles to its original form.
-  Object.entries(profileCredentialsDisplayElements).forEach(
+  Object.entries(profileCredentialsDisplayAndInputElements).forEach(
     ([id, elements]) => {
       elements[1].classList.remove('is-invalid');
       elements[1].innerHTML = '';
@@ -54,7 +54,7 @@ editProfileForm.addEventListener('submit', async (e) => {
     formData.append('Image', profileImageInputElement.files[0]);
   }
   // Iterate over each input element and add its value to the form data if it has been changed
-  Object.entries(profileCredentialsDisplayElements).forEach(
+  Object.entries(profileCredentialsDisplayAndInputElements).forEach(
     ([id, elements]) => {
       let input = elements[1];
 
@@ -83,9 +83,9 @@ editProfileForm.addEventListener('submit', async (e) => {
   }
 
   // Send a request to update the user's profile with the form data
-  const { redirect, error, message, user } = await sendProfileRequest(
+  const { redirect, error, message, user } = await formDataRequest(
     '/profile/edit',
-    'PATCH',
+    'POST',
     formData
   );
 
@@ -97,7 +97,7 @@ editProfileForm.addEventListener('submit', async (e) => {
     // Display specific error messages based on their types
     switch (error.name) {
       case 'JoiValidationError':
-        Object.entries(profileCredentialsDisplayElements).forEach(
+        Object.entries(profileCredentialsDisplayAndInputElements).forEach(
           ([id, element]) => {
             if (id in error.details) {
               console.log(element);
@@ -149,7 +149,7 @@ editProfileForm.addEventListener('submit', async (e) => {
 });
 
 function updateProfileCredentials() {
-  Object.entries(profileCredentialsDisplayElements).forEach(
+  Object.entries(profileCredentialsDisplayAndInputElements).forEach(
     ([id, elements]) => {
       elements[0].innerHTML = userProfile[id];
       elements[1].value =

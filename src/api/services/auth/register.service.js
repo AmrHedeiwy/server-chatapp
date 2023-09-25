@@ -1,5 +1,5 @@
 import db from '../../models/index.js';
-import successJSON from '../../../config/success.json' assert { type: 'json' };
+import successJson from '../../../config/success.json' assert { type: 'json' };
 import {
   EmailError,
   SequelizeConstraintError,
@@ -14,7 +14,7 @@ import sequelize from 'sequelize';
 /**
  * Registers a new user.
  *
- * @param {Object} data - The data for the user registration.
+ * @param {object} data - The data for the user registration.
  * @returns {Promise<Object>}  A promise that resolves with a user object, or rejects with an error object.
  * @property {Object} user - The user object containing the user's data.
  * @throws {SequelizeErrors} - Sequelize can throw different error classes based on what failed, but it will mostly throw a ConstaintError.
@@ -31,12 +31,7 @@ export const addUser = async (data) => {
     await t.commit();
 
     // Return the success response with the status, message, redirect URL, and user's email
-    return {
-      status: successJSON.create_user.code,
-      message: successJSON.create_user.message,
-      redirect: successJSON.create_user.redirect,
-      user
-    };
+    return { ...successJson.create_user, user };
   } catch (err) {
     // Rollback the transaction if an error occurs
     await t.rollback();
@@ -121,11 +116,7 @@ export const verifyEmail = async (email, verificationCode) => {
     // Update the user's IsVerified status in the database
     await db.User.update({ IsVerified: true }, { where: { Email: email } });
 
-    return {
-      message: successJSON.user_verified.message,
-      status: successJSON.user_verified.code,
-      redirect: successJSON.user_verified.redirect
-    };
+    return successJson.user_verified;
   } catch (err) {
     return { error: err };
   }
@@ -162,11 +153,11 @@ export const checkUserExists = async (field, value) => {
 /**
  * Sets a new password for a user.
  *
- * @param {number} UserID - The ID of the user.
+ * @param {number} userId - The ID of the user.
  * @param {string} newPassword - The new password to set for the user.
  * @returns {Promise<Object>} A promise that resolves with a success message, status and redirect page, or rejects with an error object.
  */
-export const setNewPassword = async (userId, newPassword) => {
+export const setResetPassword = async (userId, newPassword) => {
   try {
     // Check if the user exists by UserID
     const { user, error } = await checkUserExists('UserID', userId);
@@ -176,11 +167,7 @@ export const setNewPassword = async (userId, newPassword) => {
     user.Password = newPassword;
     await user.save();
 
-    return {
-      message: successJSON.change_password.message,
-      status: successJSON.change_password.code,
-      redirect: successJSON.change_password.redirect
-    };
+    return successJson.reset_password;
   } catch (err) {
     return { error: err };
   }
@@ -191,5 +178,5 @@ export default {
   sendVerificationCode,
   verifyEmail,
   checkUserExists,
-  setNewPassword
+  setResetPassword
 };

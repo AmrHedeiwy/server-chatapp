@@ -1,11 +1,11 @@
-export async function sendAuthRequest(url, method, body) {
+export async function normalRequest(url, method, body) {
   // The request options
   const requestOptions = {
     method,
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(body) || null
+    body: body || null
   };
 
   // Remove the body if no value was added

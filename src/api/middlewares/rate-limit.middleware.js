@@ -11,8 +11,12 @@ const emailRouteLimits = {
   '/request-email-verification': { count: 3, expire: 60 * 10 },
   '/verify-email': { count: 4, expire: 60 * 5 },
   '/forgot-password': { count: 3, expire: 60 * 10 },
-  '/sign-in': { count: 5, expire: 60 * 5 },
-  '/edit': { count: 4, expire: 60 * 60 }
+  '/sign-in': { count: 5, expire: 60 * 5 }
+};
+
+const userIdRouteLimits = {
+  '/edit': { count: 4, expire: 60 * 60 },
+  '/change-password': { count: 10, expire: 60 * 120 }
 };
 
 /**
@@ -103,7 +107,7 @@ export const emailSkipSucessRequest = async (req, res, next) => {
       // Retrieve the email from the session or request body
       const email =
         req.session.needsVerification?.Email ||
-        req?.user.Email ||
+        req.user?.Email ||
         req.body.Email;
 
       // Get the route from the request URL
@@ -143,14 +147,14 @@ export const userIdRateLimiter = async (req, res, next) => {
   const response = await redisClient
     .multi()
     .incr(uniqueIdentifier) // Increment the counter for the unique identifier
-    .expire(uniqueIdentifier, emailRouteLimits[route].expire) // Set an expiration time based on the email route limit configuration
+    .expire(uniqueIdentifier, userIdRouteLimits[route].expire) // Set an expiration time based on the email route limit configuration
     .exec();
 
   // Retrieve the counter value from the Redis response
   const counter = response[0];
 
   // If the limit is exceeded, invoke the next middleware with a RateLimitError
-  if (counter > emailRouteLimits[route].count)
+  if (counter > userIdRouteLimits[route].count)
     return next(new RateLimitError(route));
 
   // If the limit is not exceeded, proceed to the next middleware

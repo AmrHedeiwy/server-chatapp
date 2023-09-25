@@ -1,84 +1,59 @@
-import { sendAuthRequest } from '../requests/auth.js';
+import {
+  addFieldStyles,
+  removeFieldStyles
+} from '../interactive/fieldStyles.js';
+import { normalRequest } from '../requests/normal.js';
 
 const registerForm = document.querySelector('#registerForm');
 
+const fields = [
+  'Firstname',
+  'Lastname',
+  'Username',
+  'Email',
+  'Password',
+  'ConfirmPassword',
+  'TermsOfAgreement'
+];
+
+const inputFields = {
+  Firstname: document.querySelector('#FirstnameInput'),
+  Lastname: document.querySelector('#LastnameInput'),
+  Username: document.querySelector('#UsernameInput'),
+  Email: document.querySelector('#EmailInput'),
+  Password: document.querySelector('#PasswordInput'),
+  ConfirmPassword: document.querySelector('#ConfirmPasswordInput'),
+  TermsOfAgreement: document.querySelector('#TermsOfAgreementInput')
+};
+
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formElements = {
-    registerFirstname: '',
-    registerLastname: '',
-    registerUsername: '',
-    registerEmail: '',
-    registerPassword: '',
-    registerConfirmPassword: '',
-    registerTermsOfAgreement: false
-  };
 
-  // Getting the values of the fields
-  document.querySelectorAll('input').forEach((input) => {
-    if (input.id in formElements) {
-      if (input.type === 'checkbox') {
-        formElements[input.id] = input.checked;
-      } else {
-        formElements[input.id] = input.value;
-      }
-    }
+  removeFieldStyles(fields);
+
+  const body = JSON.stringify({
+    Firstname: inputFields.Firstname.value,
+    Lastname: inputFields.Lastname.value,
+    Username: inputFields.Username.value,
+    Email: inputFields.Email.value,
+    Password: inputFields.Password.value,
+    ConfirmPassword: inputFields.ConfirmPassword.value,
+    TermsOfAgreement: inputFields.TermsOfAgreement.checked
   });
 
-  // Reseting all the styles to its original form.
-  for (const key in formElements) {
-    document.querySelector(`#${key}`).classList.remove('is-invalid');
-    document.querySelector(`#${key}`).innerHTML = '';
-    document.querySelector(`#${key}Row`).style.paddingBottom = '';
-  }
-
-  /**
-   * Formating the key names
-   *
-   * @example { registerEmail -> Email }
-   */
-  const formatedData = Object.entries(formElements).reduce(
-    (acc, [key, value]) => {
-      // removing the word `register` from the key name.
-      key = key.replace('register', '');
-      acc[key] = value;
-      return acc;
-    },
-    {}
-  );
-
   // Send request to register the user
-  const { error, redirect } = await sendAuthRequest(
+  const { error, redirect } = await normalRequest(
     '/auth/register',
     'POST',
-    formatedData
+    body
   );
 
   // Check for errors
   if (error) {
-    // Showing each error based on their type
+    // Showing each error based on their name
     switch (error.name) {
       case 'JoiValidationError':
-        Object.keys(formatedData).forEach((inputKey) => {
-          if (inputKey in error.details) {
-            document
-              .querySelector(`#register${inputKey}`)
-              .classList.add('is-invalid');
-
-            document.querySelector(`#${inputKey}`).innerHTML =
-              error.details[inputKey];
-
-            // Calculate the height of the error message
-            const errorHeight = document
-              .querySelector(`#${inputKey}`)
-              .getBoundingClientRect().height;
-
-            // Add padding to the input container based on the height of the error message
-            document.querySelector(
-              `#register${inputKey}Row`
-            ).style.paddingBottom = errorHeight + 'px';
-          }
-        });
+        addFieldStyles(fields, error);
         break;
       default:
         new Alert({
@@ -89,7 +64,6 @@ registerForm.addEventListener('submit', async (e) => {
         break;
     }
 
-    // return nothing to stop the rest of the funciton from executing
     return;
   }
 
@@ -97,3 +71,23 @@ registerForm.addEventListener('submit', async (e) => {
   registerForm.reset();
   window.location.href = redirect;
 });
+
+(async function getInfo() {
+  const { message, redirect } = await normalRequest(
+    '/auth/info/sign-in',
+    'GET'
+  );
+
+  if (redirect) {
+    return (window.location.href = redirect);
+  }
+  if (message) {
+    Object.entries(message).forEach(([type, message]) => {
+      new Alert({
+        type: type,
+        message: message,
+        withProgress: true
+      });
+    });
+  }
+})();

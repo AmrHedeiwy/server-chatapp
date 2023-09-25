@@ -72,6 +72,7 @@ const excludePassportSession = (req, res, next) => {
   if (
     url.endsWith('/sign-in') ||
     url.endsWith('/sign-out') ||
+    url.endsWith('/change-password') ||
     url.endsWith('/') ||
     url.endsWith('/view') ||
     url.endsWith('/edit')
@@ -129,7 +130,7 @@ io.on('connection', (socket) => {
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync();
+  await db.sequelize.sync({ force: true });
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);
   });

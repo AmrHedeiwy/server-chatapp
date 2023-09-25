@@ -8,15 +8,15 @@ const ipRouteLimits = {
 };
 
 const emailRouteLimits = {
-  '/request-email-verification': { count: 3, expire: 60 * 10 },
-  '/verify-email': { count: 4, expire: 60 * 5 },
-  '/forgot-password': { count: 3, expire: 60 * 10 },
-  '/sign-in': { count: 5, expire: 60 * 5 }
+  '/request-email-verification': { count: 3, expire: 10 * 60 * 1000 },
+  '/verify-email': { count: 4, expire: 5 * 60 * 1000 },
+  '/forgot-password': { count: 3, expire: 10 * 60 * 1000 },
+  '/sign-in': { count: 5, expire: 5 * 60 * 1000 }
 };
 
 const userIdRouteLimits = {
-  '/edit': { count: 4, expire: 60 * 60 },
-  '/change-password': { count: 10, expire: 60 * 120 }
+  '/edit': { count: 4, expire: 60 * 60 * 1000 },
+  '/change-password': { count: 10, expire: 120 * 60 * 1000 }
 };
 
 /**

@@ -13,6 +13,7 @@ import flash from 'connect-flash';
 import RedisStore from 'connect-redis';
 import { redisClient } from './config/redis-client.js';
 import path, { dirname } from 'path';
+import scheduledTasks from './api/helpers/taskSchedule.helper.js';
 
 // Importing the Sequelize instnace
 import db from './api/models/index.js';
@@ -130,7 +131,8 @@ io.on('connection', (socket) => {
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync({ force: true });
+  await db.sequelize.sync();
+  scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);
   });

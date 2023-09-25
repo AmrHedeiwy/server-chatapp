@@ -113,8 +113,11 @@ export const verifyEmail = async (email, verificationCode) => {
     // Delete the verification code from Redis
     await redisClient.del(`email_verification:${email}`);
 
-    // Update the user's IsVerified status in the database
-    await db.User.update({ IsVerified: true }, { where: { Email: email } });
+    // Update the user's IsVerified status and LastVerifiedAt in the database
+    await db.User.update(
+      { IsVerified: true, LastVerifiedAt: Date.now() },
+      { where: { Email: email } }
+    );
 
     return successJson.user_verified;
   } catch (err) {

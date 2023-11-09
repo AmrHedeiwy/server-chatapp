@@ -17,14 +17,11 @@ import {
 } from '../middlewares/rate-limit.middleware.js';
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
-import { ResetPasswordError } from '../helpers/ErrorTypes.helper.js';
 
 /**
  * Route handler for registering a user.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Firstname: The first name of the user.
- * - Lastname: The last name of the user.
  * - Username: The username of the user.
  * - Email: The email address of the user.
  * - Password: The password of the user.
@@ -36,9 +33,9 @@ import { ResetPasswordError } from '../helpers/ErrorTypes.helper.js';
  * 3. Adds the new user to the database using the addUser function.
  * 4. Sends a verification code to the user's email for email verification using the beforeSave() hook in the User model.
  * 5. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 6. If the saving process is successful, a success flash message is stored in the req.flash object.
- * 7. A needsVerification property is populated in the session with the following properties: 'Email', 'Firstname'.
- * 8. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 6. If the saving process is successful, it will add a session for the user using the logIn() method and redirect the
+ * user to the email verification page with an appropriate message. (The user will not be able to visit protected routes since their account has not been
+ * verified yet)
  */
 export const register = [
   ipRateLimiter,
@@ -51,70 +48,38 @@ export const register = [
 
     if (error) return next(error);
 
-    /**
-     * Populate the needsVerification object in the session.
-     *
-     * The needsVerification object is needed for the following reasons:
-     * - To allow the user to access the email-verification.html page.
-     * - To display the user's email in the email-verification.html page.
-     * - To display the user's first name in the email-verification.html page.
-     * - To use the email and the first name when resending the verifiaction code to the email.
-     * - To use the email as the key when searching in the redis store in order to validate the verification code.
-     */
-    req.session.needsVerification = {
-      Email: user.Email,
-      Firstname: user.Firstname
-    };
+    req.logIn(user, (err) => {
+      if (err) return next(err);
 
-    req.flash('success', message);
-
-    res.status(status).redirect(redirect);
+      res.status(status).json({ message, redirect });
+    });
   }
 ];
 
 /**
  * Route handler for sending verification code for email-verification.
  *
- * This route expects a POST request with the following parameters in the request session:
- * - Firstname: The first name of the user.
+ * This route expects a POST request with the following parameters in the request user:
+ * - Username: Used in the email context.
  * - Email: The email address to verify.
- *
- * These parameters are extracted from the follwoing:
- * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
- * or changed their email.
+ * - UserID: The key to set for the verification code when storing in the cache (redis).
  *
  * This route performs the following steps:
  * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
  * 2. Sends the new verification code to the user's email using the sendVerificaitonCode function.
  * 3. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 4. If the emailing process is successful, a needsVerification property is populated to the session with the following properties:
- * 'Email', 'Firstname'.
- * 5. Finally, the response is sent with the appropriate status code and message.
+ * 4. If the emailing process is successful, the user is redirected to the email verification page with an appropriate message.
  */
-export const emailVerificationRequest = [
+export const verifyEmailRequest = [
   emailRateLimiter,
   async (req, res, next) => {
-    const { Firstname, Email } = req.session?.needsVerification;
+    const { Username, Email, UserID } = req.user;
 
-    console.log(Firstname, Email);
-    const { message, status, error } =
-      await registerService.sendVerificationCode(Firstname, Email);
+    const { message, redirect, status, error } =
+      await registerService.sendVerificationCode(Username, Email, UserID);
     if (error) return next(error);
 
-    /**
-     * The needsVerification object is needed for the following reasons:
-     * - To allow the user to access the email-verification.html page.
-     * - To display the user's email in the email-verification.html page.
-     * - To display the user's first name in the email-verification.html page.
-     * - To use the email and the first name when resending the verifiaction code to the email.
-     * - To use the email as the key when searching in the redis store in order to validate the verification code.
-     */
-    req.session.needsVerification = {
-      Email,
-      Firstname
-    };
-
-    res.status(status).json(message);
+    res.status(status).json({ message, redirect });
   }
 ];
 
@@ -124,137 +89,57 @@ export const emailVerificationRequest = [
  * This route expects a POST request with the following parameters in the request body:
  * - VerificationCode: The 6-digit verification code to verify the email.
  *
- * It also requires the following additional parameters:
- * - Firstname: The first name of the user.
- * - Email: The email address to verify.
- *
- * These additional parameters are extracted from the following:
- * - 'req.session.needsVerification' : It may exist if the user just registered an account, resent the email verification code,
- * or changed their email.
+ * It also requires the following additional parameters from the request user:
+ * - UserID: To extract the the verification code value stored in the cache (redis) using the UserID as the key.
  *
  * This route performs the following steps:
  * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
  * 2. Validates the verification code and updates their verification status to the database using the verifyEmail function.
  * 3. If an error occurs during the verification process, it will be passed to the error handling middleware.
- * 4. If the verificaiton is successful, we delete the needsVerification object from the session to prevent further access
- * to the email verification page.
- * 5. A success flash message is stored in the req.flash object.
- * 6. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 4. If the verificaiton is successful, the user is redirected to their profile page with an appropriate message.
  */
-export const emailVerification = [
+export const verifyEmail = [
   emailRateLimiter,
   async (req, res, next) => {
     const { VerificationCode } = req.body;
 
-    const Email = req.session?.needsVerification.Email;
+    const { UserID } = req.user;
 
-    const { message, status, redirect, error } =
-      await registerService.verifyEmail(Email, VerificationCode);
+    const { status, message, redirect, error } =
+      await registerService.verifyEmail(UserID, VerificationCode);
 
     if (error) return next(error);
 
-    delete req.session.needsVerification;
-
-    req.flash('success', message);
-
-    // Redirect the user to the specified URL
-    res.status(status).redirect(redirect);
+    res.status(status).json({ message, redirect });
   }
 ];
 
 /**
- * Route handler for retrieving authentication information based on the requested page.
+ * Route handler for retrieving authentication information based on the type.
  *
  * This route expects a GET request and expects the page name as a parameter in the URL.
  *
- * The available pages and their corresponding behaviors are as follows:
- *
- * 1. 'sign-in':
- *    - If the user is already signed in, it redirects to the chat page.
- *    - If the user needs to verify their email, it redirects to the email verification page.
- *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
- *    - If there are no flash messages, it returns a JSON response indicating there are no flash messages.
- *
- * 2. 'email-verification':
- *    - If email verification is not required, it redirects to the sign-in page with a 401 status code.
- *    - If there are flash messages in the session, it returns them as a JSON response and clears the session.
- *    - It extracts the first name and email from the session, masks the email, and returns a JSON response with the masked email, first name, and flash messages.
- *
- * 3. 'reset-password':
- *    - If the reset password session data is not available, it redirects to the sign-in page with a 401 status code.
- *
- * 4. 'forgot-password':
- *    - It gets flash messages from the session, returns them as a JSON response, and clears the session.
+ * Possble types:
+ * - authorisation : For protected routes.
+ * - session : The user's credentials if it exists in the session.
  */
 export const getAuthInfo = async (req, res, next) => {
-  const { Page } = req.params;
+  const { type } = req.params;
 
-  // Sign in
-  if (Page == 'sign-in' || Page == 'register') {
-    // Redirect to their chat page if the user is signed in.
-    if (req.isAuthenticated()) return res.redirect('/chat.html');
+  if (type === 'authorisation') {
+    const isCallbackProvider = req.session.isCallbackProvider ?? false;
 
-    // Redirect to email verification page if the user needs to verify their email
-    if (req.session.needsVerification)
-      return res.redirect('/email-verification.html');
+    delete req.session.isCallbackProvider;
 
-    const flashMessages = req.session.flash;
-
-    if (flashMessages) {
-      // Destroy the session to clear flash messages.
-      req.session.destroy();
-      return res.json(flashMessages);
-    }
-
-    // Send a JSON response indicating that there are no flash messages
-    res.json(false);
-  }
-
-  // Email verificaiton
-  else if (Page == 'email-verification') {
-    // Redirect to sign-in page if email verification is not needed
-    if (!req.session.needsVerification)
-      return res.status(401).redirect('/sign-in.html');
-
-    const flashMessages = req.session.flash;
-    delete req.session.flash;
-
-    let { Firstname, Email } = req.session.needsVerification;
-
-    // Extract the username and domain from the email
-    const [username, domain] = Email.split('@');
-
-    // Mask the username by replacing middle characters with asterisks
-    const maskedUsername =
-      username.charAt(0) +
-      '*'.repeat(username.length - 2) +
-      username.charAt(username.length - 1);
-
-    /**
-     * Create a masked email by combining the masked username and domain
-     * @example Email: 'example@gmail.com' -> Masked: 'e*****e@gmail.com'
-     */
-    const maskedEmail = `${maskedUsername}@${domain}`;
-
-    res.status(200).json({
-      Email: maskedEmail,
-      Firstname,
-      FlashMessages: flashMessages
+    return res.json({
+      isAuth: req.isAuthenticated(),
+      isVerified: req.user?.IsVerified ?? false,
+      isPasswordReset: req.session.passwordReset ?? false,
+      isCallbackProvider
     });
   }
 
-  // reset password
-  else if (Page == 'reset-password') {
-    if (!req.session.resetPassword) return next(new ResetPasswordError());
-  }
-
-  // forgot password
-  else if (Page == 'forgot-password') {
-    const flashMessages = req.session.flash;
-    delete req.session.flash;
-
-    res.json({ FlashMessages: flashMessages });
-  }
+  if (type === 'session') return res.json({ user: req.user ?? null });
 };
 
 /**
@@ -287,6 +172,9 @@ export const forgotPasswordRequest = [
     );
     if (error) return next(error);
 
+    // Indicates that account is not created by email (local-strategy)
+    if (!user.Password) return next(new Error());
+
     const useridToken = jwt.sign(
       {
         UserID: user.UserID
@@ -296,8 +184,8 @@ export const forgotPasswordRequest = [
     );
 
     const { message, status, failed } = await mailerService(
-      'reset-password',
-      user.Firstname,
+      'forgot-password',
+      user.Username,
       Email,
       {
         useridToken
@@ -306,9 +194,11 @@ export const forgotPasswordRequest = [
     if (failed) return next(failed);
 
     // To allow the user to access the reset-password.html page.
-    req.session.resetPassword = true;
+    req.session.passwordReset = true;
+    req.session.save();
+    console.log(req.session);
 
-    res.status(status).json(message);
+    res.status(status).json({ message });
   }
 ];
 
@@ -334,18 +224,18 @@ export const resetPassword = [
   resetPasswordDecoder,
   validation(resetPasswordSchema),
   async (req, res, next) => {
-    const { UserID, NewPassword } = req.body;
+    const { UserID, Password } = req.body;
 
     const { message, redirect, status, error } = await setResetPassword(
       UserID,
-      NewPassword
+      Password
     );
     if (error) return next(error);
 
     req.flash('success', message);
-    delete req.session.resetPassword;
+    delete req.session.passwordReset;
 
-    res.status(status).redirect(redirect);
+    res.status(status).json({ message, redirect });
   }
 ];
 
@@ -383,7 +273,10 @@ export const signIn = [
         req.logIn(user, (err) => {
           if (err) return next(err);
 
-          res.status(info.status).redirect(info.redirect);
+          // if (req.body.RememberMe)
+          //   req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+          res.status(info.status).json({ redirect: info.redirect });
         });
       }
     )(req, res, next);
@@ -439,6 +332,7 @@ export const facebookSignUpCallback = async (req, res, next) => {
       req.login(user, (err) => {
         if (err) return next(err);
 
+        req.session.isCallbackProvider = true;
         res.status(info.status).redirect(info.redirect);
       });
     }
@@ -477,6 +371,7 @@ export const googleSignUpCallback = async (req, res, next) => {
       req.login(user, (err) => {
         if (err) return next(err);
 
+        req.session.isCallbackProvider = true;
         res.status(info.status).redirect(info.redirect);
       });
     }
@@ -485,8 +380,8 @@ export const googleSignUpCallback = async (req, res, next) => {
 
 export default {
   register,
-  emailVerificationRequest,
-  emailVerification,
+  verifyEmailRequest,
+  verifyEmail,
   forgotPasswordRequest,
   resetPassword,
   signIn,

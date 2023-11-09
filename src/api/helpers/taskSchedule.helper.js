@@ -32,7 +32,7 @@ export const scheduledTasks = () => {
     }
   };
 
-  // Run the deletion job every 24 hours (adjust the interval as needed)
+  // Run the deletion job every 24 hours
   setInterval(deleteUnverifiedUsers, 24 * 60 * 60 * 1000);
 };
 

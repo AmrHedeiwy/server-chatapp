@@ -11,9 +11,9 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 /**
  * Sends an email to a user with the specified type, recipient details, and options.
  *
- * @param {string} type - The type of email to be sent. Possible values: 'Email', 'Password'.
- * @param {string} Firstname - The first name of the recipient.
- * @param {string} Email - The email address of the recipient.
+ * @param {string} type - The type of email to be sent. Possible values: 'verification-code', 'forgot-password'.
+ * @param {string} Username - Only extract the name part 'Emna#3123' -> 'Emna'. 'Dear {name}' in the email context
+ * @param {string} Email - The email to send to.
  * @param {object} options - Additional options for the email.
  * @param {string} options.verificationCode - The verification code for email verification (required when type is 'Email').
  * @param {string} options.useridToken - The user ID token for password reset (required when type is 'Password').
@@ -22,7 +22,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  * @property {number} status - A success code indicating the status of the sending operation.
  * @property {EmailError} [failed] - A failed object if an error occurred during the sending operation.
  */
-const sendEmail = async (type, Firstname, Email, options) => {
+const sendEmail = async (type, Username, Email, options) => {
   let msg = {
     to: Email,
     from: 'amr.hedeiwy@gmail.com',
@@ -30,11 +30,13 @@ const sendEmail = async (type, Firstname, Email, options) => {
     html: ``
   };
 
+  const name = Username.split('#')[0];
+
   // Construct the email message based on the type
   if (type == 'verification-code') {
     msg.subject = 'Email Verification Code';
     msg.html = `
-      <p>Hello ${Firstname},</p>
+      <p>Hello ${name},</p>
       <p>Thank you for registering with our service. To complete the registration process, please enter the following verification code:</p>
       <h1>${options.verificationCode}</h1>
       <p>Please enter this code on the registration page to verify your email address.</p>
@@ -42,16 +44,16 @@ const sendEmail = async (type, Firstname, Email, options) => {
       <p>Best regards,</p>
       <p>Amr Hedeiwy</p>
     `;
-  } else if (type == 'reset-password') {
+  } else if (type == 'forgot-password') {
     msg.subject = 'Password Reset Request';
     msg.html = `
-      <p>Dear ${Firstname},</p>
+      <p>Dear ${name},</p>
       <p>We have received a request to reset your password for your Deiwy account. To proceed with resetting your password, please click the button below:</p>
       <p>
-        <a href="http://localhost:3000/reset-password?token=${options.useridToken}" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a>
+        <a href="http://localhost:3000/reset-password/token=${options.useridToken}" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a>
       </p>
       <p>If clicking the button above doesn't work, you can copy and paste the following URL into your browser's address bar:</p>
-      <p>http://localhost:3000/reset-password.html?token=${options.useridToken}</p>
+      <p>http://localhost:3000/password/reset/${options.useridToken}</p>
       <p>If you did not request a password reset, please disregard this email. Your account is secure, and no changes have been made.</p>
       <p>Please note that the password reset link is valid for a limited time, typically within 1 hour. If the link expires, you can request another password reset by visiting the [Forgot Password] page on our website.</p>
       <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at amr.hedeiwy@gmail.com.</p>
@@ -66,7 +68,10 @@ const sendEmail = async (type, Firstname, Email, options) => {
 
     return {
       message: successJson.user_emailed.messages[type],
-      status: successJson.user_emailed.status
+      status: successJson.user_emailed.status,
+      ...(type === 'email-verification'
+        ? { redirect: successJson.user_emailed.redirect.email_verification }
+        : null)
     };
   } catch (err) {
     return { failed: new EmailError('FailedToSend', err) };

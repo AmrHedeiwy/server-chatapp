@@ -25,22 +25,12 @@ function errorFormatter(errors) {
  * Joi schema for validating the edit user profile request payload.
  *
  * @type {Joi.ObjectSchema}
- * @property {Joi.StringSchema} Firstname - The first name of the user. Must be
- * between 2 and 30 letters only.
- * @property {Joi.StringSchema} Lastname - The last name of the user. Must be
- * between 2 and 30 letters only.
  * @property {Joi.StringSchema} Username - The username of the user. Must be
  * between 3 and 20 letters, digits, underscores, or hyphens.
  * @property {Joi.StringSchema} Email - The email address of the user. Must be
  * unique and in valid email format.
  */
 export const editProfileSchema = Joi.object({
-  Firstname: Joi.string()
-    .trim()
-    .pattern(/^[A-Za-z]{2,30}$/),
-  Lastname: Joi.string()
-    .trim()
-    .pattern(/^[A-Za-z]{2,30}$/),
   Username: Joi.string()
     .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/),

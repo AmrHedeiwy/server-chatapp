@@ -18,6 +18,7 @@ function errorFormatter(errors) {
 
     return acc;
   }, []);
+  console.log(formattedError);
   return new JoiValidationError(formattedError);
 }
 
@@ -25,10 +26,6 @@ function errorFormatter(errors) {
  * Joi schema for validating the register request payload.
  *
  * @type {Joi.ObjectSchema}
- * @property {Joi.StringSchema} Firstname - The first name of the user. Must be
- * between 2 and 30 letters only.
- * @property {Joi.StringSchema} Lastname - The last name of the user. Must be
- * between 2 and 30 letters only.
  * @property {Joi.StringSchema} Username - The username of the user. Must be
  * between 3 and 20 letters, digits, underscores, or hyphens.
  * @property {Joi.StringSchema} Email - The email address of the user. Must be
@@ -39,14 +36,6 @@ function errorFormatter(errors) {
  * the set @$!%?&.
  */
 export const registerSchema = Joi.object({
-  Firstname: Joi.string()
-    .trim()
-    .pattern(/^[A-Za-z]{2,30}$/)
-    .required(),
-  Lastname: Joi.string()
-    .trim()
-    .pattern(/^[A-Za-z]{2,30}$/)
-    .required(),
   Username: Joi.string()
     .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/)
@@ -66,10 +55,11 @@ export const registerSchema = Joi.object({
     .messages({
       'any.required': '"ConfirmPassword" is not allowed to be empty'
     })
-    .strip(),
-  TermsOfAgreement: Joi.boolean().valid(true).required().strip()
+    .strip()
+  // TermsOfAgreement: Joi.boolean().valid(true).required().strip()
 })
   .options({ abortEarly: false })
+  .unknown()
   .error(errorFormatter);
 
 /**
@@ -81,9 +71,11 @@ export const registerSchema = Joi.object({
  */
 export const signInSchema = Joi.object({
   Email: Joi.string().email().required(),
-  Password: Joi.string().required()
+  Password: Joi.string().required(),
+  RememberMe: Joi.boolean()
 })
   .options({ abortEarly: false })
+  .unknown()
   .error(errorFormatter);
 
 /**
@@ -94,24 +86,24 @@ export const signInSchema = Joi.object({
  * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the new password, should match the 'NewPassword' field.
  */
 export const resetPasswordSchema = Joi.object({
-  NewPassword: Joi.string()
+  Password: Joi.string()
     .trim()
     .pattern(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
-    .required()
-    .label('Password'),
+    .required(),
   ConfirmPassword: Joi.string()
     .trim()
     .empty('')
     .required()
-    .valid(Joi.ref('NewPassword'))
+    .valid(Joi.ref('Password'))
     .messages({
       'any.required': '"ConfirmPassword" is not allowed to be empty'
     })
     .strip()
 })
   .unknown()
+  .options({ abortEarly: false })
   .error(errorFormatter);
 
 /**

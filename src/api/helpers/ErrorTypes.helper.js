@@ -93,20 +93,10 @@ export class SocialMediaAuthenticationError extends BaseError {
    * @returns {Object} - The response containing the status code, message, and redirect URl.
    */
   getResponse() {
-    const redirect = errorsJson.server.socialMedia.redirect;
-    let status;
-    let message;
-
-    if (this.details instanceof sequelize.UniqueConstraintError) {
-      status = errorsJson.server.socialMedia.EmailContraint.status;
-      message = errorsJson.server.socialMedia.EmailContraint.message;
-    } else if (this.details instanceof EmailError) {
-      status = errorsJson.server.socialMedia.EmailVerification.status;
-      message = errorsJson.server.socialMedia.EmailVerification.message;
-    } else {
-      status = errorsJson.server.socialMedia.Unknown.code;
-      message = errorsJson.server.socialMedia.Unknown.message;
-    }
+    const status = errorsJson.server.socialMedia.status;
+    const message = errorsJson.server.socialMedia.message;
+    const redirect =
+      errorsJson.server.socialMedia[`${this.details.provider}_redirect`];
 
     return { status, message, redirect };
   }
@@ -226,26 +216,28 @@ export class JoiValidationError extends BaseError {
      * @param {Array} details - The validation error details.
      * @returns {Object} - An object containing field names as keys and corresponding error messages as values.
      */
-    const messages = this.details.reduce((acc, err) => {
+    const message = this.details.reduce((acc, err) => {
       const label = err.label;
       const code = err.code;
 
-      let message;
-      // Checking for Required field validation errors.
+      /**
+       * Checking for Required field validation errors.
+       * Adding the field name as the key and the error message as the value to the accumulator.
+       */
+
+      let fieldMessage;
       if (code === 'string.empty' || code === 'any.required') {
-        message = `Field is required.`;
+        fieldMessage = 'Required.';
       } else {
         // Else extract the error message from errors.json file.
-        message = errorsJson.validations.messages[label];
+        fieldMessage = errorsJson.validations.messages[label];
       }
 
-      // Add the field name as the key and the error message as the value to the accumulator.
-      acc[label] = message;
-
+      acc.push({ fieldName: label, fieldMessage });
       return acc;
-    }, {});
+    }, []);
 
-    return { status, message: messages };
+    return { status, message };
   }
 }
 
@@ -293,6 +285,12 @@ export class InvalidFileFormat extends BaseError {
   }
 }
 
+/**
+ * Represents an error that occurs when current password does not match the password stored in the db.
+ *
+ * @class ChangePasswordError
+ * @extends BaseError
+ */
 export class ChangePasswordError extends BaseError {
   constructor() {
     super();
@@ -302,5 +300,21 @@ export class ChangePasswordError extends BaseError {
     const message = errorsJson.server.ChangePassword.message;
     const status = errorsJson.server.ChangePassword.status;
     return { message, status };
+  }
+}
+
+/**
+ * Represents an error that occurs when the prompted email does not match the user's email.
+ *
+ * @class DeleteAccountError
+ * @extends BaseError
+ */
+export class DeleteAccountError extends BaseError {
+  constructor() {
+    super();
+  }
+
+  getResponse() {
+    return errorsJson.server.RemoveAccount;
   }
 }

@@ -62,7 +62,10 @@ const localStrategy = new Strategy(
       delete user.dataValues.Password;
 
       // Call the done callback with the authenticated user object and success message, status and redirect page
-      return done(null, user.dataValues, successJson.signin_user);
+      return done(null, user.dataValues, {
+        status: successJson.signin_user.status,
+        redirect: successJson.signin_user.email_redirect
+      });
     } catch (err) {
       // Call the done callback with the error if an error occurs during authentication
       return done(err);

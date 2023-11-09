@@ -30,8 +30,8 @@ export const addUser = async (data) => {
     // Commit the transaction
     await t.commit();
 
-    // Return the success response with the status, message, redirect URL, and user's email
-    return { ...successJson.create_user, user };
+    // Return the success response with the status, message, redirect URL, and user's credemtials
+    return { ...successJson.create_user, user: user.dataValues };
   } catch (err) {
     // Rollback the transaction if an error occurs
     await t.rollback();
@@ -54,22 +54,22 @@ export const addUser = async (data) => {
  * @returns {Promise<Object>} A promise that resolves with a success message and status, or rejects with an error object.
  * @throws {EmailError} - Thrown when the email fails to send.
  */
-export const sendVerificationCode = async (firstname, email) => {
+export const sendVerificationCode = async (name, email, userid) => {
   try {
     // Generate a 6-digit verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString();
 
     // Store the verification code in Redis with a TTL of 15 minutes (code expires in 15 minutes)
     await redisClient.setEx(
-      `email_verification:${email}`,
+      `email_verification:${userid}`,
       60 * 15,
       JSON.stringify({ verificationCode })
     );
 
     // Send the verification code via email using the mailerService
-    const { message, status, failed } = await mailerService(
+    const { message, redirect, status, failed } = await mailerService(
       'verification-code',
-      firstname,
+      name,
       email,
       {
         verificationCode
@@ -79,7 +79,7 @@ export const sendVerificationCode = async (firstname, email) => {
     // Throw an error if the email failed to send
     if (failed) throw failed;
 
-    return { message, status };
+    return { message, redirect, status };
   } catch (err) {
     return { error: err };
   }
@@ -88,16 +88,16 @@ export const sendVerificationCode = async (firstname, email) => {
 /**
  * Verifies the user's email using the provided verification code.
  *
- * @param {string} email - The email address of the user.
+ * @param {string} userid - Used as the key when extracting from the cache (redis).
  * @param {string} verificationCode - The verification code provided by the user.
  * @returns {Promise<Object>} A promise that resolves with a success message, status and redirect page, or rejects with an error object.
  * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.\
  */
-export const verifyEmail = async (email, verificationCode) => {
+export const verifyEmail = async (userid, verificationCode) => {
   try {
     // Retrieve the stored verification code from Redis
     const store = JSON.parse(
-      await redisClient.get(`email_verification:${email}`)
+      await redisClient.get(`email_verification:${userid}`)
     );
 
     // Throw an error if the stored verification code is not found (expired)
@@ -111,12 +111,12 @@ export const verifyEmail = async (email, verificationCode) => {
     }
 
     // Delete the verification code from Redis
-    await redisClient.del(`email_verification:${email}`);
+    await redisClient.del(`email_verification:${userid}`);
 
     // Update the user's IsVerified status and LastVerifiedAt in the database
     await db.User.update(
       { IsVerified: true, LastVerifiedAt: Date.now() },
-      { where: { Email: email } }
+      { where: { UserID: userid } }
     );
 
     return successJson.user_verified;

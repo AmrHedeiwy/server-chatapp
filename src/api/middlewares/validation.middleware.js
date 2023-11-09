@@ -26,6 +26,7 @@ const validation =
    */
   async (req, res, next) => {
     const body = req.body;
+
     try {
       const { error, value } = schema.validate(body);
       if (error) throw error;

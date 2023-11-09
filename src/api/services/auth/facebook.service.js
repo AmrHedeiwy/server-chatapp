@@ -16,7 +16,7 @@ const facebookStrategy = new Strategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: 'http://localhost:3000/auth/facebook/callback',
+    callbackURL: 'http://localhost:5000/auth/facebook/callback',
     profileFields: ['id', 'first_name', 'last_name', 'email']
   },
   /**
@@ -37,22 +37,27 @@ const facebookStrategy = new Strategy(
     try {
       // Find or create a new user based on their Facebook ID
       const [user, created] = await db.User.findOrCreate({
-        where: { FacebookID: id },
+        where: { Email: email },
         defaults: {
-          Firstname: first_name,
-          Lastname: last_name,
+          FacebookID: id,
           Username: (first_name + '_' + last_name).toLowerCase(),
-          Email: email,
           IsVerified: true
         }
       });
 
-      // If there is an error finding or creating the user, return a SocialMediaAuthenticationError
-      if (!user)
-        throw new SocialMediaAuthenticationError('Passport Facebook Error');
+      if (!created && user) {
+        user.FacebookID = id;
+        user.IsVerified = true;
 
-      done(null, user.dataValues, successJson.signin_user);
+        user.save();
+      }
+
+      done(null, user.dataValues, {
+        status: successJson.signin_user.status,
+        redirect: successJson.signin_user.facebook_redirect
+      });
     } catch (err) {
+      err.provider = 'facebook';
       done(new SocialMediaAuthenticationError(err));
     }
   }

@@ -23,19 +23,10 @@
       "status": 400
     },
     "socialMedia": {
-      "EmailVerification": {
-        "message": "Please verify your social media account email.",
-        "status": 403
-      },
-      "EmailContraint": {
-        "message": "Sorry, that email address is already in use.",
-        "status": 422
-      },
-      "Unknown": {
-        "message": "Error selecting social media account. Please try again or choose another platform.",
-        "status": 500
-      },
-      "redirect": "/sign-in.html"
+      "message": "Error selecting social media account. Please try again or choose another platform.",
+      "status": 500,
+      "facebook_redirect": "http://localhost:3000/cb/facebook/error",
+      "google_redirect": "http://localhost:3000/cb/google/error"
     },
     "Email": {
       "FailedToSend": {
@@ -46,7 +37,7 @@
       "NotVerified": {
         "message": "Please verify your email and try again.",
         "status": 403,
-        "redirect": "/email-verification.html"
+        "redirect": "http://localhost:3000/email-verification"
       }
     },
     "UserNotFound": {
@@ -54,7 +45,7 @@
       "status": 404
     },
     "VerificationCode": {
-      "message": "The verification code you entered is either invalid or has expired. Please request a new verification code and try again.",
+      "message": "The verification code you entered is either invalid or has expired.",
       "status": 400
     },
     "Unexpected": {
@@ -62,9 +53,9 @@
       "status": 500
     },
     "ResetPasswordLink": {
-      "message": "Oops! Your reset password link is invalid or has expired. Please request a new link to proceed.",
+      "message": "Oops! Your reset password link is invalid or has expired.",
       "status": 400,
-      "redirect": "/forgot-password.html"
+      "redirect": "/password/forgot"
     },
     "ChangePassword": {
       "message": "Current password is incorrect.",
@@ -73,7 +64,7 @@
     "rateLimit": {
       "messages": {
         "/register": "There have been too many registration requests. Please try again later.",
-        "/request-email-verification": "You have reached the limit for sending verification codes. Please try again later.",
+        "/verify-email-request": "You have reached the limit for sending verification codes. Please try again later.",
         "/verify-email": "Too many attempts have been made. Please try again later.",
         "/forgot-password": "Too many password reset attempts have been made. Please try again later.",
         "/reset-password": "Too many attempts have been made. Please try again later.",
@@ -88,6 +79,10 @@
         "FileFormat": "Invalid file format. Please upload an image file.",
         "FileToLarge": "File too large."
       },
+      "status": 400
+    },
+    "RemoveAccount": {
+      "message": "Inncorrect email.",
       "status": 400
     }
   }

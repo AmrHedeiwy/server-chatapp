@@ -4,6 +4,7 @@ import successJson from '../../../config/success.json' assert { type: 'json' };
 import sequelize from 'sequelize';
 import {
   ChangePasswordError,
+  DeleteAccountError,
   SequelizeConstraintError
 } from '../../helpers/ErrorTypes.helper.js';
 import bcrypt from 'bcrypt';
@@ -101,7 +102,29 @@ export const setChangePassword = async (
   }
 };
 
+/**
+ * Checks that the email promted by the user matches to confirm account deletion
+ * and removes the user from the database.
+ * @param {string} email - The promted email by the user.
+ * @param {string} user - The user's crednetials.
+ * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
+ * @throws {DeleteAccountError} - If the current password does not match the user's stored password.
+ */
+export const deleteAccount = async (email, user) => {
+  try {
+    if (email != user.Email) throw new DeleteAccountError();
+
+    // Deletes the user from the database
+    await db.User.delete({ where: { UserID: user.UserID } });
+
+    return successJson.delete_account;
+  } catch (err) {
+    return { error: err };
+  }
+};
+
 export default {
   saveNewCredentials,
-  setChangePassword
+  setChangePassword,
+  deleteAccount
 };

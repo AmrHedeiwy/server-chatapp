@@ -51,30 +51,28 @@ export default (User) => {
 
   User.afterSave(async (user) => {
     if (user.changed('Email')) {
-      // Extract the user's Firstname and Email.
-      const { Firstname, Email } = user;
+      const { Username, UserID, Email } = user;
 
       // Generate a 6-digit verification code.
       const verificationCode = crypto.randomInt(100000, 999999).toString();
 
       // Store the verification code in Redis with a 1-hour expiration time.
       await redisClient.setEx(
-        `email_verification:${Email}`,
+        `email_verification:${UserID}`,
         60 * 60,
         JSON.stringify({ verificationCode })
       );
 
-      // Send a verification email to the user.
+      // Send the verification code to the email.
       const { failed } = await mailerService(
         'verification-code',
-        Firstname,
+        Username,
         Email,
         {
           verificationCode
         }
       );
 
-      // Check if sending the email failed.
       if (failed) throw { error: failed };
     }
   });

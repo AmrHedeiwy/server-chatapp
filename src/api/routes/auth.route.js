@@ -14,17 +14,14 @@ router.post('/register', authController.register);
  * Endpoint: POST /auth/request-email-verification
  * Controller: authController.emailVerificationRequest
  */
-router.post(
-  '/request-email-verification',
-  authController.emailVerificationRequest
-);
+router.post('/verify-email-request', authController.verifyEmailRequest);
 
 /**
  * Verifies the user's email using the verification code.
  * Endpoint: POST /auth/verify-email
  * Controller: authController.emailVerification
  */
-router.post('/verify-email', authController.emailVerification);
+router.post('/verify-email', authController.verifyEmail);
 
 /**
  * Sends a request to initiate the password reset process.
@@ -46,7 +43,7 @@ router.post('/reset-password', authController.resetPassword);
  * Endpoint: GET /auth/info/:Page
  * Controller: authController.getAuthInfo
  */
-router.get('/info/:Page', authController.getAuthInfo);
+router.get('/info/:type', authController.getAuthInfo);
 
 /**
  * Authenticates a user by signing them in.

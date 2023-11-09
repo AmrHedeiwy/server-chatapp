@@ -23,4 +23,11 @@ router.post('/edit', profileController.edit);
  */
 router.post('/change-password', profileController.changePassword);
 
+/**
+ * Deletes the user's account.
+ * Endpoint: POST /profile/delete-account
+ * Controller: profileController.changePassword
+ */
+router.post('/delete-account', profileController.deleteAccount);
+
 export default router;

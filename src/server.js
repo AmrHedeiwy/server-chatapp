@@ -9,30 +9,33 @@ import { Server } from 'socket.io';
 import express from 'express';
 import session from 'express-session';
 import { passport } from './api/services/auth/index.service.js';
-import flash from 'connect-flash';
 import RedisStore from 'connect-redis';
 import { redisClient } from './config/redis-client.js';
-import path, { dirname } from 'path';
 import scheduledTasks from './api/helpers/taskSchedule.helper.js';
 
 // Importing the Sequelize instnace
 import db from './api/models/index.js';
+import cors from 'cors';
 
 // Set the server port
-const port = process.env.PORT || 3000;
-
-// Set the public directory path
-const publicPath = path
-  .join(dirname(import.meta.url), '../public')
-  .replace('file:\\', '');
+const port = process.env.PORT || 5000;
 
 // Create instances of the Express app, HTTP server, and Socket.io
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
 
-// Serve static files from the public directory
-app.use(express.static(publicPath));
+app.use(
+  cors({
+    credentials: true,
+    origin: 'http://localhost:3000',
+    allowedHeaders:
+      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept'
+  })
+);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Initialize the Redis store
 const redisStore = new RedisStore({
@@ -48,47 +51,29 @@ const sessionMiddleware = session({
   resave: false,
   store: redisStore,
   cookie: {
-    maxAge: 1000 * 60 * 24 * 24, // Equals 1 day
+    maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: false,
-    httpOnly: true
+    httpOnly: true,
+    domain: 'localhost',
+    path: '/',
+    sameSite: 'strict'
   }
 });
 
 // Initialize session storage, Passport middleware, and flash middleware
 app.use(sessionMiddleware);
 app.use(passport.initialize());
-app.use(flash());
+app.use(passport.session());
 
 // Parse request body as JSON and URL-encoded
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Import routes and error handling middleware
 import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
 
-const excludePassportSession = (req, res, next) => {
-  const url = req.url;
-
-  if (
-    url.endsWith('/sign-in') ||
-    url.endsWith('/sign-out') ||
-    url.endsWith('/change-password') ||
-    url.endsWith('/') ||
-    url.endsWith('/view') ||
-    url.endsWith('/edit')
-  ) {
-    return passport.session()(req, res, next);
-  }
-
-  // For other routes, continue with Passport session handling
-  return next();
-};
-
-// Apply the middleware to the routes
-app.use(excludePassportSession);
-
-// Mount routes and error handling middleware on the app
+app.use((req, res, next) => {
+  next();
+});
 app.use(routes);
 app.use(errorMiddleware);
 
@@ -100,6 +85,7 @@ io.use(wrapper(sessionMiddleware));
 // code bellow is for testing purposes
 // Authenticate Socket.io connections
 io.use(async (socket, next) => {
+  // @ts-ignore
   if (!socket.request.session.passport?.user) {
     return next(new Error('not auth'));
   }
@@ -111,15 +97,6 @@ isAuthSocket(io);
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {
-  // Handling flash messages
-  const flashMessages = socket.request.session.flash;
-  if (flashMessages) {
-    Object.entries(flashMessages).forEach(([type, message]) => {
-      socket.emit('flash', { type, message });
-    });
-    delete socket.request.session.flash;
-    socket.request.session.save();
-  }
   // console.log(socket.request);
   // socket.emit('message', `User with socketID ${socket.id} has joined`);
 });
@@ -131,7 +108,7 @@ io.on('connection', (socket) => {
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync();
+  await db.sequelize.sync({ force: true });
   scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);

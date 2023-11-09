@@ -6,7 +6,7 @@ import {
 import { userIdRateLimiter } from '../middlewares/rate-limit.middleware.js';
 import validation from '../middlewares/validation.middleware.js';
 
-import profileService from '../services/profile/edit.service.js';
+import profileService from '../services/profile/profile.service.js';
 import upload from '../middlewares/multer.middleware.js';
 
 /**
@@ -76,7 +76,7 @@ export const edit = [
 /**
  * Route handler for editing the user's profile.
  *
- * This route expects a PATCH request with the following OPTIONAL parameters in the request body:
+ * This route expects a POST request with the following OPTIONAL parameters in the request body:
  * - CurrentPassword: The user's current password.
  * - NewPassword: The new password to be set.
  * - ConfirmPassword: The re-entered password.
@@ -88,7 +88,6 @@ export const edit = [
  * 4. Updates the user's password using the setChangePassword function.
  * 5. If an error occurs during the password change process, the error is passed to the error handling middleware.
  * 6. If the password change is successful, the response is sent with the appropriate status code and message.
-
  */
 export const changePassword = [
   isAuthExpress,
@@ -108,4 +107,30 @@ export const changePassword = [
   }
 ];
 
-export default { view, edit, changePassword };
+/**
+ * Route handler for editing the user's profile.
+ *
+ * This route expects a POST request with the following OPTIONAL parameters in the request body:
+ * - Email: The email promted by the user to confirm account deletion
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Deletes the user from the database using the deleteAccount function.
+ * 3. If an error occurs during the process, the error is passed to the error handling middleware.
+ * 4. If the account deletion was successfull, a success flash message is stored in the req.flash object.
+ * 5. Finally, the response is sent with the appropriate status code and redirect URL.
+ */
+export const deleteAccount = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { status, message, redirect, error } =
+      await profileService.deleteAccount(req.body.Email, req.user);
+
+    if (error) return next(error);
+
+    req.flash('success', message);
+    res.status(status).redirect(redirect);
+  }
+];
+
+export default { view, edit, changePassword, deleteAccount };

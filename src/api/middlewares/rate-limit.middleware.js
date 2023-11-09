@@ -8,7 +8,7 @@ const ipRouteLimits = {
 };
 
 const emailRouteLimits = {
-  '/request-email-verification': { count: 3, expire: 10 * 60 * 1000 },
+  '/verify-email-request': { count: 3, expire: 10 * 60 * 1000 },
   '/verify-email': { count: 4, expire: 5 * 60 * 1000 },
   '/forgot-password': { count: 3, expire: 10 * 60 * 1000 },
   '/sign-in': { count: 5, expire: 5 * 60 * 1000 }

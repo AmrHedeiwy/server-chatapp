@@ -19,7 +19,7 @@ const googleStrategy = new Strategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://localhost:3000/auth/google/callback'
+    callbackURL: 'http://localhost:5000/auth/google/callback'
   },
   /**
    * Authenticates and handles a user profile obtained from Google OAuth.
@@ -35,30 +35,33 @@ const googleStrategy = new Strategy(
    */
   async function (request, accessToken, refreshToken, profile, done) {
     // Extract user information from the Google profile object.
-    const { id, given_name, family_name, email, email_verified } = profile;
+    const { id, given_name, family_name, email } = profile;
 
     try {
-      // Check if the user's google account is verified
-      if (!email_verified) throw EmailError('NotVerified');
-
       // Find or create a new user based on their Google ID
       const [user, created] = await db.User.findOrCreate({
-        where: { GoogleID: id },
+        where: { Email: email },
         defaults: {
-          Firstname: given_name,
-          Lastname: family_name,
-          Email: email,
-          Username: (given_name + family_name).toLowerCase(),
-          IsVerified: email_verified
+          GoogleID: id,
+          Username: (given_name + '_' + family_name).toLowerCase(),
+          IsVerified: true
         }
       });
 
-      // If there is an error finding or creating the user, return a SocialMediaAuthenticationError
-      if (!user)
-        throw new SocialMediaAuthenticationError('Passport Google Error');
+      if (!created && user) {
+        user.GoogleID = id;
+        user.IsVerified = true;
 
-      done(null, user.dataValues, successJson.signin_user);
+        user.save();
+      }
+
+      s;
+      done(null, user.dataValues, {
+        status: successJson.signin_user.status,
+        redirect: successJson.signin_user.google_redirect
+      });
     } catch (err) {
+      err.provider = 'google';
       done(new SocialMediaAuthenticationError(err));
     }
   }

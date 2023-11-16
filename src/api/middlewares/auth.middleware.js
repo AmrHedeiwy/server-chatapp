@@ -9,6 +9,8 @@ export const isAuthSocket = (io) => {
 };
 
 export const isAuthExpress = (req, res, next) => {
-  // If the user is not authenticated in, redirect to the sign-in page with a 401 status code.
-  req.isAuthenticated() ? next() : res.status(401).redirect('/sign-in.html');
+  // If the user is not authenticated in, redirect to the sign-in/register page with a 401 status code.
+  req.isAuthenticated()
+    ? next()
+    : res.status(401).redirect(`${process.env.CLIENT_URL}`);
 };

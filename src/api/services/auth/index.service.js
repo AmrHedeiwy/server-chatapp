@@ -1,10 +1,6 @@
-/**
- * This module contains the configured instance of Passport
- * authentication library.
- * @module auth
- */
 import passport from 'passport';
 import registerService from './register.service.js';
+import mailer from './mailer.service.js';
 import localStrategyService from './local.service.js';
 import facebookStrategyService from './facebook.service.js';
 import googleStrategyService from './google.service.js';
@@ -26,4 +22,4 @@ passport.use('google', googleStrategyService);
 passport.serializeUser(serializeUser);
 passport.deserializeUser(deserializeUser);
 
-export { passport, registerService };
+export { passport, registerService, mailer };

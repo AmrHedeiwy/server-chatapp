@@ -20,10 +20,9 @@ const errorMiddleware = (error, req, res, next) => {
       console.error(error);
       req.session.isCallbackProvider = true;
 
-      return res.status(status).redirect(redirect);
+      return res.status(status).redirect(process.env.CLIENT_URL + redirect);
     }
 
-    // If no redirect URL, return JSON response with error details
     return res.status(status).json({
       error: {
         name: error.name,
@@ -32,20 +31,21 @@ const errorMiddleware = (error, req, res, next) => {
       }
     });
   } else if (error instanceof MulterError) {
-    const status = errorsJson.server.Image.status;
-    const message = errorsJson.server.Image.messages.FileToLarge;
+    const status = errorsJson.image.status;
+    const message = errorsJson.image.messages['file-to-large'];
 
-    return res.status(status).json({ error: { type: 'MulterError', message } });
+    return res.status(status).json({ error: { name: 'MulterError', message } });
   }
 
   // If the error object does not have getResponse method, log the error
   console.error(error);
 
   // Set the default status and message for unexpected errors
-  const status = errorsJson.server.Unexpected.status;
-  const message = errorsJson.server.Unexpected.message;
+  const status = errorsJson.unexpected.status;
+  const message = errorsJson.unexpected.message;
 
   // Return JSON response with default unexpected error details
   res.status(status).json({ error: { type: 'UnexpectedError', message } });
 };
+
 export default errorMiddleware;

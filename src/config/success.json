@@ -1,16 +1,17 @@
 {
-  "create_user": {
+  "register": {
     "message": "Your account has been created. Please check your email to verify it.",
     "status": 201,
     "redirect": "/email/verify"
   },
-  "signin_user": {
+  "sign_in": {
     "status": 200,
-    "email_redirect": "/users",
-    "facebook_redirect": "http://localhost:3000/cb/facebook/success",
-    "google_redirect": "http://localhost:3000/cb/google/success"
+    "verify-email": "/email/verify",
+    "local-redirect": "/users",
+    "facebook-redirect": "/cb/facebook/success",
+    "google-redirect": "/cb/google/success"
   },
-  "user_verified": {
+  "verified_email": {
     "message": "You have successfully verified your account.",
     "status": 200,
     "redirect": "/users"
@@ -24,24 +25,24 @@
     "message": "Password updated successfully.",
     "status": 200
   },
-  "user_emailed": {
+  "mailer": {
     "messages": {
       "verification-code": "A verification code has been sent to your email.",
-      "reset-password": "Password reset link sent. Check your email and follow the instructions to reset your password."
+      "forgot-password": "Password reset link sent. Check your email and follow the instructions to reset your password."
     },
     "status": 200,
     "redirect": {
-      "email_verification": "/email/verify"
+      "verify-email": "/email/verify"
     }
   },
   "update_profile": {
     "message": "Profile successfully updated.",
     "status": 303,
-    "redirect": "/email-verification.html"
+    "redirect": "/email/verify"
   },
   "delete_account": {
     "message": "Your account has been deleted.",
     "status": 200,
-    "redirect": "/sign-in.html"
+    "redirect": "/"
   }
 }

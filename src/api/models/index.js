@@ -76,11 +76,11 @@ async function loadModels() {
 await loadModels();
 
 // // Call the `associate` function for each model, if it exists
-// Object.keys(db).forEach((modelName) => {
-//   if (db[modelName].associate) {
-//     db[modelName].associate(db);
-//   }
-// });
+Object.keys(db).forEach((modelName) => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
 
 // Add the Sequelize instance to the `db` and export it
 db.sequelize = sequelize;

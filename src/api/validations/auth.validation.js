@@ -25,7 +25,6 @@ function errorFormatter(errors) {
 /**
  * Joi schema for validating the register request payload.
  *
- * @type {Joi.ObjectSchema}
  * @property {Joi.StringSchema} Username - The username of the user. Must be
  * between 3 and 20 letters, digits, underscores, or hyphens.
  * @property {Joi.StringSchema} Email - The email address of the user. Must be
@@ -34,6 +33,8 @@ function errorFormatter(errors) {
  * at least 8 characters long and contain at least one uppercase letter,
  * one lowercase letter, one digit, and one special character from
  * the set @$!%?&.
+ * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the password, should match the 'Password' field.
+ * @property {Joi.BooleanSchema} TermsOfAgreement - Must be accepted
  */
 export const registerSchema = Joi.object({
   Username: Joi.string()
@@ -65,9 +66,9 @@ export const registerSchema = Joi.object({
 /**
  * Joi schema for validating the sign in request payload.
  *
- * @type {Joi.ObjectSchema}
  * @property {Joi.StringSchema} Email - Must be a valid email address and present.
  * @property {Joi.StringSchema} Password - Must be present.
+ * @property {Joi.BooleanSchema} - Optional.
  */
 export const signInSchema = Joi.object({
   Email: Joi.string().email().required(),
@@ -79,11 +80,19 @@ export const signInSchema = Joi.object({
   .error(errorFormatter);
 
 /**
+ * Joi schema for validating the forgot password request payload.
+ *\
+ * @property {Joi.StringSchema} Email - Must be a valid email address and present.
+ */
+export const forgotPasswordRequestSchema = Joi.object({
+  Email: Joi.string().email().required()
+}).error(errorFormatter);
+
+/**
  * Joi schema for validating the reset password request payload.
  *
- * @type {Joi.ObjectSchema}
- * @property {Joi.StringSchema} NewPassword - The new password for the user.
- * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the new password, should match the 'NewPassword' field.
+ * @property {Joi.StringSchema} Password - The new password for the user.
+ * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the new password, should match the 'Password' field.
  */
 export const resetPasswordSchema = Joi.object({
   Password: Joi.string()
@@ -105,13 +114,3 @@ export const resetPasswordSchema = Joi.object({
   .unknown()
   .options({ abortEarly: false })
   .error(errorFormatter);
-
-/**
- * Joi schema for validating the sign in request payload.
- *
- * @type {Joi.ObjectSchema}
- * @property {Joi.StringSchema} Email - Must be a valid email address and present.
- */
-export const forgotPasswordRequestSchema = Joi.object({
-  Email: Joi.string().email().required()
-}).error(errorFormatter);

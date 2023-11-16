@@ -9,8 +9,8 @@ export const resetPasswordDecoder = async (req, res, next) => {
   const { Token } = req.body;
 
   try {
-    // Verify and decode the reset password token using the 'mysec' secret.
-    const decoded = jwt.verify(Token, 'mysec');
+    // Verify and decode the reset password token using the secret.
+    const decoded = jwt.verify(Token, process.env.JWT_SECRET);
 
     // Remove the Token property from the request body.
     delete req.body.Token;

@@ -24,7 +24,6 @@ function errorFormatter(errors) {
 /**
  * Joi schema for validating the edit user profile request payload.
  *
- * @type {Joi.ObjectSchema}
  * @property {Joi.StringSchema} Username - The username of the user. Must be
  * between 3 and 20 letters, digits, underscores, or hyphens.
  * @property {Joi.StringSchema} Email - The email address of the user. Must be
@@ -39,15 +38,21 @@ export const editProfileSchema = Joi.object({
   .options({ abortEarly: false })
   .error(errorFormatter);
 
+/**
+ * Joi schema for validating the edit user profile request payload.
+ *
+ * @property {Joi.StringSchema} CurrentPassword - The user's current password.
+ * @property {Joi.StringSchema} Password - The new password for the user.
+ * @property {Joi.StringSchema} ConfirmPassword - The confirmation of the new password, should match the 'Password' field.
+ */
 export const changePasswordSchema = Joi.object({
   CurrentPassword: Joi.string().required(),
-  NewPassword: Joi.string()
+  Password: Joi.string()
     .trim()
     .pattern(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
-    .required()
-    .label('Password'),
+    .required(),
   ConfirmPassword: Joi.string()
     .trim()
     .empty('')

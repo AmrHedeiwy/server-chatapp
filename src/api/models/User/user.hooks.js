@@ -32,7 +32,7 @@ export default (User) => {
   });
 
   User.beforeSave(async (user) => {
-    if (user.changed('Email')) {
+    if (user.changed('Email') && !user.GoogleID && !user.FacebookID) {
       // Keep emails lowercase
       user.Email = user.Email.toLowerCase();
       // Set verification status to false

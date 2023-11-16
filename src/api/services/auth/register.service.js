@@ -15,33 +15,30 @@ import sequelize from 'sequelize';
  * Registers a new user.
  *
  * @param {object} data - The data for the user registration.
- * @returns {Promise<Object>}  A promise that resolves with a user object, or rejects with an error object.
- * @property {Object} user - The user object containing the user's data.
- * @throws {SequelizeErrors} - Sequelize can throw different error classes based on what failed, but it will mostly throw a ConstaintError.
+ * @returns {Promise<object>} - The success response with the message, status, redirect URL, and the newly created user.
+ * @throws {Error} - Errors will only be thrown by the database (sequelize).
  */
 export const addUser = async (data) => {
   // Start a database transaction
   const t = await db.sequelize.transaction();
 
   try {
-    // Create a new user with the provided data, validating the input and using the transaction
-    const user = await db.User.create(data, { validate: true, transaction: t });
+    // Create the new user to the database using a transaction
+    const user = await db.User.create(data, { transaction: t });
 
-    // Commit the transaction
+    // Commit if no errors
     await t.commit();
 
-    // Return the success response with the status, message, redirect URL, and user's credemtials
-    return { ...successJson.create_user, user: user.dataValues };
+    return { ...successJson.register, user: user.dataValues };
   } catch (err) {
     // Rollback the transaction if an error occurs
     await t.rollback();
 
-    // Return the error response
     return {
       error:
         err instanceof sequelize.UniqueConstraintError
-          ? new SequelizeConstraintError(err)
-          : err
+          ? new SequelizeConstraintError(err) // Use the custom SequelizeConstraintError class to be handled accoringly
+          : err // The rest of the sequelize errors are treated as unexpected errors
     };
   }
 };
@@ -49,12 +46,12 @@ export const addUser = async (data) => {
 /**
  * Sends a verification code to a user's email address.
  *
- * @param {string} firstname - The first name of the user.
- * @param {string} email - The email address of the user.
- * @returns {Promise<Object>} A promise that resolves with a success message and status, or rejects with an error object.
+ * @param {string} username - Used in the email context.
+ * @param {string} email - The email address to send the verification code.
+ * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
  * @throws {EmailError} - Thrown when the email fails to send.
  */
-export const sendVerificationCode = async (name, email, userid) => {
+export const sendVerificationCode = async (username, email, userid) => {
   try {
     // Generate a 6-digit verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString();
@@ -69,7 +66,7 @@ export const sendVerificationCode = async (name, email, userid) => {
     // Send the verification code via email using the mailerService
     const { message, redirect, status, failed } = await mailerService(
       'verification-code',
-      name,
+      username,
       email,
       {
         verificationCode
@@ -90,27 +87,27 @@ export const sendVerificationCode = async (name, email, userid) => {
  *
  * @param {string} userid - Used as the key when extracting from the cache (redis).
  * @param {string} verificationCode - The verification code provided by the user.
- * @returns {Promise<Object>} A promise that resolves with a success message, status and redirect page, or rejects with an error object.
- * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.\
+ * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
+ * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.
  */
 export const verifyEmail = async (userid, verificationCode) => {
   try {
-    // Retrieve the stored verification code from Redis
+    // Retrieve the stored verification code from the cache (redis)
     const store = JSON.parse(
       await redisClient.get(`email_verification:${userid}`)
     );
 
-    // Throw an error if the stored verification code is not found (expired)
+    // Throw an error if the stored verification code is not found
     if (!store) {
-      throw new VerificationCodeError('Expired');
+      throw new VerificationCodeError();
     }
 
-    // Throw an error if the provided verification code does not match the stored code (Invalid)
+    // Throw an error if the provided verification code does not match the stored code
     if (store.verificationCode !== verificationCode) {
-      throw new VerificationCodeError('Invalid');
+      throw new VerificationCodeError();
     }
 
-    // Delete the verification code from Redis
+    // Delete the verification code from the cache (redis)
     await redisClient.del(`email_verification:${userid}`);
 
     // Update the user's IsVerified status and LastVerifiedAt in the database
@@ -119,7 +116,7 @@ export const verifyEmail = async (userid, verificationCode) => {
       { where: { UserID: userid } }
     );
 
-    return successJson.user_verified;
+    return successJson.verified_email;
   } catch (err) {
     return { error: err };
   }
@@ -130,20 +127,17 @@ export const verifyEmail = async (userid, verificationCode) => {
  *
  * @param {string} field - The field to look in.
  * @param {string} value - The value to search for.
- * @returns {Promise<Object>} A promise that resolves with the user object, or rejects with an error object.
- * @property {object} user - The user object containing user data if the user exists and is verified.
- * @throws {UserNotFoundError} - Thrown when the user does not exist in the database.
- * @throws {EmailError} - Thrown when the user exists but is not verified.
+ * @returns {Promise<object>} The user object
+ * @throws {UserNotFoundError} - Thrown when the user is not found in the database.
+ * @throws {EmailError} - Thrown when the user account is not verified.
  */
 export const checkUserExists = async (field, value) => {
   try {
     // Find the user in the database by spcified field
     const user = await db.User.findOne({ where: { [field]: value } });
 
-    // Throw an error if the user is not found
     if (!user) throw new UserNotFoundError();
 
-    // Throw an error if the user is not verified
     if (!user.IsVerified) throw new EmailError('NotVerified');
 
     // Return the user object if it exists and is verified
@@ -156,9 +150,9 @@ export const checkUserExists = async (field, value) => {
 /**
  * Sets a new password for a user.
  *
- * @param {number} userId - The ID of the user.
+ * @param {number} userId - Used to query the user from the database.
  * @param {string} newPassword - The new password to set for the user.
- * @returns {Promise<Object>} A promise that resolves with a success message, status and redirect page, or rejects with an error object.
+ * @returns {Promise<object>} The success response with the message, status, and the redirect URL.
  */
 export const setResetPassword = async (userId, newPassword) => {
   try {

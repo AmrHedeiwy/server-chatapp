@@ -40,8 +40,7 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize the Redis store
 const redisStore = new RedisStore({
   client: redisClient,
-  prefix: 'session:',
-  ttl: 6000 // Equals 1 day
+  prefix: 'session:'
 });
 
 // Configure session middleware
@@ -108,7 +107,7 @@ io.on('connection', (socket) => {
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync({ force: true });
+  await db.sequelize.sync();
   scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);

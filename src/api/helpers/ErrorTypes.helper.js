@@ -20,83 +20,66 @@ export class BaseError extends Error {
 }
 
 /**
- * Represents an email-related error.
- *
- * @class EmailError
- * @extends BaseError
- *
- * @param {string} type - The type of email error.
- *
- * Possible types:
- * - 'NotVerified' -> The user has not verified their email.
- * - 'FailedToSend' -> The server fails to send the email to the user.
- */
-export class EmailError extends BaseError {
-  constructor(type) {
-    super();
-
-    this.type = type;
-  }
-
-  /**
-   * Retrieves the response associated with the email error.
-   * @returns {Object} - The response containing the status code, message, and redirect URL.
-   */
-  getResponse() {
-    return errorsJson.server.Email[this.type];
-  }
-}
-
-/**
  * Represents an error that occurs when a user fails to sign in due to
  * incorrect email or password.
- *
- * @class SignInError
- * @extends BaseError
  */
 export class SignInError extends BaseError {
   constructor() {
     super();
   }
 
-  /**
-   * Retrieves the response associated with the sign-in error.
-   * @returns {Object} - The response containing the status code and message.
-   */
+  // Returns the response containing the status code and message.
+
   getResponse() {
-    return errorsJson.server.signin;
+    return errorsJson.sign_in_email;
+  }
+}
+
+/**
+ * Represents an error that occurs when the account is not
+ * verified.
+ */
+export class EmailError extends BaseError {
+  constructor() {
+    super();
+  }
+
+  // Returns the response containing the status code, message, and redirect URL.
+  getResponse() {
+    return errorsJson.not_verified;
+  }
+}
+
+/**
+ * Represents an error that occurs when the server fails to send the email to the user.
+ */
+export class MailerError extends BaseError {
+  constructor() {
+    super();
+  }
+
+  // Returns the response containing the status code, message, and redirect URL.
+  getResponse() {
+    return errorsJson.mailer;
   }
 }
 
 /**
  * Represents an error that occurs with social media authentication.
- *
- * @class SocialMediaAuthenticationError
- * @extends BaseError
- *
- * @param {any} details - Additional details about the error occurence.
- *
- * Possible values of details:
- * - If the email is already being used (sequelize.UniqueConstraintError).
- * - IF the email is not verified (EmailError).
- * - Any other error that could occur during the social-media account selection.
  */
 export class SocialMediaAuthenticationError extends BaseError {
-  constructor(details) {
+  constructor() {
     super();
 
     this.details = details || null;
   }
 
-  /**
-   * Retrieves the response associated with the social media authentication error.
-   * @returns {Object} - The response containing the status code, message, and redirect URl.
-   */
+  // Returns the response containing the status code, message, and redirect URl.
   getResponse() {
-    const status = errorsJson.server.socialMedia.status;
-    const message = errorsJson.server.socialMedia.message;
+    const status = errorsJson.sign_in_provider.status;
+    const message = errorsJson.sign_in_provider.essage;
     const redirect =
-      errorsJson.server.socialMedia[`${this.details.provider}_redirect`];
+      errorsJson.sign_in_provider[`${this.details.provider}_redirect`];
 
     return { status, message, redirect };
   }
@@ -104,69 +87,64 @@ export class SocialMediaAuthenticationError extends BaseError {
 
 /**
  * Represents an error that occurs during verification code validation.
- *
- * @class VerificationCodeError
- * @extends BaseError
  */
 export class VerificationCodeError extends BaseError {
   constructor() {
     super();
   }
 
-  /**
-   * Retrieves the response associated with the verification code error.
-   * @returns {Object} - The response containing the status code and message.
-   */
+  // Returns the response containing the status code and message.
   getResponse() {
-    return errorsJson.server.VerificationCode;
+    return errorsJson.verification_code;
+  }
+}
+
+/**
+ * Represents an error that occurs when the user attempts to request
+ * a password reset link for an account that is not registered by email (Local strategy).
+ */
+export class ForgotPassswordError extends BaseError {
+  constructor() {
+    super();
+  }
+
+  // Returns the response containing the status code, message, and redirect URL.
+  getResponse() {
+    return errorsJson.forgot_password;
   }
 }
 
 /**
  * Represents an error that occurs during verification of the JWT token at the resetPasswordDecoder middlware.
- *
- * @class ResetPasswordError
- * @extends BaseError
  */
 export class ResetPasswordError extends BaseError {
   constructor() {
     super();
   }
 
-  /**
-   * Retrieves the response associated with the reset password error.
-   * @returns {Object} - The response containing the status code, message and redirect URL.
-   */
+  // Returns the response containing the status code, message and redirect URL.
   getResponse() {
-    return errorsJson.server.ResetPasswordLink;
+    return errorsJson.reset_password_ink;
   }
 }
 
 /**
  * Represents an error that occurs when user is not found from the database.
- *
- * @class UserNotFoundError
- * @extends BaseError
  */
 export class UserNotFoundError extends BaseError {
   constructor() {
     super();
   }
 
-  /**
-   * Retrieves the response associated with the reset password error.
-   * @returns {Object} - The response containing the status code and message.
-   */
+  // Returns the response containing the status code and message.
   getResponse() {
-    return errorsJson.server.UserNotFound;
+    return errorsJson.user_not_found;
   }
 }
 
 /**
- * Represents an error that occurs due to rate limiting.
- *
- * @class RateLimitError
- * @extends BaseError
+ * Represents an error that occurs when the user exceeds the number of requests for
+ * a specific route.
  *
  * @param {string} route - The route associated with the rate limit error.
  * @example '/sign-in', 'verify-email'
@@ -178,13 +156,10 @@ export class RateLimitError extends BaseError {
     this.route = route;
   }
 
-  /**
-   * Retrieves the response associated with the rate limit error.
-   * @returns {Object} - The response containing the status code and message.
-   */
+  // Returns the response containing the status code and message.
   getResponse() {
-    const message = errorsJson.server.rateLimit.messages[this.route];
-    const status = errorsJson.server.rateLimit.status;
+    const message = errorsJson.rate_limit.messages[this.route];
+    const status = errorsJson.rate_limit.status;
 
     return { status, message };
   }
@@ -192,9 +167,6 @@ export class RateLimitError extends BaseError {
 
 /**
  * Represents an error that occurs due to validation failure using a Joi Schema.
- *
- * @class JoiValidationError
- * @extends BaseError
  *
  * @param {Array} details - The validation error details.
  */
@@ -205,10 +177,7 @@ export class JoiValidationError extends BaseError {
     this.details = details;
   }
 
-  /**
-   * Retrieves the response associated with the Joi validation error.
-   * @returns {Object} - The response containing the status code and validation error messages.
-   */
+  // Returns the response containing the status code and validation error messages.
   getResponse() {
     const status = errorsJson.validations.status;
     /**
@@ -244,9 +213,6 @@ export class JoiValidationError extends BaseError {
 /**
  * Represents an error that occurs due to a constraint violation in Sequelize.
  *
- * @class SequelizeConstraintError
- * @extends BaseError
- *
  * @param {sequelize.UniqueConstraintError} details - The details of the constraint error.
  */
 export class SequelizeConstraintError extends BaseError {
@@ -255,10 +221,7 @@ export class SequelizeConstraintError extends BaseError {
     this.details = details;
   }
 
-  /**
-   * Retrieves the response associated with the Sequelize constraint error.
-   * @returns {Object} - The response containing the status code and error message.
-   */
+  // Returns the response containing the status code and error message.
   getResponse() {
     const message = errorsJson.constraints.messages.Email;
     const status = errorsJson.constraints.status;
@@ -269,52 +232,46 @@ export class SequelizeConstraintError extends BaseError {
 
 /**
  * Represents an error that occurs when invalid file format is chosen.
- *
- * @class InvalidFileFormat
- * @extends BaseError
  */
 export class InvalidFileFormat extends BaseError {
   constructor() {
     super();
   }
 
+  // Returns the response containing the status code and error message.
   getResponse() {
-    const message = errorsJson.server.Image.messages.FileFormat;
-    const status = errorsJson.server.Image.status;
+    const message = errorsJson.image.messages['file-format'];
+    const status = errorsJson.image.status;
     return { message, status };
   }
 }
 
 /**
- * Represents an error that occurs when current password does not match the password stored in the db.
- *
- * @class ChangePasswordError
- * @extends BaseError
+ * Represents an error that occurs when current password does not match the password stored in the database (sequelize).
  */
 export class ChangePasswordError extends BaseError {
   constructor() {
     super();
   }
 
+  // Returns the response containing the status code and error message.
   getResponse() {
-    const message = errorsJson.server.ChangePassword.message;
-    const status = errorsJson.server.ChangePassword.status;
+    const message = errorsJson.change_password.message;
+    const status = errorsJson.change_password.status;
     return { message, status };
   }
 }
 
 /**
  * Represents an error that occurs when the prompted email does not match the user's email.
- *
- * @class DeleteAccountError
- * @extends BaseError
  */
 export class DeleteAccountError extends BaseError {
   constructor() {
     super();
   }
 
+  // Returns the response containing the status code and error message.
   getResponse() {
-    return errorsJson.server.RemoveAccount;
+    return errorsJson.remove_account;
   }
 }

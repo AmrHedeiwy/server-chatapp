@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import db from '../../models/index.js';
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import sequelize from 'sequelize';
@@ -9,26 +8,27 @@ import {
 } from '../../helpers/ErrorTypes.helper.js';
 import bcrypt from 'bcrypt';
 
+import cloudinary from '../../../config/cloudinary.js';
+
 /**
- * Saves new credentials and updates the user's profile.
+ * Updates the user's profile.
+ *
  * @param {object} data - The data containing the new credentials and profile information.
  * @param {object} currentUser - The credentials of the current user whose profile is being updated.
- * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
- * @throws {SequelizeErrors} - Sequelize can throw different error classes based on what failed, but it will mostly throw a ConstaintError.
+ * @returns {Promise<Object>} - The success response with the message, status, redirect URL, and the updated user.
+ * @throws {Error} - An unexpected error from cloudinary or thrown by the database (sequelize).
  */
 export const saveNewCredentials = async (data, currentUser) => {
   try {
-    if (data.Buffer) {
-      /**
-       * Resize and convert the image buffer to PNG format.
-       * The original 'Buffer' property is replaced with the resized and converted image buffer.
-       */
-      data.Image = await sharp(data.Buffer)
-        .resize({ width: 250, height: 250 })
-        .png()
-        .toBuffer();
+    // Uploads an image file to Cloudinary if a file path is provided in the data object.
+    if (data.FilePath) {
+      const result = await cloudinary.uploader.upload(data.FilePath, {
+        format: 'png'
+      });
 
-      delete data.Buffer;
+      // Update the image URL with the secure URL from Cloudinary and remove the file path from the data object
+      data.Image = result.secure_url;
+      delete data.FilePath;
     }
 
     /**
@@ -49,11 +49,11 @@ export const saveNewCredentials = async (data, currentUser) => {
     // Update the user's profile with the new data
     const updatedUser = await user.update(data);
 
-    /**
-     * Check if the 'data' object has an 'Email' property.
-     * If true, append an additional message to notify the user to verify their email.
-     */
     return {
+      /**
+       * Check if the 'data' object has an 'Email' property.
+       * If true, append an additional message to notify the user to verify their email.
+       */
       message: data.Email
         ? successJson.update_profile.message + ' Please verify your email.'
         : successJson.update_profile.message,
@@ -62,22 +62,22 @@ export const saveNewCredentials = async (data, currentUser) => {
       user: updatedUser
     };
   } catch (err) {
-    console.log(err);
     return {
       error:
         err instanceof sequelize.UniqueConstraintError
-          ? new SequelizeConstraintError(err)
-          : err
+          ? new SequelizeConstraintError(err) // Use the custom SequelizeConstraintError class to be handled accoringly
+          : err // The rest of the sequelize errors are treated as unexpected errors
     };
   }
 };
 
 /**
- * Saves a new password and updates the user's profile.
+ * Saves the user's new password
+ *
  * @param {string} currentPassword - The user's current password.
  * @param {string} newPassword - The new password to be set.
- * @param {uuid} userId - The ID of the user.
- * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
+ * @param {string} userId - Used to query the database.
+ * @returns {Promise<object>} - The success response with the message and status.
  * @throws {ChangePasswordError} - If the current password does not match the user's stored password.
  */
 export const setChangePassword = async (
@@ -105,9 +105,10 @@ export const setChangePassword = async (
 /**
  * Checks that the email promted by the user matches to confirm account deletion
  * and removes the user from the database.
+ *
  * @param {string} email - The promted email by the user.
  * @param {string} user - The user's crednetials.
- * @returns {Promise<Object>} - A Promise that resolves to an object with the updated user and a success message, or an error object.
+ * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
  * @throws {DeleteAccountError} - If the current password does not match the user's stored password.
  */
 export const deleteAccount = async (email, user) => {

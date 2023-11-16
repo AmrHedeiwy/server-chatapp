@@ -5,13 +5,6 @@ import db from '../../models/index.js';
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import { SocialMediaAuthenticationError } from '../../helpers/ErrorTypes.helper.js';
 
-/**
- * Facebook Strategy for Passport authentication.
- * @constructor
- * @param {object} options - The strategy options, including client ID, client secret, callback URL and profile fields.
- * @param {function} verifyCallback - The verify callback function that handles authentication and user registration.
- * @returns {object} - A new instance of the Facebook Strategy.
- */
 const facebookStrategy = new Strategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
@@ -24,15 +17,14 @@ const facebookStrategy = new Strategy(
    *
    * @param {string} accessToken - The access token obtained from Facebook OAuth.
    * @param {string} refreshToken - The refresh token obtained from Facebook OAuth.
-   * @param {Object} profile - The user profile obtained from Facebook OAuth.
+   * @param {object} profile - The user profile obtained from Facebook OAuth.
    * @param {function} done - The callback function to be called when authentication is complete.
-   * @returns {Promise<void>} - A promise that resolves when authentication is successful or rejects with an error.
-   * @throws {EmailError} - Thrown when the user is not verified.
-   * @throws {sequelize.UniqueConstraintError} - If the user already exists BUT without a FacebookID.
+   * @returns {object} The user's credentials and the success status and redirect URL.
    */
   async function (accessToken, refreshToken, profile, done) {
     // Extract user information from the Facebook profile object
-    const { id, first_name, last_name, email } = profile._json;
+    const { id, first_name, last_name, email, profileURL } = profile._json;
+    console.log(profile);
 
     try {
       // Find or create a new user based on their Facebook ID
@@ -41,10 +33,12 @@ const facebookStrategy = new Strategy(
         defaults: {
           FacebookID: id,
           Username: (first_name + '_' + last_name).toLowerCase(),
-          IsVerified: true
+          IsVerified: true,
+          Image: profileURL ?? null
         }
       });
 
+      // Linking facebook account to the existing user
       if (!created && user) {
         user.FacebookID = id;
         user.IsVerified = true;
@@ -53,11 +47,13 @@ const facebookStrategy = new Strategy(
       }
 
       done(null, user.dataValues, {
-        status: successJson.signin_user.status,
-        redirect: successJson.signin_user.facebook_redirect
+        status: successJson.sign_in.status,
+        redirect: successJson.sign_in['facebook-redirect']
       });
     } catch (err) {
       err.provider = 'facebook';
+      console.error('FACEBOOK AUTH ERROR', err);
+
       done(new SocialMediaAuthenticationError(err));
     }
   }

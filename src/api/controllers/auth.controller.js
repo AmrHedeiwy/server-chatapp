@@ -9,7 +9,10 @@ import {
   resetPasswordSchema,
   forgotPasswordRequestSchema
 } from '../validations/auth.validation.js';
-import { setResetPassword } from '../services/auth/register.service.js';
+import {
+  sendVerificationCode,
+  setResetPassword
+} from '../services/auth/register.service.js';
 import {
   ipRateLimiter,
   emailRateLimiter,
@@ -17,15 +20,19 @@ import {
 } from '../middlewares/rate-limit.middleware.js';
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
+import {
+  EmailError,
+  ForgotPassswordError
+} from '../helpers/ErrorTypes.helper.js';
 
 /**
  * Route handler for registering a user.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Username: The username of the user.
- * - Email: The email address of the user.
- * - Password: The password of the user.
- * - ConfirmPassword: The re-entered password.
+ * - Username
+ * - Email
+ * - Password
+ * - ConfirmPassword
  *
  * This route performs the following steps:
  * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
@@ -33,7 +40,7 @@ import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js'
  * 3. Adds the new user to the database using the addUser function.
  * 4. Sends a verification code to the user's email for email verification using the beforeSave() hook in the User model.
  * 5. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 6. If the saving process is successful, it will add a session for the user using the logIn() method and redirect the
+ * 6. If the saving process is successful, it will add a session for the user using the login() method provided by PassportJS and redirect the
  * user to the email verification page with an appropriate message. (The user will not be able to visit protected routes since their account has not been
  * verified yet)
  */
@@ -48,7 +55,7 @@ export const register = [
 
     if (error) return next(error);
 
-    req.logIn(user, (err) => {
+    req.login(user, (err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });
@@ -61,7 +68,7 @@ export const register = [
  *
  * This route expects a POST request with the following parameters in the request user:
  * - Username: Used in the email context.
- * - Email: The email address to verify.
+ * - Email: The email address to send the verification code.
  * - UserID: The key to set for the verification code when storing in the cache (redis).
  *
  * This route performs the following steps:
@@ -90,13 +97,13 @@ export const verifyEmailRequest = [
  * - VerificationCode: The 6-digit verification code to verify the email.
  *
  * It also requires the following additional parameters from the request user:
- * - UserID: To extract the the verification code value stored in the cache (redis) using the UserID as the key.
+ * - UserID: Used to query from the cache and the database.
  *
  * This route performs the following steps:
  * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
  * 2. Validates the verification code and updates their verification status to the database using the verifyEmail function.
  * 3. If an error occurs during the verification process, it will be passed to the error handling middleware.
- * 4. If the verificaiton is successful, the user is redirected to their profile page with an appropriate message.
+ * 4. If the verificaiton is successful, the user is redirected to the users page with an appropriate message.
  */
 export const verifyEmail = [
   emailRateLimiter,
@@ -121,7 +128,7 @@ export const verifyEmail = [
  *
  * Possble types:
  * - authorisation : For protected routes.
- * - session : The user's credentials if it exists in the session.
+ * - session : The user's session.
  */
 export const getAuthInfo = async (req, res, next) => {
   const { type } = req.params;
@@ -173,13 +180,13 @@ export const forgotPasswordRequest = [
     if (error) return next(error);
 
     // Indicates that account is not created by email (local-strategy)
-    if (!user.Password) return next(new Error());
+    if (!user.dataValues.Password) return next(new ForgotPassswordError());
 
     const useridToken = jwt.sign(
       {
         UserID: user.UserID
       },
-      'mysec',
+      process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
@@ -196,7 +203,6 @@ export const forgotPasswordRequest = [
     // To allow the user to access the reset-password.html page.
     req.session.passwordReset = true;
     req.session.save();
-    console.log(req.session);
 
     res.status(status).json({ message });
   }
@@ -232,7 +238,6 @@ export const resetPassword = [
     );
     if (error) return next(error);
 
-    req.flash('success', message);
     delete req.session.passwordReset;
 
     res.status(status).json({ message, redirect });
@@ -243,8 +248,8 @@ export const resetPassword = [
  * Route handler for user sign-in using local strategy.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Email: The email address of the user.
- * - Password: The password of the user.
+ * - Email
+ * - Password
  *
  * This route performs the following steps:
  * 1. Validates the request body using the Joi signInSchema.
@@ -252,7 +257,7 @@ export const resetPassword = [
  * 3. Applies the skipEmailRequest middleware to skip rate limiting for successful requests.
  * 3. Authenticates the user using the Passport Local Strategy.
  * 4. If an error occurs during the authentication process, it will be passed to the error handling middleware.
- * 5. If the authentication is successful, the req.login method provided by PassportJS is called to sign in the user.
+ * 5. If the authentication is successful, the login() method provided by PassportJS is called to sign in the user.
  * 6. If the process is successful, the response is sent with the appropriate status code and redirect URL.
  */
 export const signIn = [
@@ -270,11 +275,12 @@ export const signIn = [
          * Add a passport object to the session containing the user's UserID.
          * @example passport { user: UserID: '<UUID>' }
          */
-        req.logIn(user, (err) => {
+        req.login(user, async (err) => {
           if (err) return next(err);
 
-          // if (req.body.RememberMe)
-          //   req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30; // 30 days
+          // Set the expire time of the cookie for 30 days if 'Remember me' was selected
+          if (req.body.RememberMe)
+            req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30;
 
           res.status(info.status).json({ redirect: info.redirect });
         });
@@ -288,14 +294,14 @@ export const signIn = [
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
- * 2. Logs out the user by calling req.logout() and redirecting to the sign-in page.
+ * 2. Logs out the user by calling the logout() provided by PassportJS and redirects the user to login/register page.
  */
 export const signOut = [
   isAuthExpress,
   (req, res, next) => {
     req.logout((options, done) => {
       req.session.destroy(); // To prevent new session getting stored in redis
-      res.redirect('/sign-in.html');
+      res.status(200).json({ redirect: '/' });
     });
   }
 ];
@@ -314,9 +320,8 @@ export const facebookSignUp = passport.authenticate('facebook', {
  *
  * This route performs the following steps:
  * 1. If an error occurs during the authentication process, it will be passed to the error handling middleware.
- * 2. If the authentication is successful, we call the req.login method provided by PassportJS to sign in the user.
- * 3. If the process is successful, a success flash message is stored in the req.flash object.
- * 4. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 2. If the authentication is successful, we call the login() method provided by PassportJS and redirect the
+ * user to the success page.
  */
 export const facebookSignUpCallback = async (req, res, next) => {
   passport.authenticate(
@@ -332,8 +337,12 @@ export const facebookSignUpCallback = async (req, res, next) => {
       req.login(user, (err) => {
         if (err) return next(err);
 
+        // Marking the user as Callback Provider for Success Page Authorization
         req.session.isCallbackProvider = true;
-        res.status(info.status).redirect(info.redirect);
+
+        res
+          .status(info.status)
+          .redirect(process.env.CLIENT_URL + info.redirect);
       });
     }
   )(req, res, next);
@@ -353,9 +362,8 @@ export const googleSignUp = passport.authenticate('google', {
  *
  * This route performs the following steps:
  * 1. If an error occurs during the authentication process, it will be passed to the error handling middleware.
- * 2. If the authentication is successful, we call the req.login method provided by PassportJS to sign in the user.
- * 3. If the process is successful, a success flash message is stored in the req.flash object.
- * 4. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 2. If the authentication is successful, we call the login() method provided by PassportJS and redirect the
+ * user to the success page.
  */
 export const googleSignUpCallback = async (req, res, next) => {
   passport.authenticate(
@@ -371,8 +379,12 @@ export const googleSignUpCallback = async (req, res, next) => {
       req.login(user, (err) => {
         if (err) return next(err);
 
+        // Marking the user as Callback Provider for Success Page Authorization
         req.session.isCallbackProvider = true;
-        res.status(info.status).redirect(info.redirect);
+
+        res
+          .status(info.status)
+          .redirect(process.env.CLIENT_URL + info.redirect);
       });
     }
   )(req, res, next);

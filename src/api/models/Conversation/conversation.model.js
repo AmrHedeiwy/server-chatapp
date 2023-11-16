@@ -10,7 +10,7 @@ export default (sequelize, DataTypes) => {
   /**
    * @class Conversation
    *
-   * @property {uuid} ConversationID - The unique ID of the conversation.
+   * @property {string} ConversationID - The unique ID of the conversation.
    * @property {string} CreatedAt - The date when the conversation was created.
    * @property {string} LastMessageAt - The date when the last message was sent.
    * @property {string} Name - The name of the convesation (optional).

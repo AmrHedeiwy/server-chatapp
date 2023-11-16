@@ -1,31 +1,31 @@
 import { Router } from 'express';
 const router = new Router();
-import profileController from '../controllers/profile.controller.js';
+import profileController from '../controllers/user.controller.js';
 
 /**
  * Retrieves and displays the user's profile.
- * Endpoint: GET /profile/view
+ * Endpoint: GET /user/view
  * Controller: profileController.view
  */
-router.get('/view', profileController.view);
+router.get('/view/:type', profileController.view);
 
 /**
  * Edits the user's profile.
- * Endpoint: PATCH /profile/edit
+ * Endpoint: PATCH /user/edit
  * Controller: profileController.edit
  */
 router.post('/edit', profileController.edit);
 
 /**
  * Changes the user's password.
- * Endpoint: POST /profile/change-password
+ * Endpoint: POST /user/change-password
  * Controller: profileController.changePassword
  */
 router.post('/change-password', profileController.changePassword);
 
 /**
  * Deletes the user's account.
- * Endpoint: POST /profile/delete-account
+ * Endpoint: POST /user/delete-account
  * Controller: profileController.changePassword
  */
 router.post('/delete-account', profileController.deleteAccount);

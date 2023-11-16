@@ -6,7 +6,7 @@
   },
   "sign_in": {
     "status": 200,
-    "verify-email": "/email/verify",
+    "verify-email-redirect": "/email/verify",
     "local-redirect": "/users",
     "facebook-redirect": "/cb/facebook/success",
     "google-redirect": "/cb/google/success"

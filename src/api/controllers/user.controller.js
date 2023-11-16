@@ -2,13 +2,14 @@ import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import {
   editProfileSchema,
   changePasswordSchema
-} from '../validations/profile.validation.js';
+} from '../validations/user.validation.js';
 import { userIdRateLimiter } from '../middlewares/rate-limit.middleware.js';
 import validation from '../middlewares/validation.middleware.js';
 
-import profileService from '../services/profile/profile.service.js';
+import profileService from '../services/user/user.service.js';
 import upload from '../middlewares/multer.middleware.js';
 import db from '../models/index.js';
+import { Op } from 'sequelize';
 
 /**
  * Route handler for displaying the user's profile.
@@ -24,12 +25,27 @@ import db from '../models/index.js';
 export const view = [
   isAuthExpress,
   async (req, res, next) => {
-    const curentUser = await db.User.findOne({
-      where: { UserID: req.user.UserID },
-      include: ['SeenMessageIDs', 'ConversationIDs']
-    });
+    const { type } = req.params;
 
-    res.json({ curentUser });
+    if (type === 'currentUser') {
+      const curentUser = await db.User.findOne({
+        where: { UserID: req.user.UserID },
+        include: ['SeenMessageIDs', 'ConversationIDs']
+      });
+
+      return res.json({ curentUser });
+    }
+
+    if (type === 'users') {
+      const users = await db.User.findAll({
+        order: [['CreatedAt', 'DESC']],
+        where: {
+          [Op.not]: { Email: req.user.Email }
+        }
+      });
+
+      return res.json({ users });
+    }
   }
 ];
 

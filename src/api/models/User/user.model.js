@@ -95,6 +95,12 @@ export default (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     });
 
+    User.hasMany(models.Contact, {
+      as: 'Contacts',
+      foreignKey: 'UserID',
+      onDelete: 'CASCADE'
+    });
+
     User.belongsToMany(models.Message, {
       as: 'SeenMessageIDs',
       through: 'MessageSeen',

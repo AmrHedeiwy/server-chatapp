@@ -17,7 +17,8 @@ const errorMiddleware = (error, req, res, next) => {
     const { status, message, redirect } = error.getResponse();
 
     if (error.name === 'SocialMediaAuthenticationError') {
-      console.error(error);
+      console.error(`${err.provider} AUTH ERROR `, { details: err.details });
+
       req.session.isCallbackProvider = true;
 
       return res.status(status).redirect(process.env.CLIENT_URL + redirect);

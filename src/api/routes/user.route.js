@@ -7,7 +7,14 @@ import profileController from '../controllers/user.controller.js';
  * Endpoint: GET /user/view
  * Controller: profileController.view
  */
-router.get('/view/:type', profileController.view);
+router.get('/current', profileController.current);
+
+/**
+ * Retrieves and displays the user's profile.
+ * Endpoint: GET /user/view
+ * Controller: profileController.view
+ */
+router.get('/search', profileController.search);
 
 /**
  * Edits the user's profile.

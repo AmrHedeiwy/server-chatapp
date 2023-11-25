@@ -19,6 +19,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 export default (User) => {
   User.beforeCreate(async (user) => {
     if (user.changed('Username')) {
+      user.Name = user.Username;
       /**
        * Generates a 4-digit UUID and appends it to the user's username.
        * @example 'Emna#1636'

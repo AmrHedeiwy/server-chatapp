@@ -12,6 +12,7 @@ export default (sequelize, DataTypes) => {
    *
    * @property {string} UserID - The unique ID of the user.
    * @property {string} Username - The username of the user. Must be between 3 and 20 letters, digits, underscores, or hyphens.
+   *  @property {string} Name - The name part of the username without their #ID.
    * @property {string} Email - The email address of the user. Must be unique and in valid email format.
    * @property {string} Password - The password of the user. Must be at least 8 characters long and contain at least one uppercase letter,
    * one lowercase letter, one digit, and one special character from the set @$!%?&.
@@ -42,6 +43,9 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true
+      },
+      Name: {
+        type: DataTypes.STRING
       },
       Username: {
         type: DataTypes.STRING,

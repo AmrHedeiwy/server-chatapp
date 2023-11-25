@@ -20,12 +20,6 @@ export const deserializeUser = async (user, done) => {
   const existingUser = (await db.User.findByPk(user.UserID))?.dataValues;
 
   if (existingUser) {
-    // Remove unnecessary fields from the user object
-    delete existingUser.Password;
-    delete existingUser.Image;
-    delete existingUser.LastVerifiedAt;
-    delete existingUser.CreatedAt;
-
     // Call the done() callback with the deserialized user
     done(null, existingUser);
   } else {

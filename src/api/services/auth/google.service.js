@@ -49,10 +49,7 @@ const googleStrategy = new Strategy(
         redirect: successJson.sign_in['google-redirect']
       });
     } catch (err) {
-      err.provider = 'google';
-      console.error('Google AUTH ERROR', err);
-
-      done(new SocialMediaAuthenticationError(err));
+      done(err);
     }
   }
 );

@@ -68,18 +68,18 @@ export class MailerError extends BaseError {
  * Represents an error that occurs with social media authentication.
  */
 export class SocialMediaAuthenticationError extends BaseError {
-  constructor() {
+  constructor(details, provider) {
     super();
 
     this.details = details || null;
+    this.provider = provider;
   }
 
   // Returns the response containing the status code, message, and redirect URl.
   getResponse() {
     const status = errorsJson.sign_in_provider.status;
     const message = errorsJson.sign_in_provider.essage;
-    const redirect =
-      errorsJson.sign_in_provider[`${this.details.provider}_redirect`];
+    const redirect = errorsJson.sign_in_provider[`${this.provider}_redirect`];
 
     return { status, message, redirect };
   }

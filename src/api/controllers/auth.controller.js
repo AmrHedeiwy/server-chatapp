@@ -9,10 +9,7 @@ import {
   resetPasswordSchema,
   forgotPasswordRequestSchema
 } from '../validations/auth.validation.js';
-import {
-  sendVerificationCode,
-  setResetPassword
-} from '../services/auth/register.service.js';
+import { setResetPassword } from '../services/auth/register.service.js';
 import {
   ipRateLimiter,
   emailRateLimiter,
@@ -21,8 +18,8 @@ import {
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
 import {
-  EmailError,
-  ForgotPassswordError
+  ForgotPassswordError,
+  SocialMediaAuthenticationError
 } from '../helpers/ErrorTypes.helper.js';
 
 /**
@@ -328,7 +325,7 @@ export const facebookSignUpCallback = async (req, res, next) => {
     'facebook',
     { passReqToCallback: true },
     async (err, user, info) => {
-      if (err) return next(err);
+      if (err) return next(new SocialMediaAuthenticationError(err, 'facebook'));
 
       /**
        * Add a passport object to the session containing the user's UserID.
@@ -370,7 +367,7 @@ export const googleSignUpCallback = async (req, res, next) => {
     'google',
     { passReqToCallback: true },
     async (err, user, info) => {
-      if (err) return next(err);
+      if (err) return next(new SocialMediaAuthenticationError(err, 'google'));
 
       /**
        * Add a passport object to the session containing the user's UserID.

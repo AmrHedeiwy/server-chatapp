@@ -7,14 +7,14 @@
   "sign_in": {
     "status": 200,
     "verify-email-redirect": "/email/verify",
-    "local-redirect": "/users",
+    "local-redirect": "/search",
     "facebook-redirect": "/cb/facebook/success",
     "google-redirect": "/cb/google/success"
   },
   "verified_email": {
     "message": "You have successfully verified your account.",
     "status": 200,
-    "redirect": "/users"
+    "redirect": "/search"
   },
   "reset_password": {
     "message": "Congratulations! Your password has been successfully changed.",

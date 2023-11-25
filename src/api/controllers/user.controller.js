@@ -12,39 +12,53 @@ import db from '../models/index.js';
 import { Op } from 'sequelize';
 
 /**
- * Route handler for displaying the user's profile.
+ * Route handler for fetching the current user's data.
  *
  * This route expects a GET request.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
- * 2. Retrieves the user's profile information from the database,
- * including their seen message IDs and conversation IDs.
- * 3. Finally, the response is sent with user's profile information..
+ * 2. Remove the password before sending to the client.
+ * 3. Finally, the response is sent with user's information.
  */
-export const view = [
+export const current = [
   isAuthExpress,
   async (req, res, next) => {
-    const { type } = req.params;
+    delete req.user?.Password;
+    res.status(200).json({ curentUser: req.user ?? null });
+  }
+];
 
-    if (type === 'currentUser') {
-      const curentUser = await db.User.findOne({
-        where: { UserID: req.user.UserID },
-        include: ['SeenMessageIDs', 'ConversationIDs']
-      });
-
-      return res.json({ curentUser });
-    }
-
-    if (type === 'users') {
+export const search = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { page, search } = req.query;
+    try {
       const users = await db.User.findAll({
-        order: [['CreatedAt', 'DESC']],
+        attributes: [
+          'UserID',
+          'Username',
+          'Name',
+          'Email',
+          'Image',
+          'CreatedAt'
+        ],
         where: {
-          [Op.not]: { Email: req.user.Email }
-        }
+          [Op.and]: [
+            { Username: { [Op.iLike]: search + '%' } },
+            { Username: { [Op.ne]: req.user.Username } }
+          ]
+        },
+        offset: page,
+        limit: 10
       });
 
-      return res.json({ users });
+      let nextPage = null;
+      if (users.length == 10) nextPage = 10;
+
+      res.json({ users: users.length != 0 ? users : null, nextPage });
+    } catch (error) {
+      console.log(error);
     }
   }
 ];
@@ -154,4 +168,4 @@ export const deleteAccount = [
   }
 ];
 
-export default { view, edit, changePassword, deleteAccount };
+export default { current, search, edit, changePassword, deleteAccount };

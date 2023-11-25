@@ -51,10 +51,7 @@ const facebookStrategy = new Strategy(
         redirect: successJson.sign_in['facebook-redirect']
       });
     } catch (err) {
-      err.provider = 'facebook';
-      console.error('FACEBOOK AUTH ERROR', err);
-
-      done(new SocialMediaAuthenticationError(err));
+      done(err);
     }
   }
 );

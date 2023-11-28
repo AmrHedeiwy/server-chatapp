@@ -12,7 +12,6 @@ export default (sequelize, DataTypes) => {
    *
    * @property {string} UserID - The unique ID of the user.
    * @property {string} Username - The username of the user. Must be between 3 and 20 letters, digits, underscores, or hyphens.
-   *  @property {string} Name - The name part of the username without their #ID.
    * @property {string} Email - The email address of the user. Must be unique and in valid email format.
    * @property {string} Password - The password of the user. Must be at least 8 characters long and contain at least one uppercase letter,
    * one lowercase letter, one digit, and one special character from the set @$!%?&.
@@ -43,9 +42,6 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true
-      },
-      Name: {
-        type: DataTypes.STRING
       },
       Username: {
         type: DataTypes.STRING,
@@ -81,8 +77,26 @@ export default (sequelize, DataTypes) => {
       sequelize,
       modelName: 'User',
       tableName: 'users',
-      createdAt: false,
-      updatedAt: false
+      timestamps: false,
+      indexes: [
+        {
+          unique: true,
+          fields: ['UserID'],
+          name: 'idx_user_unique_user_id',
+          type: 'BTREE'
+        },
+        {
+          unique: true,
+          fields: ['Email'],
+          name: 'idx_user_unique_email',
+          type: 'BTREE'
+        },
+        {
+          fields: ['Username'],
+          name: 'idx_user_username',
+          type: 'BTREE'
+        }
+      ]
     }
   );
 
@@ -99,16 +113,22 @@ export default (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     });
 
-    User.hasMany(models.Contact, {
-      as: 'Contacts',
-      foreignKey: 'UserID',
-      onDelete: 'CASCADE'
+    User.belongsToMany(models.Message, {
+      as: 'SeenMessages',
+      through: 'UserSeenMessages',
+      foreignKey: 'UserID'
     });
 
-    User.belongsToMany(models.Message, {
-      as: 'SeenMessageIDs',
-      through: 'MessageSeen',
-      foreignKey: 'UserID'
+    User.belongsToMany(User, {
+      as: 'followers',
+      through: models.Follow,
+      foreignKey: 'FollowerID'
+    });
+
+    User.belongsToMany(User, {
+      as: 'following',
+      through: models.Follow,
+      foreignKey: 'FollowedID'
     });
   };
   return User;

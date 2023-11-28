@@ -54,7 +54,7 @@ async function loadModels() {
       // load the model to db object
       db[modelName] = model;
 
-      // Load the hooks for this model from the hooks directory `models/hooks`
+      // Load the hooks for this model
       const hooksPath = await path.join(
         path.dirname(filePath),
         `${modelName.toLowerCase()}.hooks.js`

@@ -41,8 +41,7 @@ export default (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Message',
       tableName: 'messages',
-      createdAt: false,
-      updatedAt: false
+      timestamps: false
     }
   );
 
@@ -50,8 +49,8 @@ export default (sequelize, DataTypes) => {
     Message.belongsTo(models.User, { foreignKey: 'SenderID' });
 
     Message.belongsToMany(models.User, {
-      as: 'SeenIDs',
-      through: 'MessageSeen',
+      as: 'SeenUsers',
+      through: 'UserSeenMessages',
       foreignKey: 'MessageID'
     });
 

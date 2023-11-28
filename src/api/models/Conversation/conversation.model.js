@@ -46,8 +46,15 @@ export default (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Conversation',
       tableName: 'conversations',
-      createdAt: false,
-      updatedAt: false
+      timestamps: false,
+      indexes: [
+        {
+          unique: true,
+          fields: ['ConversationID'],
+          name: 'idx_conversation_unique_conversation_id',
+          type: 'BTREE'
+        }
+      ]
     }
   );
 
@@ -59,7 +66,7 @@ export default (sequelize, DataTypes) => {
     });
 
     Conversation.hasMany(models.Message, {
-      as: 'MessagesIDs',
+      as: 'Messages',
       foreignKey: 'ConversationID',
       onDelete: 'CASCADE'
     });

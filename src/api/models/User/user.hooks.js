@@ -7,7 +7,6 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
 
-import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import sgMail from '@sendgrid/mail';
 import crypto from 'crypto';
@@ -17,21 +16,6 @@ import mailerService from '../../services/auth/mailer.service.js';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default (User) => {
-  User.beforeCreate(async (user) => {
-    if (user.changed('Username')) {
-      user.Name = user.Username;
-      /**
-       * Generates a 4-digit UUID and appends it to the user's username.
-       * @example 'Emna#1636'
-       */
-      const uuidGenerator = String(
-        parseInt(uuidv4().replace(/-/g, ''), 16) % 10000
-      ).padStart(4, '0');
-
-      user.Username = user.Username + '#' + uuidGenerator;
-    }
-  });
-
   User.beforeSave(async (user) => {
     if (user.changed('Email') && !user.GoogleID && !user.FacebookID) {
       // Keep emails lowercase

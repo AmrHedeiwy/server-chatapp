@@ -158,6 +158,15 @@ export const fetchUsers = async (curentUserId, curentUsername, query, page) => {
   }
 };
 
+/**
+ * Manages friendship actions such as adding or removing a friend.
+ *
+ * @param {string} action - The action to perform (add or remove).
+ * @param {number} currentUserId - The ID of the current user.
+ * @param {number} friendId - The ID of the friend to add or remove.
+ * @returns {Promise<Object>} - The result object indicating the success of the action.
+ * @throws {Error} - Errors will only be thrown by the database (sequelize) and will mostly be ForeignKeyConstraintError.
+ */
 export const manageFriendship = async (action, curentUserId, friendId) => {
   if (action !== 'add' && action !== 'remove')
     return res.status(400).json('err');

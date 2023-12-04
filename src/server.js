@@ -108,6 +108,119 @@ io.on('connection', (socket) => {
  */
 (async function main() {
   await db.sequelize.sync();
+
+  // db.User.bulkCreate([
+  //   {
+  //     Username: 'Emna',
+  //     Email: 'amr.hedeiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123',
+  //     IsVerified: true
+  //   },
+  //   {
+  //     Username: 'amr',
+  //     Email: 'amr.hedeiwyss@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'amro',
+  //     Email: 'amr.hedeissswyaa@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'ahmed',
+  //     Email: 'amr.hedaseiwyaaa@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'alia',
+  //     Email: 'amr.haaedsdseiaawy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'abdo',
+  //     Email: 'amr.heaadsaddasaaeiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'abdelrahman',
+  //     Email: 'amr.aahedeisway@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'anthony',
+  //     Email: 'amr.aahedessasiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'andrew',
+  //     Email: 'amr.asa@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'alarm',
+  //     Email: 'amr.hedeisssaaaaaaaaasswy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'apple',
+  //     Email: 'amr.heaadaaaaaesdsadsssiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'amazing',
+  //     Email: 'amr.heaaaaaadeiwdasdsdsssy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'ackerman',
+  //     Email: 'amr.hedaaaaaaeiwaassssy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'abodo_3',
+  //     Email: 'amr.heaaadeiwasssssassssy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'alia_3',
+  //     Email: 'amr.hedeissasdswaya@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'alala',
+  //     Email: 'amr.hedessdiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'a_moza',
+  //     Email: 'amr.hsdsedesiwy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   },
+  //   {
+  //     Username: 'a_bent_moza;)',
+  //     Email: 'amr.hedeiwsssadsy@gmail.com',
+  //     Password: 'amr@AMR123',
+  //     ConfirmPassword: 'amr@AMR123'
+  //   }
+  // ]);
+
   scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);

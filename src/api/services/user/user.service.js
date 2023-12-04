@@ -1,14 +1,16 @@
-import db from '../../models/index.js';
+import bcrypt from 'bcrypt';
+import sequelize, { Op } from 'sequelize';
+
 import successJson from '../../../config/success.json' assert { type: 'json' };
-import sequelize from 'sequelize';
+import cloudinary from '../../../config/cloudinary.js';
+
+import db from '../../models/index.js';
 import {
   ChangePasswordError,
   DeleteAccountError,
-  SequelizeConstraintError
+  SequelizeConstraintError,
+  UserNotFoundError
 } from '../../helpers/ErrorTypes.helper.js';
-import bcrypt from 'bcrypt';
-
-import cloudinary from '../../../config/cloudinary.js';
 
 /**
  * Updates the user's profile.
@@ -29,16 +31,6 @@ export const saveNewCredentials = async (data, currentUser) => {
       // Update the image URL with the secure URL from Cloudinary and remove the file path from the data object
       data.Image = result.secure_url;
       delete data.FilePath;
-    }
-
-    /**
-     * Check if the Username was changed.
-     * If so, we concatonate the updated Username with the uuid stored in the user's current Username.
-     */
-    if (data.Username) {
-      const uuid = currentUser.Username.split('#')[1];
-
-      data.Username += `#${uuid}`;
     }
 
     // Find the user in the database
@@ -124,8 +116,84 @@ export const deleteAccount = async (email, user) => {
   }
 };
 
+export const fetchUsers = async (curentUserId, curentUsername, query, page) => {
+  try {
+    const { count, rows: users } = await db.User.findAndCountAll({
+      attributes: [
+        'UserID',
+        'Username',
+        'Email',
+        'Image',
+        'CreatedAt',
+        [
+          // Column to indicate the follow status of the current user fetching
+          db.sequelize.literal(
+            `EXISTS (SELECT 1 FROM "follows" WHERE "follows"."FollowedID" = "User"."UserID" AND "follows"."FollowerID" = '${curentUserId}')`
+          ),
+          'IsFollowingCurrentUser'
+        ]
+      ],
+      where: {
+        [Op.and]: [
+          { Username: { [Op.iLike]: query + '%' } }, // include everything that starts with query
+          { Username: { [Op.ne]: curentUsername } } // exclude the current user fetching
+        ]
+      },
+      offset: page,
+      limit: 10, // batch of 10
+
+      include: [
+        {
+          model: db.User,
+          as: 'followers',
+          attributes: ['UserID'],
+          through: { attributes: [] } // Exclude any additional attributes from the join table
+        }
+      ]
+    });
+
+    return { count, users };
+  } catch (err) {
+    return { error: err };
+  }
+};
+
+export const manageFriendship = async (action, curentUserId, friendId) => {
+  if (action !== 'add' && action !== 'remove')
+    return res.status(400).json('err');
+
+  try {
+    if (action === 'add') {
+      await db.Follow.create({
+        FollowedID: friendId,
+        FollowerID: curentUserId
+      });
+    }
+
+    if (action === 'remove') {
+      await db.Follow.destroy({
+        where: {
+          FollowedID: friendId,
+          FollowerID: curentUserId
+        }
+      });
+    }
+
+    return { isFollowed: action === 'add' ? true : false };
+  } catch (err) {
+    return {
+      error:
+        err instanceof sequelize.ForeignKeyConstraintError
+          ? new UserNotFoundError()
+          : err
+    };
+  }
+};
+
 export default {
   saveNewCredentials,
   setChangePassword,
-  deleteAccount
+  deleteAccount,
+  fetchUsers,
+  manageFriendship
 };

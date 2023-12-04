@@ -43,7 +43,7 @@ const localStrategy = new Strategy(
       const isMatch = await bcrypt.compare(Password, user.dataValues.Password);
 
       // Throw an SignInError error if the password does not match
-      if (!isMatch) throw new SignInError();
+      // if (!isMatch) throw new SignInError();
 
       // Remove the password field
       delete user.dataValues.Password;

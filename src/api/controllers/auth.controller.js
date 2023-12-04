@@ -143,7 +143,17 @@ export const getAuthInfo = async (req, res, next) => {
     });
   }
 
-  if (type === 'session') return res.json({ user: req.user ?? null });
+  if (type === 'session') {
+    return res.json({
+      user: req?.user
+        ? {
+            UserID: req.user.UserID,
+            Email: req?.user.Email,
+            IsVerified: req.user.IsVerified
+          }
+        : null
+    });
+  }
 };
 
 /**

@@ -28,14 +28,11 @@ const mailer = async (type, Username, Email, options) => {
     html: ``
   };
 
-  // Only extract the name part 'Emna#3123' -> 'Emna'. 'Dear {name}' in the email context
-  const name = Username.split('#')[0];
-
   // Construct the email message based on the type
   if (type == 'verification-code') {
     msg.subject = 'Email Verification Code';
     msg.html = `
-      <p>Hello ${name},</p>
+      <p>Hello ${Username},</p>
       <p>Thank you for registering with our service. To complete the registration process, please enter the following verification code:</p>
       <h1>${options.verificationCode}</h1>
       <p>Please enter this code on the registration page to verify your email address.</p>
@@ -46,7 +43,7 @@ const mailer = async (type, Username, Email, options) => {
   } else if (type == 'forgot-password') {
     msg.subject = 'Password Reset Request';
     msg.html = `
-      <p>Dear ${name},</p>
+      <p>Dear ${Username},</p>
       <p>We have received a request to reset your password for your Deiwy account. To proceed with resetting your password, please click the button below:</p>
       <p>
         <a href="${process.env.CLIENT_URL}/reset-password/token=${options.useridToken}" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a>

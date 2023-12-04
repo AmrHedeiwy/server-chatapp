@@ -1,15 +1,14 @@
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
-import {
-  editProfileSchema,
-  changePasswordSchema
-} from '../validations/user.validation.js';
 import { userIdRateLimiter } from '../middlewares/rate-limit.middleware.js';
 import validation from '../middlewares/validation.middleware.js';
-
-import profileService from '../services/user/user.service.js';
 import upload from '../middlewares/multer.middleware.js';
-import db from '../models/index.js';
-import { Op } from 'sequelize';
+
+import userService from '../services/user/user.service.js';
+
+import {
+  editUserSchema,
+  changePasswordSchema
+} from '../validations/user.validation.js';
 
 /**
  * Route handler for fetching the current user's data.
@@ -29,37 +28,70 @@ export const current = [
   }
 ];
 
+/**
+ * Route handler for searching users based on a query.
+ *
+ * This route expects a GET request.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Fetches the users (batches of 10) from the database using the fetchUsers function.
+ * 3. If an error occurs during the fetching process, passes the error to the error handling middleware.
+ * 4. Finally, the response is sent with the fetched users and next page.
+ */
 export const search = [
   isAuthExpress,
   async (req, res, next) => {
-    const { page, search } = req.query;
-    try {
-      const users = await db.User.findAll({
-        attributes: [
-          'UserID',
-          'Username',
-          'Name',
-          'Email',
-          'Image',
-          'CreatedAt'
-        ],
-        where: {
-          [Op.and]: [
-            { Username: { [Op.iLike]: search + '%' } },
-            { Username: { [Op.ne]: req.user.Username } }
-          ]
-        },
-        offset: page,
-        limit: 10
-      });
+    const { UserID, Username } = req.user;
+    let { search, page } = req.query;
 
-      let nextPage = null;
-      if (users.length == 10) nextPage = 10;
+    page = parseInt(page);
 
-      res.json({ users: users.length != 0 ? users : null, nextPage });
-    } catch (error) {
-      console.log(error);
-    }
+    const { count, users, error } = await userService.fetchUsers(
+      UserID,
+      Username,
+      search,
+      page
+    );
+
+    if (error) return next(error);
+    /*
+     * If the count - (page + BATCH) is less than or equal to 0 -> there are no more users
+     * Else set the next page to page + 10 to skip n number of pages for the next fetch
+     */
+    let nextPage = null;
+    if (count - (page + 10) > 0) nextPage = page + 10;
+
+    res.json({ users: users.length != 0 ? users : null, nextPage });
+  }
+];
+
+/**
+ * Route handler for searching users based on a query.
+ *
+ * This route expects a POST request.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Adds/Removes the selected friend using the manageFriendship function.
+ * 3. If an error occurs during the operation, passes the error to the error handling middleware.
+ * 4. Finally, the response is sent with the follow status.
+ */
+export const friend = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { action } = req.params;
+    const { FriendID } = req.body;
+
+    const { isFollowed, error } = await userService.manageFriendship(
+      action,
+      req.user.UserID,
+      FriendID
+    );
+
+    if (error) return next(error);
+
+    res.json({ isFollowed });
   }
 ];
 
@@ -67,10 +99,9 @@ export const search = [
  * Route handler for editing the user's profile.
  *
  * This route expects a PATCH request with the following OPTIONAL parameters in the request body:
- * - Firstname
- * - Lastname
  * - Username
  * - Email
+ * - Image
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
@@ -78,8 +109,8 @@ export const search = [
  * 3. Handles file upload using the upload.single middleware.
  * 4. Validates the request body at the validation middleware using the Joi editProfileSchema.
  * 5. If an image file is uploaded, attaches the image file path to the request body.
- * 6. Calls the saveNewCredentials function from the profileService to save the updated credentials.
- * 7. If an error occurs during the saving operation, passes the error to the error handling middleware.
+ * 6. Saves the updated credentials to the database using the saevNewCredentials function.
+ * 7. If an error occurs during the saving process, passes the error to the error handling middleware.
  * 8. If the user's email is updated, logs out the user using the logout() method provided by PassportJS and redirect the
  * user to the email verification page with an appropriate message.
  * 9. Else, the response is sent with the appropriate status code, message and updated user.
@@ -88,17 +119,17 @@ export const edit = [
   isAuthExpress,
   userIdRateLimiter,
   upload.single('Image'),
-  validation(editProfileSchema),
+  validation(editUserSchema),
   async (req, res, next) => {
     if (req.file?.path) req.body.FilePath = req.file.path;
 
     const { status, message, redirect, user, error } =
-      await profileService.saveNewCredentials(req.body, req.user);
+      await userService.saveNewCredentials(req.body, req.user);
 
     if (error) return next(error);
 
     if (req.body.Email) {
-      req.logout((options, done) => {
+      await req.logout((options, done) => {
         res.status(status).json({ message, redirect });
       });
       return;
@@ -131,7 +162,7 @@ export const changePassword = [
   async (req, res, next) => {
     const { CurrentPassword, NewPassword } = req.body;
 
-    const { status, message, error } = await profileService.setChangePassword(
+    const { status, message, error } = await userService.setChangePassword(
       CurrentPassword,
       NewPassword,
       req.user.UserID
@@ -159,7 +190,7 @@ export const deleteAccount = [
   isAuthExpress,
   async (req, res, next) => {
     const { status, message, redirect, error } =
-      await profileService.deleteAccount(req.body.Email, req.user);
+      await userService.deleteAccount(req.body.Email, req.user);
 
     if (error) return next(error);
 
@@ -168,4 +199,4 @@ export const deleteAccount = [
   }
 ];
 
-export default { current, search, edit, changePassword, deleteAccount };
+export default { current, search, friend, edit, changePassword, deleteAccount };

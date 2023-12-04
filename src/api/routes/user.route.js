@@ -16,6 +16,8 @@ router.get('/current', profileController.current);
  */
 router.get('/search', profileController.search);
 
+router.post('/friend/:action', profileController.friend);
+
 /**
  * Edits the user's profile.
  * Endpoint: PATCH /user/edit

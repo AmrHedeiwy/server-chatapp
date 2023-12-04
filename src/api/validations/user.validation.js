@@ -29,7 +29,7 @@ function errorFormatter(errors) {
  * @property {Joi.StringSchema} Email - The email address of the user. Must be
  * unique and in valid email format.
  */
-export const editProfileSchema = Joi.object({
+export const editUserSchema = Joi.object({
   Username: Joi.string()
     .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/),

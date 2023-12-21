@@ -20,7 +20,7 @@ export default (sequelize, DataTypes) => {
   Message.init(
     {
       MessageID: {
-        type: DataTypes.STRING,
+        type: DataTypes.UUID,
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4
       },
@@ -46,11 +46,13 @@ export default (sequelize, DataTypes) => {
   );
 
   Message.associate = (models) => {
+    Message.hasMany(models.SeenUserMessage, { foreignKey: 'MessageID' });
+
     Message.belongsTo(models.User, { foreignKey: 'SenderID' });
 
     Message.belongsToMany(models.User, {
       as: 'SeenUsers',
-      through: 'UserSeenMessages',
+      through: models.SeenUserMessage,
       foreignKey: 'MessageID'
     });
 

@@ -65,3 +65,7 @@ export const changePasswordSchema = Joi.object({
 })
   .options({ abortEarly: false })
   .error(errorFormatter);
+
+export const friendSchema = Joi.object({
+  FriendID: Joi.string().required()
+}).error(errorFormatter);

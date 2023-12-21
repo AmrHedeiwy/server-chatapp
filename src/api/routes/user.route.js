@@ -1,42 +1,61 @@
 import { Router } from 'express';
 const router = new Router();
-import profileController from '../controllers/user.controller.js';
+import userController from '../controllers/user.controller.js';
 
 /**
  * Retrieves and displays the user's profile.
  * Endpoint: GET /user/view
- * Controller: profileController.view
+ * Controller: userController.view
  */
-router.get('/current', profileController.current);
+router.get('/current', userController.current);
 
 /**
  * Retrieves and displays the user's profile.
  * Endpoint: GET /user/view
- * Controller: profileController.view
+ * Controller: userController.view
  */
-router.get('/search', profileController.search);
+router.get('/search', userController.search);
 
-router.post('/friend/:action', profileController.friend);
+/**
+ * Add/Remove a friend.
+ * Endpoint: POST /user/friend/:action
+ * Controller: userController.handleFriendAction
+ */
+router.post('/friend/:action', userController.handleFriendAction);
+
+/**
+ * Create a new conversation.
+ * Endpoint: POST /user/conversation/create
+ * Controller: userController.createConversation
+ */
+router.post('/conversation/create', userController.createConversation);
+
+/**
+ * Fetch current user's conversations.
+ * Endpoint: GET /user/conversations
+ * Controller: userController.getConversations
+ */
+router.get('/conversations', userController.getConversations);
 
 /**
  * Edits the user's profile.
  * Endpoint: PATCH /user/edit
- * Controller: profileController.edit
+ * Controller: userController.edit
  */
-router.post('/edit', profileController.edit);
+router.post('/edit', userController.edit);
 
 /**
  * Changes the user's password.
  * Endpoint: POST /user/change-password
- * Controller: profileController.changePassword
+ * Controller: userController.changePassword
  */
-router.post('/change-password', profileController.changePassword);
+router.post('/change-password', userController.changePassword);
 
 /**
  * Deletes the user's account.
  * Endpoint: POST /user/delete-account
- * Controller: profileController.changePassword
+ * Controller: userController.changePassword
  */
-router.post('/delete-account', profileController.deleteAccount);
+router.post('/delete-account', userController.deleteAccount);
 
 export default router;

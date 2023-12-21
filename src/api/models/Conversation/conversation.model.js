@@ -60,15 +60,21 @@ export default (sequelize, DataTypes) => {
 
   Conversation.associate = (models) => {
     Conversation.belongsToMany(models.User, {
-      as: 'UserIDs',
-      through: 'UserConversations',
-      foreignKey: 'ConversationID'
+      as: 'Users',
+      through: models.UserConversation,
+      foreignKey: 'ConversationID',
+      otherKey: 'UserID'
     });
 
     Conversation.hasMany(models.Message, {
       as: 'Messages',
       foreignKey: 'ConversationID',
       onDelete: 'CASCADE'
+    });
+
+    Conversation.hasMany(models.UserConversation, {
+      foreignKey: 'ConversationID',
+      as: 'UsersCoversations'
     });
   };
 

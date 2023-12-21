@@ -3,12 +3,16 @@ import { userIdRateLimiter } from '../middlewares/rate-limit.middleware.js';
 import validation from '../middlewares/validation.middleware.js';
 import upload from '../middlewares/multer.middleware.js';
 
-import userService from '../services/user/user.service.js';
-
 import {
   editUserSchema,
-  changePasswordSchema
+  changePasswordSchema,
+  friendSchema
 } from '../validations/user.validation.js';
+import {
+  accountService,
+  conversationService
+} from '../services/user/index.service.js';
+import { usersService } from '../services/search/index.service.js';
 
 /**
  * Route handler for fetching the current user's data.
@@ -31,7 +35,9 @@ export const current = [
 /**
  * Route handler for searching users based on a query.
  *
- * This route expects a GET request.
+ * This route expects a GET request with the following parameters in the request query:.
+ * - search: The query used to search for in the database.
+ * - page: The rows to skip.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
@@ -47,7 +53,7 @@ export const search = [
 
     page = parseInt(page);
 
-    const { count, users, error } = await userService.fetchUsers(
+    const { count, users, error } = await usersService.fetchUsers(
       UserID,
       Username,
       search,
@@ -69,7 +75,9 @@ export const search = [
 /**
  * Route handler for searching users based on a query.
  *
- * This route expects a POST request.
+ * This route expects a POST request with the following parameters in the request body and params.
+ * - FriendID: The UserID of the frined to add/remove. (body)
+ * - action: Weather to add or remove a friend. (params)
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
@@ -77,13 +85,14 @@ export const search = [
  * 3. If an error occurs during the operation, passes the error to the error handling middleware.
  * 4. Finally, the response is sent with the follow status.
  */
-export const friend = [
+export const handleFriendAction = [
   isAuthExpress,
+  validation(friendSchema),
   async (req, res, next) => {
     const { action } = req.params;
     const { FriendID } = req.body;
 
-    const { isFollowed, error } = await userService.manageFriendship(
+    const { isFollowed, error } = await accountService.manageFriendship(
       action,
       req.user.UserID,
       FriendID
@@ -124,7 +133,7 @@ export const edit = [
     if (req.file?.path) req.body.FilePath = req.file.path;
 
     const { status, message, redirect, user, error } =
-      await userService.saveNewCredentials(req.body, req.user);
+      await accountService.saveNewCredentials(req.body, req.user);
 
     if (error) return next(error);
 
@@ -162,7 +171,7 @@ export const changePassword = [
   async (req, res, next) => {
     const { CurrentPassword, NewPassword } = req.body;
 
-    const { status, message, error } = await userService.setChangePassword(
+    const { status, message, error } = await accountService.setChangePassword(
       CurrentPassword,
       NewPassword,
       req.user.UserID
@@ -176,7 +185,7 @@ export const changePassword = [
 /**
  * Route handler for editing the user's profile.
  *
- * This route expects a POST request with the following OPTIONAL parameters in the request body:
+ * This route expects a POST request with the following parameters in the request body:
  * - Email: The email promted by the user to confirm account deletion
  *
  * This route performs the following steps:
@@ -190,7 +199,7 @@ export const deleteAccount = [
   isAuthExpress,
   async (req, res, next) => {
     const { status, message, redirect, error } =
-      await userService.deleteAccount(req.body.Email, req.user);
+      await accountService.deleteAccount(req.body.Email, req.user);
 
     if (error) return next(error);
 
@@ -199,4 +208,68 @@ export const deleteAccount = [
   }
 ];
 
-export default { current, search, friend, edit, changePassword, deleteAccount };
+/**
+ * Route handler for creating a conversation.
+ *
+ * This route expects a POST request with the following parameters in the request body:
+ * - OtherUserID: The ID of the user to start the conversation with
+ * - IsGroup: A boolean indicating whether the conversation is a group conversation
+ * - Members: An array of user IDs representing the members of the conversation (for group conversations)
+ * - Name: The name of the conversation (for group conversations)
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Creates a new conversation using the addConversation function.
+ * 3. If an error occurs during the process, the error is passed to the error handling middleware.
+ * 4. If the conversation creation was successful, the created conversation object is sent in the response.
+ */
+export const createConversation = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { OtherUserID, IsGroup, Members, Name } = req.body;
+
+    const { conversation, error } = await conversationService.addConversation(
+      req.user.UserID,
+      OtherUserID,
+      IsGroup,
+      Members,
+      Name
+    );
+
+    if (error) return next(error);
+
+    res.json({ conversation });
+  }
+];
+
+/**
+ * Route handler for fetching conversations.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Fetches the conversations associated with the user using the fetchConversations function.
+ * 3. If an error occurs during the process, the error is passed to the error handling middleware.
+ * 4. If the conversations fetching was successful, the fetched conversations are sent in the response.
+ */
+export const getConversations = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversations, error } =
+      await conversationService.fetchConversations(req.user.UserID);
+
+    if (error) return next(error);
+
+    res.json({ conversations });
+  }
+];
+
+export default {
+  current,
+  search,
+  handleFriendAction,
+  getConversations,
+  createConversation,
+  edit,
+  changePassword,
+  deleteAccount
+};

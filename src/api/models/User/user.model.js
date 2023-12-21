@@ -28,9 +28,7 @@ export default (sequelize, DataTypes) => {
     {
       UserID: {
         type: DataTypes.UUID,
-        allowNull: false,
         primaryKey: true,
-        unique: true,
         defaultValue: DataTypes.UUIDV4
       },
       GoogleID: {
@@ -102,9 +100,10 @@ export default (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.belongsToMany(models.Conversation, {
-      as: 'ConversationIDs',
-      through: 'UserConversations',
-      foreignKey: 'UserID'
+      as: 'Conversations',
+      through: models.UserConversation,
+      foreignKey: 'UserID',
+      otherKey: 'ConversationID'
     });
 
     User.hasMany(models.Message, {
@@ -113,9 +112,12 @@ export default (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     });
 
+    User.hasMany(models.UserConversation, { foreignKey: 'UserID' });
+    User.hasMany(models.SeenUserMessage, { foreignKey: 'UserID' });
+
     User.belongsToMany(models.Message, {
       as: 'SeenMessages',
-      through: 'UserSeenMessages',
+      through: models.SeenUserMessage,
       foreignKey: 'UserID'
     });
 

@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import sequelize, { Op } from 'sequelize';
+import sequelize from 'sequelize';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import cloudinary from '../../../config/cloudinary.js';
@@ -116,48 +116,6 @@ export const deleteAccount = async (email, user) => {
   }
 };
 
-export const fetchUsers = async (curentUserId, curentUsername, query, page) => {
-  try {
-    const { count, rows: users } = await db.User.findAndCountAll({
-      attributes: [
-        'UserID',
-        'Username',
-        'Email',
-        'Image',
-        'CreatedAt',
-        [
-          // Column to indicate the follow status of the current user fetching
-          db.sequelize.literal(
-            `EXISTS (SELECT 1 FROM "follows" WHERE "follows"."FollowedID" = "User"."UserID" AND "follows"."FollowerID" = '${curentUserId}')`
-          ),
-          'IsFollowingCurrentUser'
-        ]
-      ],
-      where: {
-        [Op.and]: [
-          { Username: { [Op.iLike]: query + '%' } }, // include everything that starts with query
-          { Username: { [Op.ne]: curentUsername } } // exclude the current user fetching
-        ]
-      },
-      offset: page,
-      limit: 10, // batch of 10
-
-      include: [
-        {
-          model: db.User,
-          as: 'followers',
-          attributes: ['UserID'],
-          through: { attributes: [] } // Exclude any additional attributes from the join table
-        }
-      ]
-    });
-
-    return { count, users };
-  } catch (err) {
-    return { error: err };
-  }
-};
-
 /**
  * Manages friendship actions such as adding or removing a friend.
  *
@@ -169,7 +127,7 @@ export const fetchUsers = async (curentUserId, curentUsername, query, page) => {
  */
 export const manageFriendship = async (action, curentUserId, friendId) => {
   if (action !== 'add' && action !== 'remove')
-    return res.status(400).json('err');
+    throw new Error('Invalid action at user/manageFriendship');
 
   try {
     if (action === 'add') {
@@ -203,6 +161,5 @@ export default {
   saveNewCredentials,
   setChangePassword,
   deleteAccount,
-  fetchUsers,
   manageFriendship
 };

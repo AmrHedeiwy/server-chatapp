@@ -45,10 +45,7 @@ const localStrategy = new Strategy(
       // Throw an SignInError error if the password does not match
       // if (!isMatch) throw new SignInError();
 
-      // Remove the password field
-      delete user.dataValues.Password;
-
-      return done(null, user.dataValues, {
+      return done(null, user.dataValues.UserID, {
         status: successJson.sign_in.status,
         redirect: !user.dataValues.IsVerified
           ? successJson.sign_in['verify-email-redirect']

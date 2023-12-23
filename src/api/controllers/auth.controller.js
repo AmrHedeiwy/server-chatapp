@@ -275,14 +275,14 @@ export const signIn = [
     passport.authenticate(
       'local',
       { passReqToCallback: true },
-      async (err, user, info) => {
+      async (err, userId, info) => {
         if (err) return next(err);
 
         /**
          * Add a passport object to the session containing the user's UserID.
          * @example passport { user: UserID: '<UUID>' }
          */
-        req.login(user, async (err) => {
+        req.login(userId, async (err) => {
           if (err) return next(err);
 
           // Set the expire time of the cookie for 30 days if 'Remember me' was selected

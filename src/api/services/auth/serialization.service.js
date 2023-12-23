@@ -1,29 +1,45 @@
-/**
- * @module serializationService
- *  Serializes/Deserializes a user object to a unique identifier for storage in a session cookie.
- *
- * @function serializeUser
- * @function deserializeUser
- *
- * @param {object} user - The user object to be serialized/deserializes.
- * @param {function} done - The callback function to be called after serialization/deserialization.
- */
-
 import db from '../../models/index.js';
+import { redisClient } from '../../../config/redis-client.js';
 
-export const serializeUser = (user, done) => {
-  done(null, { UserID: user.UserID });
+// Serializes the user object by storing the userId
+export const serializeUser = async (userId, done) => {
+  done(null, userId);
 };
 
-export const deserializeUser = async (user, done) => {
-  // Find the user in the database using the UserID
-  const existingUser = (await db.User.findByPk(user.UserID))?.dataValues;
+// Deserializes the user by retrieving user data from a cache or database
+export const deserializeUser = async (userId, done) => {
+  let user;
 
-  if (existingUser) {
-    // Call the done() callback with the deserialized user
-    done(null, existingUser);
-  } else {
-    // Call the done() callback with false if the user does not exist
+  try {
+    // Attempt to retrieve user data from the cache
+    const store = JSON.parse(await redisClient.get(`user_data:${userId}`));
+
+    if (!store) {
+      // If user data is not found in the cache, fetch it from the database
+      user = (await db.User.findByPk(userId))?.dataValues;
+      delete user.Password; // Remove the password field for security reasons
+
+      // Store the fetched user data in the cache for future use
+      await redisClient.setEx(
+        `user_data:${userId}`,
+        60 * 60 * 24, // Cache expiration time set to 1 day
+        JSON.stringify({ ...user })
+      );
+    } else {
+      // If user data is found in the cache, use it
+      user = store;
+    }
+
+    if (user) {
+      // If user data is available, pass it to the 'done' callback
+      done(null, user);
+    } else {
+      // If user data is not available, indicate failure to the 'done' callback
+      done(null, false);
+    }
+  } catch (err) {
+    // If an error occurs during deserialization, log the error and indicate failure to the 'done' callback
+    console.log('DESERIALIZATION ERROR', { error: err });
     done(null, false);
   }
 };

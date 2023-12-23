@@ -71,6 +71,7 @@ import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
 
 app.use((req, res, next) => {
+  console.log(req.url);
   next();
 });
 app.use(routes);

@@ -20,19 +20,21 @@ import cors from 'cors';
 // Set the server port
 const port = process.env.PORT || 5000;
 
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+  allowedHeaders:
+    'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept'
+};
+
 // Create instances of the Express app, HTTP server, and Socket.io
 const app = express();
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: corsOptions
+});
 
-app.use(
-  cors({
-    credentials: true,
-    origin: 'http://localhost:3000',
-    allowedHeaders:
-      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept'
-  })
-);
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,7 +99,7 @@ isAuthSocket(io);
 
 // Handle Socket.io connections
 io.on('connection', (socket) => {
-  // console.log(socket.request);
+  console.log(socket.request);
   // socket.emit('message', `User with socketID ${socket.id} has joined`);
 });
 // code above is for testing purposes

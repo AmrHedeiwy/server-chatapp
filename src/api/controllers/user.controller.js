@@ -10,9 +10,10 @@ import {
 } from '../validations/user.validation.js';
 import {
   accountService,
-  conversationService
+  conversationService,
+  usersService
 } from '../services/user/index.service.js';
-import { usersService } from '../services/search/index.service.js';
+import db from '../models/index.js';
 
 /**
  * Route handler for fetching the current user's data.
@@ -242,6 +243,30 @@ export const createConversation = [
   }
 ];
 
+export const getConversation = [
+  isAuthExpress,
+  async (req, res, next) => {
+    console.log(req.params);
+    const { conversationId: ConversationID } = req.params;
+
+    const conversation = await db.Conversation.findOne({
+      where: { ConversationID },
+      include: [
+        {
+          model: db.User,
+          as: 'Users',
+          include: {
+            model: db.Message,
+            as: 'Messages'
+          }
+        }
+      ]
+    });
+
+    res.json({ conversation });
+  }
+];
+
 /**
  * Route handler for fetching conversations.
  *
@@ -268,6 +293,7 @@ export default {
   search,
   handleFriendAction,
   getConversations,
+  getConversation,
   createConversation,
   edit,
   changePassword,

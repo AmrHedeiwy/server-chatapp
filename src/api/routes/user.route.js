@@ -25,10 +25,12 @@ router.post('/friend/:action', userController.handleFriendAction);
 
 /**
  * Create a new conversation.
- * Endpoint: POST /user/conversation/create
+ * Endpoint: POST /user/conversation/
  * Controller: userController.createConversation
  */
-router.post('/conversation/create', userController.createConversation);
+router.post('/conversation', userController.createConversation);
+
+router.get('/conversation/:conversationId', userController.getConversation);
 
 /**
  * Fetch current user's conversations.

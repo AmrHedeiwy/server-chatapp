@@ -11,6 +11,7 @@ import {
   SequelizeConstraintError,
   UserNotFoundError
 } from '../../helpers/ErrorTypes.helper.js';
+import { redisClient } from '../../../config/redis-client.js';
 
 /**
  * Updates the user's profile.
@@ -40,6 +41,14 @@ export const saveNewCredentials = async (data, currentUser) => {
 
     // Update the user's profile with the new data
     const updatedUser = await user.update(data);
+
+    delete updatedUser.dataValues.Password;
+
+    await redisClient.setEx(
+      `user_data:${updatedUser.UserID}`,
+      60 * 60 * 24,
+      JSON.stringify(updatedUser.dataValues)
+    );
 
     return {
       /**
@@ -109,6 +118,9 @@ export const deleteAccount = async (email, user) => {
 
     // Deletes the user from the database
     await db.User.delete({ where: { UserID: user.UserID } });
+
+    // Delete the stored data from the cache
+    await redisClient.del(`user_data:${user.UserID}`);
 
     return successJson.delete_account;
   } catch (err) {

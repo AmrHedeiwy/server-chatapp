@@ -1,11 +1,8 @@
-export const isAuthSocket = (io) => {
-  // Authenticate Socket.io connections.
-  io.use(async (socket, next) => {
-    if (!socket.request.session.passport?.user) {
-      return next(new Error('not auth'));
-    }
-    next();
-  });
+export const isAuthSocket = async (socket, next) => {
+  if (!socket.request.session.passport?.user) {
+    return next(new Error('not auth'));
+  }
+  next();
 };
 
 export const isAuthExpress = (req, res, next) => {

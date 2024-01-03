@@ -12,10 +12,15 @@ import { passport } from './api/services/auth/index.service.js';
 import RedisStore from 'connect-redis';
 import { redisClient } from './config/redis-client.js';
 import scheduledTasks from './api/helpers/taskSchedule.helper.js';
-
 // Importing the Sequelize instnace
 import db from './api/models/index.js';
 import cors from 'cors';
+
+import {
+  handleConnect,
+  handleDisconnect,
+  initializeUser
+} from './api/controllers/socket.controller.js';
 
 // Set the server port
 const port = process.env.PORT || 5000;
@@ -36,6 +41,7 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 
+// Parse request body as JSON and URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -66,43 +72,29 @@ app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Parse request body as JSON and URL-encoded
-
 // Import routes and error handling middleware
 import routes from './api/routes/index.route.js';
 import errorMiddleware from './api/middlewares/error.middleware.js';
+import { isAuthSocket } from './api/middlewares/auth.middleware.js';
 
-app.use((req, res, next) => {
-  console.log(req.url);
-  next();
-});
 app.use(routes);
 app.use(errorMiddleware);
 
-// Set up Socket.io middleware
+// Define a wrapper function to convert middleware to socketio middleware
 const wrapper = (middlware) => (socket, next) =>
   middlware(socket.request, {}, next);
 io.use(wrapper(sessionMiddleware));
 
-// code bellow is for testing purposes
-// Authenticate Socket.io connections
-io.use(async (socket, next) => {
-  // @ts-ignore
-  if (!socket.request.session.passport?.user) {
-    return next(new Error('not auth'));
-  }
-  next();
-});
+io.use(isAuthSocket);
+io.use(initializeUser);
 
-import { isAuthSocket } from './api/middlewares/auth.middleware.js';
-isAuthSocket(io);
+io.on('connection', async (socket) => {
+  // Handle connection event
+  handleConnect(io, socket);
 
-// Handle Socket.io connections
-io.on('connection', (socket) => {
-  console.log(socket.request);
-  // socket.emit('message', `User with socketID ${socket.id} has joined`);
+  // Handle disconnection event
+  socket.on('disconnect', () => handleDisconnect(io, socket));
 });
-// code above is for testing purposes
 
 /**
  * Synchronize the Sequelize database tables with the models and start the server.

@@ -15,7 +15,7 @@ import sequelize from 'sequelize';
  * Registers a new user.
  *
  * @param {object} data - The data for the user registration.
- * @returns {Promise<object>} - The success response with the message, status, redirect URL, and the newly created user.
+ * @returns {Promise<{message: string, status: number, redirect: string, user: object}>}
  * @throws {Error} - Errors will only be thrown by the database (sequelize).
  */
 export const addUser = async (data) => {
@@ -48,7 +48,7 @@ export const addUser = async (data) => {
  *
  * @param {string} username - Used in the email context.
  * @param {string} email - The email address to send the verification code.
- * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
+ * @returns {Promise<{message: string, status: number, redirect: string}>}
  * @throws {EmailError} - Thrown when the email fails to send.
  */
 export const sendVerificationCode = async (username, email, userid) => {
@@ -87,7 +87,7 @@ export const sendVerificationCode = async (username, email, userid) => {
  *
  * @param {string} userid - Used as the key when extracting from the cache (redis).
  * @param {string} verificationCode - The verification code provided by the user.
- * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
+ * @returns {Promise<{message: string, status: number, redirect: string}>}
  * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.
  */
 export const verifyEmail = async (userid, verificationCode) => {
@@ -127,7 +127,7 @@ export const verifyEmail = async (userid, verificationCode) => {
  *
  * @param {string} field - The field to look in.
  * @param {string} value - The value to search for.
- * @returns {Promise<object>} The user object
+ * @returns {Promise<{user: object}>}
  * @throws {UserNotFoundError} - Thrown when the user is not found in the database.
  * @throws {EmailError} - Thrown when the user account is not verified.
  */
@@ -152,7 +152,7 @@ export const checkUserExists = async (field, value) => {
  *
  * @param {number} userId - Used to query the user from the database.
  * @param {string} newPassword - The new password to set for the user.
- * @returns {Promise<object>} The success response with the message, status, and the redirect URL.
+ * @returns {Promise<{message: string, status: number, redirect: string}>}
  */
 export const setResetPassword = async (userId, newPassword) => {
   try {

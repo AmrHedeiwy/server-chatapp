@@ -1,5 +1,5 @@
-import db from '../../models/index.js';
 import { Op } from 'sequelize';
+import db from '../../models/index.js';
 
 /**
  * Fetches users based on a given query.
@@ -7,7 +7,7 @@ import { Op } from 'sequelize';
  * @param {string} currentUsername - The username of the current user.
  * @param {string} query - The query to search for users.
  * @param {number} page - The page number for pagination.
- * @returns {Object} - An object containing the count and list of users.
+ * @returns {Promise<{count: number, users: object[]}>} - An object containing the count and list of users.
  */
 export const fetchUsers = async (
   currentUserId,

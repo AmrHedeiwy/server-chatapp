@@ -112,7 +112,10 @@ export default (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     });
 
-    User.hasMany(models.UserConversation, { foreignKey: 'UserID' });
+    User.hasMany(models.UserConversation, {
+      foreignKey: 'UserID',
+      as: 'Rooms'
+    });
     User.hasMany(models.SeenUserMessage, { foreignKey: 'UserID' });
 
     User.belongsToMany(models.Message, {

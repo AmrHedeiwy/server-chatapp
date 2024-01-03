@@ -1,14 +1,9 @@
-/**
- * This module exports a local authentication strategy for Passport authentication library.
- *
- * @module
- */
-
-import db from '../../models/index.js';
-import { EmailError, SignInError } from '../../helpers/ErrorTypes.helper.js';
 import { Strategy } from 'passport-local';
 import bcrypt from 'bcrypt';
+
 import successJson from '../../../config/success.json' assert { type: 'json' };
+import db from '../../models/index.js';
+import { SignInError } from '../../helpers/ErrorTypes.helper.js';
 
 /**
  * An object specifying the custom field names to use for the local authentication strategy.

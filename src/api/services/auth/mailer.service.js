@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
 
 import sgMail from '@sendgrid/mail';
-import { EmailError, MailerError } from '../../helpers/ErrorTypes.helper.js';
+
+import { MailerError } from '../../helpers/ErrorTypes.helper.js';
 import successJson from '../../../config/success.json' assert { type: 'json' };
 
 // Configure SendGrid API key

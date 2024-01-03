@@ -8,12 +8,12 @@ import {
   changePasswordSchema,
   friendSchema
 } from '../validations/user.validation.js';
+
 import {
   accountService,
   conversationService,
   usersService
 } from '../services/user/index.service.js';
-import db from '../models/index.js';
 
 /**
  * Route handler for fetching the current user's data.
@@ -246,22 +246,12 @@ export const createConversation = [
 export const getConversation = [
   isAuthExpress,
   async (req, res, next) => {
-    console.log(req.params);
-    const { conversationId: ConversationID } = req.params;
+    const { conversationId } = req.params;
 
-    const conversation = await db.Conversation.findOne({
-      where: { ConversationID },
-      include: [
-        {
-          model: db.User,
-          as: 'Users',
-          include: {
-            model: db.Message,
-            as: 'Messages'
-          }
-        }
-      ]
-    });
+    const { conversation } = await conversationService.fetchSingleConversation(
+      conversationId,
+      req.user.UserID
+    );
 
     res.json({ conversation });
   }

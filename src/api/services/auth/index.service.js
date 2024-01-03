@@ -1,9 +1,12 @@
 import passport from 'passport';
+
 import registerService from './register.service.js';
 import mailer from './mailer.service.js';
+
 import localStrategyService from './local.service.js';
 import facebookStrategyService from './facebook.service.js';
 import googleStrategyService from './google.service.js';
+
 import { serializeUser, deserializeUser } from './serialization.service.js';
 
 // Local strategy

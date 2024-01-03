@@ -1,5 +1,5 @@
-import db from '../../models/index.js';
 import { Op } from 'sequelize';
+import db from '../../models/index.js';
 
 /**
  * Adds a conversation between users.
@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
  * @param {boolean} isGroup - Indicates whether the conversation is a group conversation.
  * @param {Array} members - An array of members' data (if the conversation is a group).
  * @param {string} name - The name of the conversation (if the conversation is a group).
- * @returns {Object} - An object containing the conversation and its users.
+ * @returns {Promise<{conversation: object}>} - An object containing the conversation and its users.
  */
 export const addConversation = async (
   currentUserId,
@@ -105,9 +105,9 @@ export const addConversation = async (
 /**
  * Fetches conversations for a given user.
  * @param {string} currentUserId - The ID of the current user.
- * @returns {Object} - An object containing the user's conversations.
+ * @returns {Promise<{conversations: object[]}>} - The fetched conversations in a formatted structure
  */
-export const fetchConversations = async (curentUserId) => {
+export const fetchConversations = async (currentUserId) => {
   try {
     // Retrieve the IDs of conversations involving the current user
     const conversationIDs = await db.Conversation.findAll({
@@ -116,7 +116,7 @@ export const fetchConversations = async (curentUserId) => {
         {
           model: db.User,
           as: 'Users',
-          where: { UserID: { [Op.in]: [curentUserId] } },
+          where: { UserID: { [Op.in]: [currentUserId] } },
           attributes: []
         }
       ]
@@ -135,26 +135,96 @@ export const fetchConversations = async (curentUserId) => {
         {
           model: db.User,
           as: 'Users',
-          attributes: ['UserID', 'Username', 'Email', 'Image', 'CreatedAt'],
-          include: {
-            model: db.Message,
-            as: 'Messages',
-            include: 'SeenUsers'
-          }
-        },
-        {
-          model: db.Message,
-          as: 'Messages',
-          include: 'SeenUsers'
+          attributes: ['UserID', 'Username', 'Email', 'Image', 'CreatedAt']
         }
       ],
       order: [['LastMessageAt', 'DESC']]
     });
 
-    return { conversations };
+    const formatedConversations = conversations.map((conversation) => {
+      const {
+        ConversationID,
+        CreatedAt,
+        LastMessageAt,
+        Name,
+        IsGroup,
+        Users,
+        Messages
+      } = { ...conversation.dataValues };
+      const otherUser = !IsGroup
+        ? Users.find((user) => user.dataValues.UserID != currentUserId)
+            .dataValues
+        : null;
+
+      delete otherUser.UserConversation;
+
+      return {
+        ConversationID,
+        CreatedAt,
+        LastMessageAt,
+        IsGroup,
+        Name: Name ?? otherUser.Username,
+        Users,
+        ...(!IsGroup && { OtherUser: otherUser }),
+        Messages
+      };
+    });
+
+    return { conversations: formatedConversations };
   } catch (err) {
     return { error: err };
   }
 };
 
-export default { addConversation, fetchConversations };
+/**
+ * Fetches a single conversation from the database
+ * @param {string} conversationId - The ID of the conversation to fetch
+ * @param {string} currentUserId - The ID of the current user
+ * @returns {Promise<{ conversation: object }>} - The fetched conversation in a formatted structure
+ */
+export const fetchSingleConversation = async (
+  conversationId,
+  currentUserId
+) => {
+  // Fetch the conversation from the database
+  const conversation = await db.Conversation.findOne({
+    where: { ConversationID: conversationId },
+    include: [
+      {
+        model: db.User,
+        as: 'Users',
+        include: {
+          model: db.Message,
+          as: 'Messages'
+        }
+      }
+    ]
+  });
+
+  // Extract relevant properties from the conversation
+  const { Name, CreatedAt, LastMessageAt, IsGroup, Users } =
+    conversation.dataValues;
+
+  // Determine the other user (if not a group conversation)
+  const otherUser = !IsGroup
+    ? Users.find((user) => user.dataValues.UserID !== currentUserId).dataValues
+    : null;
+
+  // Remove unnecessary property from the otherUser object
+  delete otherUser.UserConversation;
+
+  // Create a formatted conversation object
+  const formattedConversation = {
+    ConversationID: conversationId,
+    CreatedAt,
+    LastMessageAt,
+    Name: Name ?? otherUser.Username,
+    IsGroup,
+    Users,
+    ...(!IsGroup && { OtherUser: otherUser })
+  };
+
+  return { conversation: formattedConversation };
+};
+
+export default { addConversation, fetchConversations, fetchSingleConversation };

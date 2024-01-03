@@ -3,6 +3,7 @@ import sequelize from 'sequelize';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import cloudinary from '../../../config/cloudinary.js';
+import { redisClient } from '../../../config/redis-client.js';
 
 import db from '../../models/index.js';
 import {
@@ -11,14 +12,13 @@ import {
   SequelizeConstraintError,
   UserNotFoundError
 } from '../../helpers/ErrorTypes.helper.js';
-import { redisClient } from '../../../config/redis-client.js';
 
 /**
  * Updates the user's profile.
  *
  * @param {object} data - The data containing the new credentials and profile information.
  * @param {object} currentUser - The credentials of the current user whose profile is being updated.
- * @returns {Promise<Object>} - The success response with the message, status, redirect URL, and the updated user.
+ * @returns {Promise<{message: string, status: number, redirect: string, user: object}>}
  * @throws {Error} - An unexpected error from cloudinary or thrown by the database (sequelize).
  */
 export const saveNewCredentials = async (data, currentUser) => {
@@ -78,7 +78,7 @@ export const saveNewCredentials = async (data, currentUser) => {
  * @param {string} currentPassword - The user's current password.
  * @param {string} newPassword - The new password to be set.
  * @param {string} userId - Used to query the database.
- * @returns {Promise<object>} - The success response with the message and status.
+ * @returns {Promise<{message: string, status: number}>}
  * @throws {ChangePasswordError} - If the current password does not match the user's stored password.
  */
 export const setChangePassword = async (
@@ -109,7 +109,7 @@ export const setChangePassword = async (
  *
  * @param {string} email - The promted email by the user.
  * @param {string} user - The user's crednetials.
- * @returns {Promise<object>} - The success response with the message, status, and the redirect URL.
+ * @returns {Promise<{message: string, status: number, redirect: string}>}
  * @throws {DeleteAccountError} - If the current password does not match the user's stored password.
  */
 export const deleteAccount = async (email, user) => {
@@ -134,7 +134,7 @@ export const deleteAccount = async (email, user) => {
  * @param {string} action - The action to perform (add or remove).
  * @param {number} currentUserId - The ID of the current user.
  * @param {number} friendId - The ID of the friend to add or remove.
- * @returns {Promise<Object>} - The result object indicating the success of the action.
+ * @returns {Promise<{action: boolean}>} - The result object indicating the success of the action.
  * @throws {Error} - Errors will only be thrown by the database (sequelize) and will mostly be ForeignKeyConstraintError.
  */
 export const manageFriendship = async (action, curentUserId, friendId) => {

@@ -1,10 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
-import { Strategy } from 'passport-facebook';
-import db from '../../models/index.js';
-import successJson from '../../../config/success.json' assert { type: 'json' };
-import { SocialMediaAuthenticationError } from '../../helpers/ErrorTypes.helper.js';
 
+import { Strategy } from 'passport-facebook';
+
+import successJson from '../../../config/success.json' assert { type: 'json' };
+import db from '../../models/index.js';
 const facebookStrategy = new Strategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
@@ -46,7 +46,7 @@ const facebookStrategy = new Strategy(
         user.save();
       }
 
-      done(null, user.dataValues, {
+      done(null, user.dataValues.UserID, {
         status: successJson.sign_in.status,
         redirect: successJson.sign_in['facebook-redirect']
       });

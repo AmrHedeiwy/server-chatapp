@@ -1,15 +1,7 @@
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
-import { registerService } from '../services/auth/index.service.js';
+
 import validation from '../middlewares/validation.middleware.js';
-import mailerService from '../services/auth/mailer.service.js';
-import {
-  registerSchema,
-  signInSchema,
-  resetPasswordSchema,
-  forgotPasswordRequestSchema
-} from '../validations/auth.validation.js';
-import { setResetPassword } from '../services/auth/register.service.js';
 import {
   ipRateLimiter,
   emailRateLimiter,
@@ -17,6 +9,18 @@ import {
 } from '../middlewares/rate-limit.middleware.js';
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
+
+import { registerService } from '../services/auth/index.service.js';
+import mailerService from '../services/auth/mailer.service.js';
+import { setResetPassword } from '../services/auth/register.service.js';
+
+import {
+  registerSchema,
+  signInSchema,
+  resetPasswordSchema,
+  forgotPasswordRequestSchema
+} from '../validations/auth.validation.js';
+
 import {
   ForgotPassswordError,
   SocialMediaAuthenticationError
@@ -334,14 +338,14 @@ export const facebookSignUpCallback = async (req, res, next) => {
   passport.authenticate(
     'facebook',
     { passReqToCallback: true },
-    async (err, user, info) => {
+    async (err, userId, info) => {
       if (err) return next(new SocialMediaAuthenticationError(err, 'facebook'));
 
       /**
        * Add a passport object to the session containing the user's UserID.
        * @example passport { user: UserID: '<UUID>' }
        */
-      req.login(user, (err) => {
+      req.login(userId, (err) => {
         if (err) return next(err);
 
         // Marking the user as Callback Provider for Success Page Authorization
@@ -376,14 +380,14 @@ export const googleSignUpCallback = async (req, res, next) => {
   passport.authenticate(
     'google',
     { passReqToCallback: true },
-    async (err, user, info) => {
+    async (err, userId, info) => {
       if (err) return next(new SocialMediaAuthenticationError(err, 'google'));
 
       /**
        * Add a passport object to the session containing the user's UserID.
        * @example passport { user: UserID: '<UUID>' }
        */
-      req.login(user, (err) => {
+      req.login(userId, (err) => {
         if (err) return next(err);
 
         // Marking the user as Callback Provider for Success Page Authorization

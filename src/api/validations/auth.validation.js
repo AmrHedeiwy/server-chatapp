@@ -56,8 +56,8 @@ export const registerSchema = Joi.object({
     .messages({
       'any.required': '"ConfirmPassword" is not allowed to be empty'
     })
-    .strip()
-  // TermsOfAgreement: Joi.boolean().valid(true).required().strip()
+    .strip(),
+  TermsOfAgreement: Joi.boolean().valid(true).required().strip()
 })
   .options({ abortEarly: false })
   .unknown()

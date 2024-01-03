@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
+
 import { Strategy } from 'passport-google-oauth2';
-import db from '../../models/index.js';
-import { SocialMediaAuthenticationError } from '../../helpers/ErrorTypes.helper.js';
+
 import successJson from '../../../config/success.json' assert { type: 'json' };
+import db from '../../models/index.js';
 
 const googleStrategy = new Strategy(
   {
@@ -44,7 +45,7 @@ const googleStrategy = new Strategy(
         user.save();
       }
 
-      done(null, user.dataValues, {
+      done(null, user.dataValues.UserID, {
         status: successJson.sign_in.status,
         redirect: successJson.sign_in['google-redirect']
       });

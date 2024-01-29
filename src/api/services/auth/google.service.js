@@ -29,23 +29,23 @@ const googleStrategy = new Strategy(
     try {
       // Find or create a new user based on their Google ID
       const [user, created] = await db.User.findOrCreate({
-        where: { Email: email },
+        where: { email },
         defaults: {
-          GoogleID: id,
-          Username: (given_name + '_' + family_name).toLowerCase(),
-          IsVerified: true,
-          Image: picture ?? null
+          googleId: id,
+          username: (given_name + '_' + family_name).toLowerCase(),
+          isVerified: true,
+          image: picture ?? null
         }
       });
 
       if (!created && user) {
-        user.GoogleID = id;
-        user.IsVerified = true;
+        user.googleId = id;
+        user.isVerified = true;
 
         user.save();
       }
 
-      done(null, user.dataValues.UserID, {
+      done(null, user.dataValues.userId, {
         status: successJson.sign_in.status,
         redirect: successJson.sign_in['google-redirect']
       });

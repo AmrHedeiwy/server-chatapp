@@ -17,8 +17,11 @@ import db from './api/models/index.js';
 import cors from 'cors';
 
 import {
+  handleAckMessage,
   handleConnect,
   handleDisconnect,
+  handleMessage,
+  handleSeenMessage,
   initializeUser
 } from './api/controllers/socket.controller.js';
 
@@ -89,10 +92,19 @@ io.use(isAuthSocket);
 io.use(initializeUser);
 
 io.on('connection', async (socket) => {
-  // Handle connection event
+  // when a user connects
   handleConnect(io, socket);
 
-  // Handle disconnection event
+  // when a message is sent
+  socket.on('sendMessage', (data, cb) => handleMessage(socket, data, cb));
+
+  // when a message is delivered to a user
+  socket.on('acknowledge_message', (data) => handleAckMessage(socket, data));
+
+  // when a message is seen by a user
+  socket.on('seen_message', (data) => handleSeenMessage(socket, data));
+
+  // when a user disconnects
   socket.on('disconnect', () => handleDisconnect(io, socket));
 });
 
@@ -106,121 +118,116 @@ io.on('connection', async (socket) => {
 
   /* db.User.bulkCreate([
     {
-      Username: 'Emna',
-      Email: 'amr.hedeiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123',
-      IsVerified: true
+      username: 'Emna',
+      email: 'amr.hedeiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123',
+      isVerified: true
     },
     {
-      Username: 'amr',
-      Email: 'amr.hedeiwyss@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'amr',
+      email: 'amr.hedeiwyss@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'amro',
-      Email: 'amr.hedeissswyaa@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'amro',
+      email: 'amr.hedeissswyaa@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'ahmed',
-      Email: 'amr.hedaseiwyaaa@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'ahmed',
+      email: 'amr.hedaseiwyaaa@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'alia',
-      Email: 'amr.haaedsdseiaawy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'alia',
+      email: 'amr.haaedsdseiaawy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'abdo',
-      Email: 'amr.heaadsaddasaaeiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'abdo',
+      email: 'amr.heaadsaddasaaeiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'abdelrahman',
-      Email: 'amr.aahedeisway@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'abdelrahman',
+      email: 'amr.aahedeisway@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'anthony',
-      Email: 'amr.aahedessasiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'anthony',
+      email: 'amr.aahedessasiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'andrew',
-      Email: 'amr.asa@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'andrew',
+      email: 'amr.asa@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'alarm',
-      Email: 'amr.hedeisssaaaaaaaaasswy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'alarm',
+      email: 'amr.hedeisssaaaaaaaaasswy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'apple',
-      Email: 'amr.heaadaaaaaesdsadsssiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'apple',
+      email: 'amr.heaadaaaaaesdsadsssiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'amazing',
-      Email: 'amr.heaaaaaadeiwdasdsdsssy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'amazing',
+      email: 'amr.heaaaaaadeiwdasdsdsssy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'ackerman',
-      Email: 'amr.hedaaaaaaeiwaassssy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'ackerman',
+      email: 'amr.hedaaaaaaeiwaassssy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'abodo_3',
-      Email: 'amr.heaaadeiwasssssassssy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'abodo_3',
+      email: 'amr.heaaadeiwasssssassssy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'alia_3',
-      Email: 'amr.hedeissasdswaya@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'alia_3',
+      email: 'amr.hedeissasdswaya@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'alala',
-      Email: 'amr.hedessdiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'alala',
+      email: 'amr.hedessdiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'a_moza',
-      Email: 'amr.hsdsedesiwy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'a_moza',
+      email: 'amr.hsdsedesiwy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     },
     {
-      Username: 'a_bent_moza;)',
-      Email: 'amr.hedeiwsssadsy@gmail.com',
-      Password: 'amr@AMR123',
-      ConfirmPassword: 'amr@AMR123'
+      username: 'a_bent_moza;)',
+      email: 'amr.hedeiwsssadsy@gmail.com',
+      password: 'amr@AMR123',
+      confirmPassword: 'amr@AMR123'
     }
   ]); */
 
-  // const a = await db.Conversation.findOne({
-  //   where: { ConversationID: '814d6767-785e-49b0-84c8-edeeb6ec9983' },
-  //   include: ['Users']
-  // });
-  // console.log(a);
   scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);

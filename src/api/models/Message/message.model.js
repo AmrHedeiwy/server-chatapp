@@ -1,40 +1,32 @@
 import { Model } from 'sequelize';
 
-/**
- * Defines the Message model.
- *
- * @param {import('sequelize').Sequelize} sequelize - The Sequelize instance.
- * @param {import('sequelize').DataTypes} DataTypes - The data types module.
- */
 export default (sequelize, DataTypes) => {
   /**
    * @class Message
    *
-   * @property {string} MessageID - The unique ID of the message.
-   * @property {string} Body - Contains the message content if any.
-   * @property {string} Image - Contains the image content if any.
-   * @property {Date} CreatedAt - The date when the message was created.
+   * @property {string} messageId - The unique ID of the message.
+   * @property {string} body - Contains the message content if any.
+   * @property {string} image - Contains the image content if any.
+   * @property {Date} createdAt - The date when the message was created.
    */
   class Message extends Model {}
 
   Message.init(
     {
-      MessageID: {
+      messageId: {
         type: DataTypes.UUID,
         primaryKey: true,
-        defaultValue: DataTypes.UUIDV4
+        allowNull: false
       },
-      Body: {
-        type: DataTypes.STRING,
-        allowNull: true
+      body: {
+        type: DataTypes.STRING
       },
-      Image: {
-        type: DataTypes.STRING,
-        allowNull: true
+      image: {
+        type: DataTypes.STRING
       },
-      CreatedAt: {
+      createdAt: {
         type: DataTypes.DATE,
-        defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+        allowNull: false
       }
     },
     {
@@ -46,18 +38,30 @@ export default (sequelize, DataTypes) => {
   );
 
   Message.associate = (models) => {
-    Message.hasMany(models.SeenUserMessage, { foreignKey: 'MessageID' });
+    Message.hasMany(models.MessageStatus, {
+      foreignKey: 'messageId',
+      as: 'seenStatus'
+    });
+    Message.hasMany(models.MessageStatus, {
+      foreignKey: 'messageId',
+      as: 'deliverStatus'
+    });
 
-    Message.belongsTo(models.User, { foreignKey: 'SenderID' });
+    Message.hasMany(models.MessageStatus, {
+      foreignKey: 'messageId',
+      as: 'status'
+    });
+
+    Message.belongsTo(models.User, { foreignKey: 'senderId', as: 'user' });
 
     Message.belongsToMany(models.User, {
-      as: 'SeenUsers',
-      through: models.SeenUserMessage,
-      foreignKey: 'MessageID'
+      through: models.MessageStatus,
+      foreignKey: 'messageId'
     });
 
     Message.belongsTo(models.Conversation, {
-      foreignKey: 'ConversationID'
+      foreignKey: 'conversationId',
+      as: 'conversation'
     });
   };
 

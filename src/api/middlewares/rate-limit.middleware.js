@@ -61,8 +61,7 @@ export const ipRateLimiter = async (req, res, next) => {
  */
 export const emailRateLimiter = async (req, res, next) => {
   // Retrieve the email address from the session or request body
-  const email =
-    req.session.needsVerification?.Email || req.user?.Email || req.body.Email;
+  const email = req.user?.email || req.body.email;
 
   // Get the current route being accessed
   const route = req.url;
@@ -105,10 +104,7 @@ export const emailSkipSucessRequest = async (req, res, next) => {
     // Check if the response status is less than 400
     if (this.statusCode < 400) {
       // Retrieve the email from the session or request body
-      const email =
-        req.session.needsVerification?.Email ||
-        req.user?.Email ||
-        req.body.Email;
+      const email = req.user?.email || req.body.email;
 
       // Get the route from the request URL
       const route = req.url;
@@ -128,14 +124,14 @@ export const emailSkipSucessRequest = async (req, res, next) => {
 };
 
 /**
- * UserID Rate Limiter Middleware
+ * UserId Rate Limiter Middleware
  *
  * This middleware function limits the number of requests associated with a specific UserID
  * within a certain time frame.
  */
 export const userIdRateLimiter = async (req, res, next) => {
   // Retrieve the email address from the session or request body
-  const userId = req.user.UserID;
+  const userId = req.user.userId;
 
   // Get the current route being accessed
   const route = req.url;

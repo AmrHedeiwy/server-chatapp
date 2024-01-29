@@ -171,40 +171,51 @@ export class RateLimitError extends BaseError {
  * @param {Array} details - The validation error details.
  */
 export class JoiValidationError extends BaseError {
-  constructor(details) {
+  constructor(details, source) {
     super();
 
     this.details = details;
+    this.source = source;
   }
 
   // Returns the response containing the status code and validation error messages.
   getResponse() {
-    const status = errorsJson.validations.status;
+    const status =
+      source === 'auth'
+        ? errorsJson.validations.status
+        : errorsJson.unexpected.status;
     /**
      * Retrieves the validation error messages based on the validation error details.
      * @param {Array} details - The validation error details.
      * @returns {Object} - An object containing field names as keys and corresponding error messages as values.
      */
-    const message = this.details.reduce((acc, err) => {
-      const label = err.label;
-      const code = err.code;
 
-      /**
-       * Checking for Required field validation errors.
-       * Adding the field name as the key and the error message as the value to the accumulator.
-       */
+    let message;
 
-      let fieldMessage;
-      if (code === 'string.empty' || code === 'any.required') {
-        fieldMessage = 'Required.';
-      } else {
-        // Else extract the error message from errors.json file.
-        fieldMessage = errorsJson.validations.messages[label];
-      }
+    if (source === 'auth') {
+      message = this.details.reduce((acc, err) => {
+        const label = err.label;
+        const code = err.code;
 
-      acc.push({ fieldName: label, fieldMessage });
-      return acc;
-    }, []);
+        /**
+         * Checking for Required field validation errors.
+         * Adding the field name as the key and the error message as the value to the accumulator.
+         */
+
+        let fieldMessage;
+        if (code === 'string.empty' || code === 'any.required') {
+          fieldMessage = 'Required';
+        } else {
+          // Else extract the error message from errors.json file.
+          fieldMessage = errorsJson.validations.messages[label];
+        }
+
+        acc.push({ fieldName: label, fieldMessage });
+        return acc;
+      }, []);
+    } else {
+      message = errorsJson.unexpected.message;
+    }
 
     return { status, message };
   }

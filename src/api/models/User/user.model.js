@@ -1,72 +1,66 @@
 import { Model } from 'sequelize';
 
-/**
- * Defines the User model.
- *
- * @param {import('sequelize').Sequelize} sequelize - The Sequelize instance.
- * @param {import('sequelize').DataTypes} DataTypes - The data types module.
- */
 export default (sequelize, DataTypes) => {
   /**
    * @class User
    *
-   * @property {string} UserID - The unique ID of the user.
-   * @property {string} Username - The username of the user. Must be between 3 and 20 letters, digits, underscores, or hyphens.
-   * @property {string} Email - The email address of the user. Must be unique and in valid email format.
-   * @property {string} Password - The password of the user. Must be at least 8 characters long and contain at least one uppercase letter,
+   * @property {string} userId - The unique ID of the user.
+   * @property {string} googleId - The Google ID associated with the user (optional).
+   * @property {string} facebookId - The Facebook ID associated with the user (optional).
+   * @property {string} username - The username of the user. Must be between 3 and 20 letters, digits, underscores, or hyphens.
+   * @property {string} email - The email address of the user. Must be unique and in valid email format.
+   * @property {string} password - The password of the user. Must be at least 8 characters long and contain at least one uppercase letter,
    * one lowercase letter, one digit, and one special character from the set @$!%?&.
-   * @property {string} GoogleID - The Google ID associated with the user (optional).
-   * @property {string} FacebookID - The Facebook ID associated with the user (optional).
-   * @property {string} Image - The user's profile image (optional).
-   * @property {boolean} IsVerified - Indicates if the user's email has been verified. Defaults to false.
-   * @property {Date} LastVerifiedAt - The timestamp of the last email verification. Null if the user has never been verified.
-   * @property {Date} CreatedAt - The date when the user registered their account.
+   * @property {string} image - The user's profile image (optional).
+   * @property {boolean} isVerified - Indicates if the user's email has been verified. Defaults to false.
+   * @property {Date} lastVerifiedAt - The timestamp of the last email verification. Null if the user has never been verified.
+   * @property {Date} createdAt - The date when the user registered their account.
    */
   class User extends Model {}
 
   User.init(
     {
-      UserID: {
+      userId: {
         type: DataTypes.UUID,
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4
       },
-      GoogleID: {
+      googleId: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true
       },
-      FacebookID: {
+      facebookId: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true
       },
-      Username: {
+      username: {
         type: DataTypes.STRING,
         allowNull: false
       },
-      Email: {
+      email: {
         type: DataTypes.STRING,
         unique: true,
         allowNull: false
       },
-      Password: {
+      password: {
         type: DataTypes.STRING,
         allowNull: true
       },
-      Image: {
+      image: {
         type: DataTypes.STRING,
         allowNull: true
       },
-      IsVerified: {
+      isVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
       },
-      LastVerifiedAt: {
+      lastVerifiedAt: {
         type: DataTypes.DATE,
         allowNull: true
       },
-      CreatedAt: {
+      createdAt: {
         type: DataTypes.DATE,
         defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
       }
@@ -79,18 +73,18 @@ export default (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['UserID'],
-          name: 'idx_user_unique_user_id',
+          fields: ['userId'],
+          name: 'idx_user_userId',
           type: 'BTREE'
         },
         {
           unique: true,
-          fields: ['Email'],
-          name: 'idx_user_unique_email',
+          fields: ['email'],
+          name: 'idx_user_email',
           type: 'BTREE'
         },
         {
-          fields: ['Username'],
+          fields: ['username'],
           name: 'idx_user_username',
           type: 'BTREE'
         }
@@ -100,40 +94,35 @@ export default (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.belongsToMany(models.Conversation, {
-      as: 'Conversations',
+      as: 'conversations',
       through: models.UserConversation,
-      foreignKey: 'UserID',
-      otherKey: 'ConversationID'
+      foreignKey: 'userId',
+      otherKey: 'conversationId'
     });
 
     User.hasMany(models.Message, {
-      as: 'Messages',
-      foreignKey: 'SenderID',
+      as: 'messages',
+      foreignKey: 'senderId',
       onDelete: 'CASCADE'
     });
 
-    User.hasMany(models.UserConversation, {
-      foreignKey: 'UserID',
-      as: 'Rooms'
-    });
-    User.hasMany(models.SeenUserMessage, { foreignKey: 'UserID' });
+    User.hasMany(models.MessageStatus, { foreignKey: 'userId' });
 
     User.belongsToMany(models.Message, {
-      as: 'SeenMessages',
-      through: models.SeenUserMessage,
-      foreignKey: 'UserID'
+      through: models.MessageStatus,
+      foreignKey: 'userId'
     });
 
     User.belongsToMany(User, {
-      as: 'following',
-      through: models.Follow,
-      foreignKey: 'FollowerID'
+      as: 'contacts',
+      through: models.Contact,
+      foreignKey: 'addedById'
     });
 
     User.belongsToMany(User, {
-      as: 'followers',
-      through: models.Follow,
-      foreignKey: 'FollowedID'
+      as: 'otherContacts', // the users that have this user added as a contact
+      through: models.Contact,
+      foreignKey: 'contactId' // this user
     });
   };
   return User;

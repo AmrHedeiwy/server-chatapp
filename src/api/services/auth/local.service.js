@@ -1,5 +1,4 @@
 import { Strategy } from 'passport-local';
-import bcrypt from 'bcrypt';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import db from '../../models/index.js';
@@ -9,8 +8,8 @@ import { SignInError } from '../../helpers/ErrorTypes.helper.js';
  * An object specifying the custom field names to use for the local authentication strategy.
  */
 const customFields = {
-  usernameField: 'Email',
-  passwordField: 'Password'
+  usernameField: 'email',
+  passwordField: 'password'
 };
 
 const localStrategy = new Strategy(
@@ -24,25 +23,25 @@ const localStrategy = new Strategy(
    * @returns {object} The user's credentials and the success status and redirect URL.
    * @throws {SignInError} - Thrown when the authentication fails due to an incorrect email or password.
    */
-  async (Email, Password, done) => {
+  async (email, password, done) => {
     try {
-      const user = await db.User.findOne({ where: { Email } });
+      const user = await db.User.findOne({ where: { email } });
 
       // If the user does not exist
       if (!user) throw new SignInError();
 
       // Indicates that the account was registered with a provider
-      if (!user.Password) throw new SignInError();
+      // if (!user.password) throw new SignInError();
 
       // Compare the provided password with the user's hashed password
-      const isMatch = await bcrypt.compare(Password, user.dataValues.Password);
+      // const isMatch = await bcrypt.compare(password, user.dataValues.password);
 
       // Throw an SignInError error if the password does not match
       // if (!isMatch) throw new SignInError();
 
-      return done(null, user.dataValues.UserID, {
+      return done(null, user.dataValues.userId, {
         status: successJson.sign_in.status,
-        redirect: !user.dataValues.IsVerified
+        redirect: !user.dataValues.isVerified
           ? successJson.sign_in['verify-email-redirect']
           : successJson.sign_in['local-redirect']
       });

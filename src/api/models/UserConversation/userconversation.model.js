@@ -1,34 +1,27 @@
 import { Model } from 'sequelize';
 
-/**
- * Defines the User model.
- *
- * @param {import('sequelize').Sequelize} sequelize - The Sequelize instance.
- * @param {import('sequelize').DataTypes} DataTypes - The data types module.
- */
 export default (sequelize, DataTypes) => {
   /**
    * @class UserConversation
+   * Represents the association between a user and a conversation.
    *
-   * Represents the association between a user and a conversation they are a part of.
-   *
-   * @property {string} UserID - The unique ID of the user.
-   * @property {string} ConversationID - The unique ID of the conversation.
-   * @property {Date} CreatedAt - The date and time when the association was created.
+   * @property {string} userId - The unique ID of the user.
+   * @property {string} conversationId - The unique ID of the conversation.
+   * @property {Date} createdAt - The date when the user was associated with the conversation.
    */
   class UserConversation extends Model {}
 
   UserConversation.init(
     {
-      UserID: {
+      userId: {
         type: DataTypes.UUID,
         primaryKey: true
       },
-      ConversationID: {
+      conversationId: {
         type: DataTypes.UUID,
         primaryKey: true
       },
-      CreatedAt: {
+      createdAt: {
         type: DataTypes.DATE,
         defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
       }
@@ -41,8 +34,8 @@ export default (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['UserID', 'ConversationID'],
-          name: 'idx_usersconversations_unique_user_id_conversation_id',
+          fields: ['userId', 'conversationId'],
+          name: 'idx_usersconversations_userId_conversationId',
           type: 'BTREE'
         }
       ]
@@ -51,12 +44,12 @@ export default (sequelize, DataTypes) => {
 
   UserConversation.associate = (models) => {
     UserConversation.belongsTo(models.User, {
-      foreignKey: 'UserID',
-      as: 'Users'
+      foreignKey: 'userId',
+      as: 'users'
     });
     UserConversation.belongsTo(models.Conversation, {
-      foreignKey: 'ConversationID',
-      as: 'Conversations'
+      foreignKey: 'conversationId',
+      as: 'conversations'
     });
   };
   return UserConversation;

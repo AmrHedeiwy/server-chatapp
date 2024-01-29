@@ -24,29 +24,28 @@ const facebookStrategy = new Strategy(
   async function (accessToken, refreshToken, profile, done) {
     // Extract user information from the Facebook profile object
     const { id, first_name, last_name, email, profileURL } = profile._json;
-    console.log(profile);
 
     try {
       // Find or create a new user based on their Facebook ID
       const [user, created] = await db.User.findOrCreate({
-        where: { Email: email },
+        where: { email },
         defaults: {
-          FacebookID: id,
-          Username: (first_name + '_' + last_name).toLowerCase(),
-          IsVerified: true,
-          Image: profileURL ?? null
+          facebookId: id,
+          username: (first_name + '_' + last_name).toLowerCase(),
+          isVerified: true,
+          image: profileURL ?? null
         }
       });
 
       // Linking facebook account to the existing user
       if (!created && user) {
-        user.FacebookID = id;
-        user.IsVerified = true;
+        user.facebookId = id;
+        user.isVerified = true;
 
         user.save();
       }
 
-      done(null, user.dataValues.UserID, {
+      done(null, user.dataValues.userId, {
         status: successJson.sign_in.status,
         redirect: successJson.sign_in['facebook-redirect']
       });

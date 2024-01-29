@@ -13,17 +13,17 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  * Sends an email to a user with the specified type, recipient details, and options.
  *
  * @param {string} type - Weather the email is for 'verification-code' or 'forgot-password'.
- * @param {string} Username - Used in the email context.
- * @param {string} Email - The email to send to.
+ * @param {string} username - Used in the email context.
+ * @param {string} email - The email to send to.
  * @param {object} options - Additional options for the email.
  * @param {string} options.verificationCode - The verification code for email verification (required when type is 'verification-code').
  * @param {string} options.useridToken - The user ID token for password reset (required when type is 'forgot-password').
  * @returns {Promise<Object>} The success response with the message, status and redirect URL if needed.
  * @throws {EmailError} - A failed object if an error occurred during the sending operation.
  */
-const mailer = async (type, Username, Email, options) => {
+const mailer = async (type, username, email, options) => {
   let msg = {
-    to: Email,
+    to: email,
     from: 'amr.hedeiwy@gmail.com',
     subject: '',
     html: ``
@@ -33,7 +33,7 @@ const mailer = async (type, Username, Email, options) => {
   if (type == 'verification-code') {
     msg.subject = 'Email Verification Code';
     msg.html = `
-      <p>Hello ${Username},</p>
+      <p>Hello ${username},</p>
       <p>Thank you for registering with our service. To complete the registration process, please enter the following verification code:</p>
       <h1>${options.verificationCode}</h1>
       <p>Please enter this code on the registration page to verify your email address.</p>
@@ -44,7 +44,7 @@ const mailer = async (type, Username, Email, options) => {
   } else if (type == 'forgot-password') {
     msg.subject = 'Password Reset Request';
     msg.html = `
-      <p>Dear ${Username},</p>
+      <p>Dear ${username},</p>
       <p>We have received a request to reset your password for your Deiwy account. To proceed with resetting your password, please click the button below:</p>
       <p>
         <a href="${process.env.CLIENT_URL}/reset-password/token=${options.useridToken}" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a>

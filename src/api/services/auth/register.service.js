@@ -51,14 +51,14 @@ export const addUser = async (data) => {
  * @returns {Promise<{message: string, status: number, redirect: string}>}
  * @throws {EmailError} - Thrown when the email fails to send.
  */
-export const sendVerificationCode = async (username, email, userid) => {
+export const sendVerificationCode = async (username, email, userId) => {
   try {
     // Generate a 6-digit verification code
     const verificationCode = crypto.randomInt(100000, 999999).toString();
 
     // Store the verification code in Redis with a TTL of 15 minutes (code expires in 15 minutes)
     await redisClient.setEx(
-      `email_verification:${userid}`,
+      `email_verification:${userId}`,
       60 * 15,
       JSON.stringify({ verificationCode })
     );
@@ -90,11 +90,11 @@ export const sendVerificationCode = async (username, email, userid) => {
  * @returns {Promise<{message: string, status: number, redirect: string}>}
  * @throws {VerificationCodeError} - Thrown when the verification code is invalid or expired.
  */
-export const verifyEmail = async (userid, verificationCode) => {
+export const verifyEmail = async (userId, verificationCode) => {
   try {
     // Retrieve the stored verification code from the cache (redis)
     const store = JSON.parse(
-      await redisClient.get(`email_verification:${userid}`)
+      await redisClient.get(`email_verification:${userId}`)
     );
 
     // Throw an error if the stored verification code is not found
@@ -108,12 +108,15 @@ export const verifyEmail = async (userid, verificationCode) => {
     }
 
     // Delete the verification code from the cache (redis)
-    await redisClient.del(`email_verification:${userid}`);
+    await redisClient.del(`email_verification:${userId}`);
+
+    // Invalidate the user data
+    await redisClient.del(`user_data:${userId}`);
 
     // Update the user's IsVerified status and LastVerifiedAt in the database
     await db.User.update(
-      { IsVerified: true, LastVerifiedAt: Date.now() },
-      { where: { UserID: userid } }
+      { isVerified: true, lastVerifiedAt: Date.now() },
+      { where: { userId } }
     );
 
     return successJson.verified_email;
@@ -138,7 +141,7 @@ export const checkUserExists = async (field, value) => {
 
     if (!user) throw new UserNotFoundError();
 
-    if (!user.IsVerified) throw new EmailError('NotVerified');
+    if (!user.isVerified) throw new EmailError('NotVerified');
 
     // Return the user object if it exists and is verified
     return { user };
@@ -157,11 +160,11 @@ export const checkUserExists = async (field, value) => {
 export const setResetPassword = async (userId, newPassword) => {
   try {
     // Check if the user exists by UserID
-    const { user, error } = await checkUserExists('UserID', userId);
+    const { user, error } = await checkUserExists('userId', userId);
     if (error) throw error;
 
     // Set the new password for the user
-    user.Password = newPassword;
+    user.password = newPassword;
     await user.save();
 
     return successJson.reset_password;

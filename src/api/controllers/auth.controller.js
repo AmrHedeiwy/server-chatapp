@@ -30,10 +30,10 @@ import {
  * Route handler for registering a user.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Username
- * - Email
- * - Password
- * - ConfirmPassword
+ * - username
+ * - email
+ * - password
+ * - confirmPassword
  *
  * This route performs the following steps:
  * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
@@ -56,7 +56,7 @@ export const register = [
 
     if (error) return next(error);
 
-    req.login(user, (err) => {
+    req.login(user.userId, (err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });
@@ -68,9 +68,9 @@ export const register = [
  * Route handler for sending verification code for email-verification.
  *
  * This route expects a POST request with the following parameters in the request user:
- * - Username: Used in the email context.
- * - Email: The email address to send the verification code.
- * - UserID: The key to set for the verification code when storing in the cache (redis).
+ * - username: Used in the email context.
+ * - email: The email address to send the verification code.
+ * - userId: The key to set for the verification code when storing in the cache (redis).
  *
  * This route performs the following steps:
  * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
@@ -81,10 +81,10 @@ export const register = [
 export const verifyEmailRequest = [
   emailRateLimiter,
   async (req, res, next) => {
-    const { Username, Email, UserID } = req.user;
+    const { username, email, userId } = req.user;
 
     const { message, redirect, status, error } =
-      await registerService.sendVerificationCode(Username, Email, UserID);
+      await registerService.sendVerificationCode(username, email, userId);
     if (error) return next(error);
 
     res.status(status).json({ message, redirect });
@@ -95,10 +95,10 @@ export const verifyEmailRequest = [
  * Route handler for verifing the user's email.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - VerificationCode: The 6-digit verification code to verify the email.
+ * - verificationCode: The 6-digit verification code to verify the email.
  *
  * It also requires the following additional parameters from the request user:
- * - UserID: Used to query from the cache and the database.
+ * - userId: Used to query from the cache and the database.
  *
  * This route performs the following steps:
  * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
@@ -109,12 +109,12 @@ export const verifyEmailRequest = [
 export const verifyEmail = [
   emailRateLimiter,
   async (req, res, next) => {
-    const { VerificationCode } = req.body;
+    const { verificationCode } = req.body;
 
-    const { UserID } = req.user;
+    const { userId } = req.user;
 
     const { status, message, redirect, error } =
-      await registerService.verifyEmail(UserID, VerificationCode);
+      await registerService.verifyEmail(userId, verificationCode);
 
     if (error) return next(error);
 
@@ -141,7 +141,7 @@ export const getAuthInfo = async (req, res, next) => {
 
     return res.json({
       isAuth: req.isAuthenticated(),
-      isVerified: req.user?.IsVerified ?? false,
+      isVerified: req.user?.isVerified ?? false,
       isPasswordReset: req.session.passwordReset ?? false,
       isCallbackProvider
     });
@@ -151,9 +151,9 @@ export const getAuthInfo = async (req, res, next) => {
     return res.json({
       user: req?.user
         ? {
-            UserID: req.user.UserID,
-            Email: req?.user.Email,
-            IsVerified: req.user.IsVerified
+            userId: req.user.userId,
+            email: req?.user.email,
+            isVerified: req.user.isVerified
           }
         : null
     });
@@ -164,7 +164,7 @@ export const getAuthInfo = async (req, res, next) => {
  * Route handler for initiating a password reset request.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - Email: The email address to send the request to.
+ * - email: The email address to send the request to.
  *
  * This route performs the following steps:
  * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
@@ -182,20 +182,20 @@ export const forgotPasswordRequest = [
   emailRateLimiter,
   validation(forgotPasswordRequestSchema),
   async (req, res, next) => {
-    const { Email } = req.body;
+    const { email } = req.body;
 
     const { user, error } = await registerService.checkUserExists(
-      'Email',
-      Email
+      'email',
+      email
     );
     if (error) return next(error);
 
     // Indicates that account is not created by email (local-strategy)
-    if (!user.dataValues.Password) return next(new ForgotPassswordError());
+    if (!user.dataValues.password) return next(new ForgotPassswordError());
 
     const useridToken = jwt.sign(
       {
-        UserID: user.UserID
+        userId: user.userId
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
@@ -203,8 +203,8 @@ export const forgotPasswordRequest = [
 
     const { message, status, failed } = await mailerService(
       'forgot-password',
-      user.Username,
-      Email,
+      user.username,
+      email,
       {
         useridToken
       }
@@ -223,8 +223,8 @@ export const forgotPasswordRequest = [
  * Route handler for resetting a user's password.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - UserID: The user's ID to identify the user from the database.
- * - NewPassword: The new password to set for the user.
+ * - userId: The user's ID to identify the user from the database.
+ * - newPassword: The new password to set for the user.
  *
  * This route performs the following steps:
  * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
@@ -241,11 +241,11 @@ export const resetPassword = [
   resetPasswordDecoder,
   validation(resetPasswordSchema),
   async (req, res, next) => {
-    const { UserID, Password } = req.body;
+    const { userId, password } = req.body;
 
     const { message, redirect, status, error } = await setResetPassword(
-      UserID,
-      Password
+      userId,
+      password
     );
     if (error) return next(error);
 
@@ -283,14 +283,14 @@ export const signIn = [
         if (err) return next(err);
 
         /**
-         * Add a passport object to the session containing the user's UserID.
-         * @example passport { user: UserID: '<UUID>' }
+         * Add a passport object to the session containing the user's userId.
+         * @example passport { user: userId: '<UUID>' }
          */
         req.login(userId, async (err) => {
           if (err) return next(err);
 
-          // Set the expire time of the cookie for 30 days if 'Remember me' was selected
-          if (req.body.RememberMe)
+          // Set the expire time of the cookie for 30 days if 'remember me' was selected
+          if (req.body.rememberMe)
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30;
 
           res.status(info.status).json({ redirect: info.redirect });
@@ -342,13 +342,13 @@ export const facebookSignUpCallback = async (req, res, next) => {
       if (err) return next(new SocialMediaAuthenticationError(err, 'facebook'));
 
       /**
-       * Add a passport object to the session containing the user's UserID.
-       * @example passport { user: UserID: '<UUID>' }
+       * Add a passport object to the session containing the user's userId.
+       * @example passport { user: userId: '<UUID>' }
        */
       req.login(userId, (err) => {
         if (err) return next(err);
 
-        // Marking the user as Callback Provider for Success Page Authorization
+        // Marking the user as Callback Provider to view the success page.
         req.session.isCallbackProvider = true;
 
         res
@@ -384,13 +384,13 @@ export const googleSignUpCallback = async (req, res, next) => {
       if (err) return next(new SocialMediaAuthenticationError(err, 'google'));
 
       /**
-       * Add a passport object to the session containing the user's UserID.
-       * @example passport { user: UserID: '<UUID>' }
+       * Add a passport object to the session containing the user's userId.
+       * @example passport { user: userId: '<UUID>' }
        */
       req.login(userId, (err) => {
         if (err) return next(err);
 
-        // Marking the user as Callback Provider for Success Page Authorization
+        // Marking the user as Callback Provider to view the success page.
         req.session.isCallbackProvider = true;
 
         res

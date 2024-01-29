@@ -1,9 +1,3 @@
-/**
- * Contains hooks for Sequelize that are executed
-  before and after calls to the database are executed.
- * @module hooks
-*/
-
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/config/.env' });
 
@@ -17,33 +11,35 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default (User) => {
   User.beforeSave(async (user) => {
-    if (user.changed('Email') && !user.GoogleID && !user.FacebookID) {
+    if (user.changed('email') && !user.googleId && !user.facebookId) {
       // Keep emails lowercase
-      user.Email = user.Email.toLowerCase();
+      user.email = user.email.toLowerCase();
       // Set verification status to false
-      user.IsVerified = false;
+      user.isVerified = false;
     }
 
-    if (user.changed('Password')) {
-      const password = user.Password;
+    console.log(user.changed('password'));
+    if (user.changed('password')) {
+      const password = user.password;
 
       if (password) {
         // Store and hash the plain text password using 12 salt rounds.
-        user.Password = await bcrypt.hash(password, 12);
+        user.password = await bcrypt.hash(password, 12);
+        console.log(user);
       }
     }
   });
 
   User.afterSave(async (user) => {
-    if (user.changed('Email')) {
-      const { Username, UserID, Email } = user;
+    if (user.changed('email')) {
+      const { username, userId, email } = user;
 
       // Generate a 6-digit verification code.
       const verificationCode = crypto.randomInt(100000, 999999).toString();
 
       // Store the verification code in Redis with a 1-hour expiration time.
       await redisClient.setEx(
-        `email_verification:${UserID}`,
+        `email_verification:${userId}`,
         60 * 60,
         JSON.stringify({ verificationCode })
       );
@@ -51,8 +47,8 @@ export default (User) => {
       // Send the verification code to the email.
       const { failed } = await mailerService(
         'verification-code',
-        Username,
-        Email,
+        username,
+        email,
         {
           verificationCode
         }

@@ -1,19 +1,21 @@
 {
   "validations": {
     "messages": {
-      "Firstname": "First name can only contain letters, and must be between 2 and 30 characters long",
-      "Lastname": "Last name can only contain letters, and must be between 2 and 30 characters long",
-      "Username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
-      "Email": "Please enter a valid email address in the format example@example.com.",
-      "Password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&.",
-      "ConfirmPassword": "Passwords do not match. Please try again.",
-      "TermsOfAgreement": "You must agree before submitting."
+      "firstname": "First name can only contain letters, and must be between 2 and 30 characters long",
+      "lastname": "Last name can only contain letters, and must be between 2 and 30 characters long",
+      "username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
+      "email": "Please enter a valid email address in the format example@example.com.",
+      "password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&.",
+      "confirmPassword": "Passwords do not match. Please try again.",
+      "termsOfAgreement": "You must agree before submitting.",
+      "contactId": "contactId is required",
+      "action": "action must either be 'add' or 'remove'"
     },
     "status": 400
   },
   "constraints": {
     "messages": {
-      "Email": "Sorry, that email address is already in use."
+      "email": "Sorry, that email address is already in use."
     },
     "status": 422
   },

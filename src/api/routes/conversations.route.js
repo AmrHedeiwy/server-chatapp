@@ -15,4 +15,10 @@ router.post('/create', mainController.createConversation);
  */
 router.get('/fetchAll', mainController.getConversations);
 
+/**
+ * Fetches the next batch of messages in a conversation for pagination.
+ * Endpoint: GET /conversations/messages
+ */
+router.get('/messages', mainController.getMessages);
+
 export default router;

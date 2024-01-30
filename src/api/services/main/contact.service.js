@@ -27,8 +27,9 @@ export const fetchUsers = async (
   page
 ) => {
   try {
+    const BATCH_SIZE = 10;
     // Find and count all users based on the provided query
-    const { count, rows } = await db.User.findAndCountAll({
+    const users = await db.User.findAll({
       attributes: [
         'userId',
         'username',
@@ -54,11 +55,18 @@ export const fetchUsers = async (
         ]
       },
       offset: page,
-      limit: 10 // Fetch a batch of 10 users for pagination
+      limit: BATCH_SIZE + 1 // Fetch one extra record to determine if there are more records available
     });
 
+    let hasNextPage = false;
+
+    if (users.length > BATCH_SIZE) {
+      hasNextPage = true;
+      users.pop(); // Remove the extra record used for pagination logic
+    }
+
     // Return the total count of users and the fetched users
-    return { count, items: rows };
+    return { hasNextPage, items: users };
   } catch (err) {
     return { error: err };
   }

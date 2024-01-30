@@ -184,7 +184,7 @@ export const createConversation = [
 export const getConversations = [
   isAuthExpress,
   async (req, res, next) => {
-    const { conversations, allConversationsMessages, error } =
+    const { conversations, groupedMessages, error } =
       await conversationService.fetchConversations(
         req.user.userId,
         req.user.conversations
@@ -192,7 +192,36 @@ export const getConversations = [
 
     if (error) return next(error);
 
-    res.json({ conversations, allConversationsMessages });
+    res.json({ conversations, groupedMessages });
+  }
+];
+
+/**
+ * Route handler for fetching the next batch of messages in a conversation for pagination.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Parses the request query to extract the conversationId and page parameters.
+ * 3. Calls the getMessages function to fetch messages for the specified conversation and page.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the message fetching is successful, the fetched items (messages) and information about
+ * the next page (if available) are sent in the response.
+ */
+export const getMessages = [
+  isAuthExpress,
+  async (req, res, next) => {
+    let { conversationId, page } = req.query;
+
+    page = parseInt(page);
+
+    const { hasNextPage, items, error } = await conversationService.getMessages(
+      conversationId,
+      page
+    );
+
+    if (error) return next(error);
+
+    res.json({ items, nextPage: hasNextPage ? page + 20 : null });
   }
 ];
 
@@ -219,7 +248,7 @@ export const search = [
 
     page = parseInt(page);
 
-    const { count, items, error } = await contactService.fetchUsers(
+    const { hasNextPage, items, error } = await contactService.fetchUsers(
       userId,
       username,
       search,
@@ -232,11 +261,11 @@ export const search = [
      * If the count - (page + BATCH) is less than or equal to 0, there are no more users.
      * Otherwise, set the next page to page + 10 to skip to the next batch of users.
      */
-    let nextPage = null;
-    const BATCH_SIZE = 10;
-    if (count - (page + BATCH_SIZE) > 0) nextPage = page + BATCH_SIZE;
 
-    res.json({ items: items.length !== 0 ? items : null, nextPage });
+    res.json({
+      items: items.length !== 0 ? items : null,
+      nextPage: hasNextPage ? page + 10 : null
+    });
   }
 ];
 
@@ -279,6 +308,7 @@ export default {
   deleteAccount,
   createConversation,
   getConversations,
+  getMessages,
   search,
   handleContactAction
 };

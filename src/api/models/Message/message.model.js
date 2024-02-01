@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { format } from 'date-fns';
 
 export default (sequelize, DataTypes) => {
   /**
@@ -18,15 +19,21 @@ export default (sequelize, DataTypes) => {
         primaryKey: true,
         allowNull: false
       },
-      body: {
+      content: {
         type: DataTypes.STRING
       },
-      image: {
-        type: DataTypes.STRING
+      fileUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
       },
       createdAt: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: false,
+        get() {
+          let date = this.getDataValue('createdAt');
+
+          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+        }
       }
     },
     {

@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { format } from 'date-fns';
 
 export default (sequelize, DataTypes) => {
   /**
@@ -23,10 +24,20 @@ export default (sequelize, DataTypes) => {
         primaryKey: true
       },
       seenAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        get() {
+          let date = this.getDataValue('seenAt');
+
+          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+        }
       },
       deliverAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        get() {
+          let date = this.getDataValue('deliverAt');
+
+          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+        }
       }
     },
     {

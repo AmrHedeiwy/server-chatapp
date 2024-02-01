@@ -24,12 +24,14 @@ export const addConversation = async (
   name
 ) => {
   try {
+    const createdAt = new Date();
     if (isGroup) {
       // Create a new group conversation
       const newConversation = await db.Conversation.create({
         name,
         isGroup,
-        createdBy: currentUserId
+        createdBy: currentUserId,
+        createdAt
       });
 
       // Add members to the conversation
@@ -84,7 +86,8 @@ export const addConversation = async (
 
     // If no conversation exists, create a new one between the two users
     const newConversation = await db.Conversation.create({
-      createdBy: currentUserId
+      createdBy: currentUserId,
+      createdAt
     });
 
     await newConversation.addUsers([currentUserId, otherUserId]);
@@ -289,7 +292,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
     }, {});
 
     // Format conversations
-    let formattedConversations = conversations.map((conversation) => {
+    let formattedConversations = conversations.reduce((acc, conversation) => {
       const {
         conversationId,
         createdAt,
@@ -300,27 +303,36 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         unseenMessagesCount
       } = conversation.dataValues;
 
-      const otherUserOrUsers = !isGroup
-        ? users.find((user) => user.dataValues.userId !== currentUserId)
-        : users.filter((user) => user.dataValues.userId !== currentUserId);
+      if (!acc[conversationId]) {
+        const otherUserOrUsers = !isGroup
+          ? users.find((user) => user.dataValues.userId !== currentUserId)
+          : users.filter((user) => user.dataValues.userId !== currentUserId);
+
+        acc[conversationId] = {
+          conversationId,
+          createdAt,
+          lastMessageAt,
+          isGroup,
+          name: name ?? otherUserOrUsers.username,
+          users,
+          ...(isGroup
+            ? { otherUsers: otherUserOrUsers }
+            : { otherUser: otherUserOrUsers }),
+          hasInitialNextPage:
+            !!groupedMessages[conversationId]?.hasInitialNextPage
+        };
+      }
 
       // Set unseen messages count for the conversation
-      groupedMessages[conversationId].unseenMessagesCount =
-        parseInt(unseenMessagesCount);
+      if (groupedMessages[conversationId]) {
+        groupedMessages[conversationId].unseenMessagesCount =
+          parseInt(unseenMessagesCount);
+      } else {
+        groupedMessages[conversationId] = { messages: [], unseenMessagesCount };
+      }
 
-      return {
-        conversationId,
-        createdAt,
-        lastMessageAt,
-        isGroup,
-        name: name ?? otherUserOrUsers.username,
-        users,
-        ...(isGroup
-          ? { otherUsers: otherUserOrUsers }
-          : { otherUser: otherUserOrUsers }),
-        hasInitialNextPage: groupedMessages[conversationId].hasInitialNextPage
-      };
-    });
+      return acc;
+    }, {});
 
     return {
       conversations: formattedConversations,

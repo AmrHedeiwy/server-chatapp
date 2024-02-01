@@ -31,7 +31,6 @@ import {
 export const current = [
   isAuthExpress,
   async (req, res, next) => {
-    delete req.user;
     res.status(200).json({ curentUser: req.user ?? null });
   }
 ];

@@ -192,7 +192,7 @@ export const handleMessage = async (socket, data, cb) => {
       messageId,
       senderId: socket.id,
       createdAt,
-      body: content,
+      content,
       status: userIds.map((userId) => {
         return { userId };
       })

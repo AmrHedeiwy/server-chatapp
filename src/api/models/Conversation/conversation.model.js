@@ -1,4 +1,5 @@
 import { Model } from 'sequelize';
+import { format } from 'date-fns';
 
 export default (sequelize, DataTypes) => {
   /**
@@ -42,7 +43,12 @@ export default (sequelize, DataTypes) => {
       },
       createdAt: {
         type: DataTypes.DATE,
-        defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+        allowNull: false,
+        get() {
+          let date = this.getDataValue('createdAt');
+
+          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+        }
       },
       lastMessageAt: {
         type: DataTypes.DATE,

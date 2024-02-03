@@ -47,7 +47,9 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('createdAt');
 
-          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+          return !!date && typeof date === 'object'
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
         }
       },
       lastMessageAt: {

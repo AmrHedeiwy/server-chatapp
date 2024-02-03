@@ -30,32 +30,27 @@ const mailer = async (type, username, email, options) => {
   };
 
   // Construct the email message based on the type
-  if (type == 'verification-code') {
-    msg.subject = 'Email Verification Code';
+  if (type === 'verification-code') {
+    msg.subject = `Verification Code: ${options.verificationCode}`;
     msg.html = `
       <p>Hello ${username},</p>
-      <p>Thank you for registering with our service. To complete the registration process, please enter the following verification code:</p>
+      <p>Thank you for registering with our service. To sign in to your account, please enter the following verification code:</p>
       <h1>${options.verificationCode}</h1>
       <p>Please enter this code on the registration page to verify your email address.</p>
       <p>If you did not request this verification code, please ignore this email.</p>
       <p>Best regards,</p>
-      <p>Amr Hedeiwy</p>
+      <p>[APP_NAME] Team</p>
     `;
-  } else if (type == 'forgot-password') {
+  } else if (type === 'forgot-password') {
     msg.subject = 'Password Reset Request';
     msg.html = `
       <p>Dear ${username},</p>
-      <p>We have received a request to reset your password for your Deiwy account. To proceed with resetting your password, please click the button below:</p>
-      <p>
-        <a href="${process.env.CLIENT_URL}/reset-password/token=${options.useridToken}" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a>
-      </p>
-      <p>If clicking the button above doesn't work, you can copy and paste the following URL into your browser's address bar:</p>
-      <p>${process.env.CLIENT_URL}/password/reset/${options.useridToken}</p>
-      <p>If you did not request a password reset, please disregard this email. Your account is secure, and no changes have been made.</p>
-      <p>Please note that the password reset link is valid for a limited time, typically within 1 hour. If the link expires, you can request another password reset by visiting the [Forgot Password] page on our website.</p>
-      <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at amr.hedeiwy@gmail.com.</p>
-      <p>Thank you for using Deiwy.</p>
-      <p>Best regards,<br>Hedeiwy<br>Deiwy</p>
+      <p>We received a request to reset the password for your account. To proceed with the password reset, please click the link below:</p>
+      <a href="${process.env.CLIENT_URL}/reset-password/token=${options.useridToken}" target="_blank" style="style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px;">Reset Password</a>
+      <p>If you didn't request this password reset or if you believe this request is in error, please disregard this email. Your password will remain unchanged.</p>
+      <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at [Support Email].</p>
+      <p>Thank you,</p>
+      <p>[APP_NAME] Team</p>
     `;
   }
 

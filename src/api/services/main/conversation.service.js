@@ -259,7 +259,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         // Include the sender of the message
         {
           model: db.User,
-          as: 'user',
+          as: 'sender',
           attributes: ['userId', 'username', 'image', 'createdAt'],
           required: false
         }
@@ -423,7 +423,7 @@ export const getMessages = async (conversationId, page) => {
         },
         {
           model: db.User,
-          as: 'user',
+          as: 'sender',
           attributes: ['userId', 'username', 'image', 'createdAt']
         }
       ],

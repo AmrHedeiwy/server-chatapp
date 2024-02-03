@@ -31,7 +31,8 @@ import {
 export const current = [
   isAuthExpress,
   async (req, res, next) => {
-    res.status(200).json({ curentUser: req.user ?? null });
+    const { username, email, image, createdAt } = req.user;
+    res.status(200).json({ curentUser: { username, email, image, createdAt } });
   }
 ];
 

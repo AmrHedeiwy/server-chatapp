@@ -79,6 +79,7 @@ export const register = [
  * 4. If the emailing process is successful, the user is redirected to the email verification page with an appropriate message.
  */
 export const verifyEmailRequest = [
+  isAuthExpress,
   emailRateLimiter,
   async (req, res, next) => {
     const { username, email, userId } = req.user;
@@ -107,6 +108,7 @@ export const verifyEmailRequest = [
  * 4. If the verificaiton is successful, the user is redirected to the users page with an appropriate message.
  */
 export const verifyEmail = [
+  isAuthExpress,
   emailRateLimiter,
   async (req, res, next) => {
     const { verificationCode } = req.body;

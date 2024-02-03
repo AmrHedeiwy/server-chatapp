@@ -28,7 +28,9 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('seenAt');
 
-          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+          return !!date && typeof date === 'object'
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
         }
       },
       deliverAt: {
@@ -36,7 +38,9 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('deliverAt');
 
-          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+          return !!date && typeof date === 'object'
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
         }
       }
     },

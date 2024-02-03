@@ -18,14 +18,12 @@ export default (User) => {
       user.isVerified = false;
     }
 
-    console.log(user.changed('password'));
     if (user.changed('password')) {
       const password = user.password;
 
       if (password) {
         // Store and hash the plain text password using 12 salt rounds.
         user.password = await bcrypt.hash(password, 12);
-        console.log(user);
       }
     }
   });

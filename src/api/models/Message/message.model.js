@@ -32,7 +32,9 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('createdAt');
 
-          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+          return !!date && typeof date === 'object'
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
         }
       }
     },
@@ -59,7 +61,7 @@ export default (sequelize, DataTypes) => {
       as: 'status'
     });
 
-    Message.belongsTo(models.User, { foreignKey: 'senderId', as: 'user' });
+    Message.belongsTo(models.User, { foreignKey: 'senderId', as: 'sender' });
 
     Message.belongsToMany(models.User, {
       through: models.MessageStatus,

@@ -14,7 +14,8 @@ export const editUserSchema = Joi.object({
   username: Joi.string()
     .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/),
-  email: Joi.string().trim().email()
+  email: Joi.string().trim().email(),
+  path: Joi.string()
 })
   .options({ abortEarly: false })
   .error(mainErrorFormatter);
@@ -73,24 +74,15 @@ export const contactSchema = Joi.object({
  * - otherUserId: The ID of the other user involved in the conversation.
  * - isGroup: Indicates whether the conversation is a group conversation.
  * - name: The name of the conversation.
- * - members: The array of user IDs participating in the conversation. Must contain at least 2 user IDs if present.
+ * - members: The array of user IDs participating in the conversation excluding the the user creating the conversation.
  */
 export const createConversationSchema = Joi.object({
   isGroup: Joi.boolean(),
-  members: Joi.array()
-    .min(2)
-    .when('isGroup', {
-      is: Joi.exist().valid(true),
-      then: Joi.required()
-    }),
+  members: Joi.array().min(1).required(),
   name: Joi.string()
     .min(2)
     .when('isGroup', {
       is: Joi.exist().valid(true),
       then: Joi.required()
-    }),
-  otherUserId: Joi.string().when('isGroup', {
-    not: Joi.exist().valid(true),
-    then: Joi.required()
-  })
+    })
 }).error(mainErrorFormatter);

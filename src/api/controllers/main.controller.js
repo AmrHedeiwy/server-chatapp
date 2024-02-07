@@ -13,8 +13,11 @@ import {
 import {
   userService,
   conversationService,
-  contactService
+  contactService,
+  uploadService
 } from '../services/main/index.js';
+import cloudinary from '../../lib/cloudinary.js';
+import db from '../models/index.js';
 
 /******* user actions *******/
 
@@ -31,8 +34,10 @@ import {
 export const current = [
   isAuthExpress,
   async (req, res, next) => {
-    const { username, email, image, createdAt } = req.user;
-    res.status(200).json({ curentUser: { username, email, image, createdAt } });
+    const { userId, username, email, image, createdAt } = req.user;
+    res
+      .status(200)
+      .json({ curentUser: { userId, username, email, image, createdAt } });
   }
 ];
 
@@ -55,8 +60,6 @@ export const edit = [
   upload.single('image'),
   validation(editUserSchema),
   async (req, res, next) => {
-    if (req.file?.path) req.body.filePath = req.file.path;
-
     const { status, message, redirect, user, error } =
       await userService.saveNewCredentials(req.body, req.user);
 
@@ -154,16 +157,17 @@ export const deleteAccount = [
  */
 export const createConversation = [
   isAuthExpress,
-  validation(createConversationSchema),
+  // validation(createConversationSchema),
   async (req, res, next) => {
     const { otherUserId, isGroup, members, name } = req.body;
+    const { sockets } = req.user;
 
     const { conversation, error } = await conversationService.addConversation(
       req.user.userId,
-      otherUserId,
-      isGroup,
+      !isGroup ? sockets.includes(otherUserId) : false, // checks if a conversation aready exists with the other user, excluding group chats
+      name,
       members,
-      name
+      isGroup
     );
 
     if (error) return next(error);
@@ -226,6 +230,19 @@ export const getMessages = [
 ];
 
 /******* contact actions *******/
+
+export const getContacts = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { userId } = req.user;
+
+    const { contacts, error } = await contactService.fetchContacts(userId);
+
+    if (error) return next(error);
+
+    res.json({ contacts });
+  }
+];
 
 /**
  * Route handler for searching users based on a query.
@@ -301,6 +318,26 @@ export const handleContactAction = [
   }
 ];
 
+export const uploadFile = [
+  isAuthExpress,
+  upload.single('file'),
+  async (req, res, next) => {
+    const queryParams = req.query;
+
+    const entries = Object.entries(queryParams)[0];
+
+    const { fileUrl, error } = await uploadService(
+      req.body.path,
+      entries[0],
+      entries[1]
+    );
+
+    if (error) return next(error);
+
+    res.json({ fileUrl });
+  }
+];
+
 export default {
   current,
   edit,
@@ -309,6 +346,8 @@ export default {
   createConversation,
   getConversations,
   getMessages,
+  getContacts,
   search,
-  handleContactAction
+  handleContactAction,
+  uploadFile
 };

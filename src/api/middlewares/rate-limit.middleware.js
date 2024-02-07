@@ -1,4 +1,4 @@
-import { redisClient } from '../../config/redis-client.js';
+import { redisClient } from '../../lib/redis-client.js';
 import { RateLimitError } from '../helpers/ErrorTypes.helper.js';
 
 const ipRouteLimits = {

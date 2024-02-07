@@ -103,9 +103,12 @@ export default (sequelize, DataTypes) => {
   User.associate = (models) => {
     User.belongsToMany(models.Conversation, {
       as: 'conversations',
-      through: models.UserConversation,
+      through: models.Member,
       foreignKey: 'userId',
       otherKey: 'conversationId'
+    });
+    User.hasMany(models.Member, {
+      foreignKey: 'userId'
     });
 
     User.hasMany(models.Message, {

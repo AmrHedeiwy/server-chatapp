@@ -33,9 +33,13 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true
       },
+      image: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       isGroup: {
         type: DataTypes.BOOLEAN,
-        allowNull: true
+        defaultValue: false
       },
       createdBy: {
         type: DataTypes.UUID,
@@ -75,21 +79,20 @@ export default (sequelize, DataTypes) => {
 
   Conversation.associate = (models) => {
     Conversation.belongsToMany(models.User, {
-      as: 'users',
-      through: models.UserConversation,
+      as: 'members',
+      through: models.Member,
       foreignKey: 'conversationId',
       otherKey: 'userId'
+    });
+
+    Conversation.hasMany(models.Member, {
+      foreignKey: 'conversationId'
     });
 
     Conversation.hasMany(models.Message, {
       as: 'messages',
       foreignKey: 'conversationId',
       onDelete: 'CASCADE'
-    });
-
-    Conversation.hasMany(models.UserConversation, {
-      foreignKey: 'conversationId',
-      as: 'usersCoversations'
     });
   };
 

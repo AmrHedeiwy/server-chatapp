@@ -1,6 +1,9 @@
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
-import { redisClient } from '../../../config/redis-client.js';
+import { redisClient } from '../../../lib/redis-client.js';
+import cloudinary from '../../../lib/cloudinary.js';
+import { v4 as uuidv4 } from 'uuid';
+import { io } from '../../../app.js';
 
 /**
  * Creates a new conversation between users or a group conversation.
@@ -18,105 +21,105 @@ import { redisClient } from '../../../config/redis-client.js';
  */
 export const addConversation = async (
   currentUserId,
-  otherUserId,
-  isGroup,
+  exists,
+  name,
   members,
-  name
+  isGroup
 ) => {
   try {
-    const createdAt = new Date();
-    if (isGroup) {
-      // Create a new group conversation
-      const newConversation = await db.Conversation.create({
-        name,
-        isGroup,
-        createdBy: currentUserId,
-        createdAt
+    // If a conversation already exists for one-to-one conversations
+    if (exists) {
+      const conversation = await db.Conversation.findOne({
+        include: {
+          model: db.User,
+          as: 'members',
+          where: {
+            userId: { [Op.in]: [currentUserId, ...members] }
+          },
+          required: true
+        }
       });
 
-      // Add members to the conversation
-      await newConversation.addUsers(members.map((user) => user.userId));
+      const otherMember = conversation.dataValues.members.find(
+        (member) => member.userId === otherUserId
+      );
 
-      // Retrieve the conversation and its users
-      const conversationUsers = await db.Conversation.findOne({
-        where: { conversationId: newConversation.conversationId },
-        include: 'users'
-      });
-
-      return { conversationUsers };
-    }
-
-    // Check if a conversation already exists between the two users
-    const existingConversation = await db.sequelize.query(
-      `
-        SELECT *
-        FROM conversations c
-        JOIN usersconversations as uc1 ON c."conversationId" = uc1."conversationId"
-        JOIN usersconversations as uc2 ON c."conversationId" = uc2."conversationId"
-        WHERE uc1."userId" = :otherUserId 
-        AND uc2."userId" = :currentUserId;
-      `,
-      { replacements: { otherUserId, currentUserId } }
-    );
-
-    if (existingConversation[1].rowCount != 0) {
-      // Format and return the existing conversation data
-      const results = existingConversation[0];
-
-      const conversation = {
-        conversationId: results[0].conversationId,
-        createdAt: results[0].createdAt,
-        lastMessageAt: results[0].lastMessageAt,
-        name: results[0].name,
-        isGroup: results[0].isGroup,
-        users: []
-      };
-
-      results.forEach((result) => {
-        conversation.users.push({
-          userId: result.userId,
-          username: result.username,
-          email: result.email,
-          image: result.emage
-        });
-      });
+      conversation.dataValues.otherMember = otherMember;
+      conversation.dataValues.name = otherMember.username;
 
       return { conversation };
     }
 
-    // If no conversation exists, create a new one between the two users
+    const createdAt = new Date();
+    // If no conversation exists, create a new conversation
     const newConversation = await db.Conversation.create({
-      createdBy: currentUserId,
-      createdAt
+      ...(isGroup ? { name } : {}),
+      isGroup,
+      createdAt,
+      createdBy: currentUserId
     });
 
-    await newConversation.addUsers([currentUserId, otherUserId]);
+    await newConversation.addMembers([currentUserId, ...members]);
+
+    if (isGroup) {
+      await db.Member.update(
+        { isAdmin: true },
+        {
+          where: {
+            userId: currentUserId,
+            conversationId: newConversation.dataValues.conversationId
+          }
+        }
+      );
+    }
 
     // Retrieve the conversation and its users
-    const conversation = await db.Conversation.findOne({
-      where: { conversationId: newConversation.dataValues.conversationId },
-      include: ['users']
-    });
+    const conversationWithMembers = (
+      await db.Conversation.findOne({
+        where: { conversationId: newConversation.dataValues.conversationId },
+        include: ['members']
+      })
+    ).dataValues;
+
+    const {
+      conversationId,
+      lastMessageAt,
+      members: allMembers
+    } = conversationWithMembers;
 
     // Invalidate the cache for each user in the conversation
-    conversation.users.forEach((user) => {
-      redisClient.del(`user_data:${user.userId}`);
+    allMembers.forEach((member) => {
+      redisClient.del(`user_data:${member.userId}`);
     });
 
     // Format and return the newly created conversation data
-    let otherUser = conversation.users.find(
-      (user) => user.userId !== currentUserId
-    );
+    let otherMemberOrMembers = isGroup
+      ? allMembers.filter((member) => member.userId !== currentUserId)
+      : allMembers.find((member) => member.userId !== currentUserId);
+
+    let adminIds = isGroup
+      ? allMembers.filter((member) => member.Member.isAdmin)
+      : null;
 
     let formatedConversations = {
-      conversationId: conversation.conversationId,
-      createdAt: conversation.createdAt,
-      lastMessageAt: conversation.lastMessageAt,
-      isGroup: false,
-      name: otherUser.username,
-      users: conversation.users,
-      otherUser
+      conversationId,
+      createdAt,
+      lastMessageAt,
+      isGroup,
+      name: name ?? otherMemberOrMembers.username,
+      members: allMembers,
+      ...(isGroup
+        ? { otherMembers: otherMemberOrMembers, adminIds: adminIds }
+        : { otherMember: otherMemberOrMembers })
     };
+
+    if (!isGroup) {
+      const otherUserId = members[0];
+      const isSocketOnline = io.sockets.adapter.rooms.has(otherUserId);
+
+      if (isSocketOnline)
+        io.to(currentUserId).emit('connected', true, [otherUserId]);
+    }
 
     return { conversation: formatedConversations };
   } catch (err) {
@@ -165,7 +168,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         // Include all the users in the conversation
         {
           model: db.User,
-          as: 'users',
+          as: 'members',
           attributes: ['userId', 'username', 'email', 'image', 'createdAt']
         }
       ],
@@ -201,6 +204,13 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
 
     const messages = await db.Message.findAll({
       where: { conversationId: { [Op.in]: conversationIds } },
+      attributes: [
+        'messageId',
+        'conversationId',
+        'content',
+        'fileUrl',
+        'sentAt'
+      ],
       include: [
         {
           model: db.MessageStatus,
@@ -264,7 +274,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
           required: false
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['sentAt', 'DESC']]
     });
 
     // Handle the case when no conversations are found
@@ -299,25 +309,36 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         lastMessageAt,
         name,
         isGroup,
-        users,
+        image,
+        members,
         unseenMessagesCount
       } = conversation.dataValues;
 
       if (!acc[conversationId]) {
-        const otherUserOrUsers = !isGroup
-          ? users.find((user) => user.dataValues.userId !== currentUserId)
-          : users.filter((user) => user.dataValues.userId !== currentUserId);
+        const otherMemberOrMembers = !isGroup
+          ? members.find((member) => member.dataValues.userId !== currentUserId)
+          : members.filter(
+              (member) => member.dataValues.userId !== currentUserId
+            );
+
+        const adminIds = isGroup
+          ? members.reduce((acc, member) => {
+              if (member.Member.isAdmin) acc.push(member.userId);
+              return acc;
+            }, [])
+          : null;
 
         acc[conversationId] = {
           conversationId,
           createdAt,
           lastMessageAt,
           isGroup,
-          name: name ?? otherUserOrUsers.username,
-          users,
+          image,
+          name: name ?? otherMemberOrMembers.username,
+          members,
           ...(isGroup
-            ? { otherUsers: otherUserOrUsers }
-            : { otherUser: otherUserOrUsers }),
+            ? { otherMembers: otherMemberOrMembers, adminIds }
+            : { otherMember: otherMemberOrMembers }),
           hasInitialNextPage:
             !!groupedMessages[conversationId]?.hasInitialNextPage
         };
@@ -427,7 +448,7 @@ export const getMessages = async (conversationId, page) => {
           attributes: ['userId', 'username', 'image', 'createdAt']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['sentAt', 'DESC']]
     });
 
     let hasNextPage = false;

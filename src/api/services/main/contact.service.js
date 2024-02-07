@@ -1,7 +1,31 @@
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
 import sequelize from 'sequelize';
-import { redisClient } from '../../../config/redis-client.js';
+import { redisClient } from '../../../lib/redis-client.js';
+
+export const fetchContacts = async (currentUserId) => {
+  try {
+    const contacts = await db.Contact.findAll(
+      {
+        addedBy: { [Op.eq]: currentUserId }
+      },
+
+      {
+        include: [
+          {
+            model: db.User,
+            as: 'contact'
+          }
+        ]
+      }
+    );
+
+    console.log(contacts);
+    return { contacts: contacts.length > 0 ? contacts : null };
+  } catch (err) {
+    return { error: err };
+  }
+};
 
 /**
  * Fetches users based on the provided query.

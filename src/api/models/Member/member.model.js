@@ -9,9 +9,9 @@ export default (sequelize, DataTypes) => {
    * @property {string} conversationId - The unique ID of the conversation.
    * @property {Date} createdAt - The date when the user was associated with the conversation.
    */
-  class UserConversation extends Model {}
+  class Member extends Model {}
 
-  UserConversation.init(
+  Member.init(
     {
       userId: {
         type: DataTypes.UUID,
@@ -24,12 +24,16 @@ export default (sequelize, DataTypes) => {
       createdAt: {
         type: DataTypes.DATE,
         defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+      },
+      isAdmin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
       }
     },
     {
       sequelize,
-      modelName: 'UserConversation',
-      tableName: 'usersconversations',
+      modelName: 'Member',
+      tableName: 'members',
       timestamps: false,
       indexes: [
         {
@@ -42,15 +46,15 @@ export default (sequelize, DataTypes) => {
     }
   );
 
-  UserConversation.associate = (models) => {
-    UserConversation.belongsTo(models.User, {
+  Member.associate = (models) => {
+    Member.belongsTo(models.User, {
       foreignKey: 'userId',
-      as: 'users'
+      as: 'member'
     });
-    UserConversation.belongsTo(models.Conversation, {
+    Member.belongsTo(models.Conversation, {
       foreignKey: 'conversationId',
-      as: 'conversations'
+      as: 'conversation'
     });
   };
-  return UserConversation;
+  return Member;
 };

@@ -1,4 +1,4 @@
-import { redisClient } from '../../config/redis-client.js';
+import { redisClient } from '../../lib/redis-client.js';
 import db from '../models/index.js';
 import { Op } from 'sequelize';
 
@@ -43,7 +43,7 @@ export const initializeUser = async (socket, next) => {
             attributes: ['conversationId'],
             include: {
               model: db.User,
-              as: 'users',
+              as: 'members',
               attributes: ['userId'],
               where: { userId: { [Op.ne]: socket.id } }
             }
@@ -100,29 +100,34 @@ export const initializeUser = async (socket, next) => {
  * @returns {Promise<void>} A Promise indicating the completion of the operation.
  */
 export const handleConnect = async (io, socket) => {
-  const { sockets, conversations } = socket.user;
+  const { sockets, conversations, userId } = socket.user;
 
   const undeliveredMessages = await db.Conversation.findAll({
-    where: { conversationId: { [Op.in]: conversations } },
+    where: {
+      conversationId: { [Op.in]: conversations },
+      '$messages.status.userId$': { [Op.eq]: userId },
+      '$messages.status.deliverAt$': { [Op.eq]: null }
+    },
     include: [
       {
         model: db.Message,
         as: 'messages',
-        where: {
-          messageId: {
-            [Op.in]: db.sequelize.literal(`(
-            SELECT "messageId"
-            FROM messagestatus as ms
-            WHERE ms."userId" = '${socket.id}'
-            AND ms."deliverAt" IS NULL
-          )`)
+        include: [
+          {
+            model: db.MessageStatus,
+            as: 'status'
+          },
+          {
+            model: db.User,
+            as: 'sender'
           }
-        }
+        ]
       }
     ],
-    order: [[{ model: db.Message, as: 'messages' }, 'createdAt', 'DESC']]
+    order: [[{ model: db.Message, as: 'messages' }, 'sentAt', 'DESC']]
   });
 
+  console.log('call', undeliveredMessages);
   if (undeliveredMessages.length !== 0)
     io.to(socket.id).emit('undelivered_messages', undeliveredMessages);
 
@@ -178,22 +183,24 @@ export const handleDisconnect = async (io, socket) => {
  */
 export const handleMessage = async (socket, data, cb) => {
   const {
-    pageMessagesLength,
     conversationId,
     messageId,
-    createdAt,
+    pageMessagesLength,
+    sentAt,
     content,
-    userIds
+    memberIds
   } = data;
+
+  const { userId, username, image, createdAt } = socket.user;
 
   await db.Message.create(
     {
       conversationId,
       messageId,
       senderId: socket.id,
-      createdAt,
+      sentAt,
       content,
-      status: userIds.map((userId) => {
+      status: memberIds.map((userId) => {
         return { userId };
       })
     },
@@ -208,18 +215,18 @@ export const handleMessage = async (socket, data, cb) => {
   );
 
   await db.Conversation.update(
-    { lastMessageAt: createdAt },
+    { lastMessageAt: sentAt },
     { where: { conversationId } }
   );
 
-  socket.to(userIds).emit(
+  socket.to(memberIds).emit(
     'deliver_message',
     {
       conversationId,
       messageId,
-      senderId: socket.id,
-      createdAt,
-      body: content
+      sender: { userId, username, image, createdAt },
+      sentAt,
+      content
     },
     pageMessagesLength
   );
@@ -256,9 +263,10 @@ export const handleAckMessage = async (socket, data) => {
       .emit('set_deliver_status', data, { userId, username, image, createdAt });
   }
 
+  console.log(data);
   if (data.type === 'batch') {
     data.messages.forEach((message, i) => {
-      socket.to(message.senderId).emit(
+      socket.to(message.sender.userId).emit(
         'set_deliver_status',
         {
           conversationId: message.conversationId,
@@ -294,15 +302,12 @@ export const handleAckMessage = async (socket, data) => {
  * @param {string} data.type - Indicates whether to update the status of one message or multiple messages ('single' or 'batch').
  *   - 'single' means the user was active inside the conversation.
  *   - 'batch' means that the user clicked on a conversation which had unseen messages, but it does not particularly mean that there is more than one message.
- * @param {Date} data.seenAt - The date when the message(s) were seen.
- * @param {string} data.senderId - (Required if type is 'single') The user ID of the sender.
- * @param {string} data.conversationId - (Required if type is 'single') The conversation ID where the message was sent.
- * @param {string} data.messageId - (Required if type is 'single') The unique ID of the message.
- * @param {number} data.pageMessagesLength - (Required if type is 'single') The number of messages that the user has in their page (since messages are retrieved in batches in the client, each page has a certain number of messages).
+ * @param {string} data.sender - (Required if type is 'single') The details of the sender to be displayed with the message.
  * @param {Array<Object>} data.messages - (Required if type is 'batch') The messages to set the seen status for.
- * @param {string} data.messages[].senderId - The user ID of the sender.
- * @param {string} data.messages[].conversationId - The conversation ID.
- * @param {string} data.messages[].messageId - The unique ID of the message.
+ *  @param {Date} data.seenAt - The date when the message(s) were seen.
+ * @param {string} data.messageId - Used to update seen status of the message in the database
+ * @param {number} data.pageMessagesLength - (Required if type is 'single') The number of messages that the user has in their page (since messages are retrieved in batches in the client, each page has a certain number of messages).
+ 
  */
 export const handleSeenMessage = async (socket, data) => {
   const { userId, username, image, createdAt } = socket.user;
@@ -315,7 +320,7 @@ export const handleSeenMessage = async (socket, data) => {
 
   if (data.type === 'batch') {
     data.messages.forEach((message, i) => {
-      socket.to(message.senderId).emit(
+      socket.to(message.sender.userId).emit(
         'set_seen_status',
         {
           conversationId: message.conversationId,

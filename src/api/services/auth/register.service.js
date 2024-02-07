@@ -6,7 +6,7 @@ import {
   UserNotFoundError,
   VerificationCodeError
 } from '../../helpers/ErrorTypes.helper.js';
-import { redisClient } from '../../../config/redis-client.js';
+import { redisClient } from '../../../lib/redis-client.js';
 import mailerService from './mailer.service.js';
 import crypto from 'crypto';
 import sequelize from 'sequelize';

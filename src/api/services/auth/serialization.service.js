@@ -1,4 +1,4 @@
-import { redisClient } from '../../../config/redis-client.js';
+import { redisClient } from '../../../lib/redis-client.js';
 import db from '../../models/index.js';
 import { Op } from 'sequelize';
 
@@ -37,7 +37,7 @@ export const deserializeUser = async ({ userId }, done) => {
               attributes: ['conversationId'],
               include: {
                 model: db.User,
-                as: 'users',
+                as: 'members',
                 attributes: ['userId'],
                 where: { userId: { [Op.ne]: userId } }
               }
@@ -55,7 +55,7 @@ export const deserializeUser = async ({ userId }, done) => {
 
       user.conversations = user.conversations.map((conversation) => {
         if (!conversation.isGroup)
-          user.sockets.push(conversation.users[0].userId);
+          user.sockets.push(conversation.members[0].userId);
         return conversation.dataValues.conversationId;
       });
 

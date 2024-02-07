@@ -13,7 +13,7 @@ router.post('/create', mainController.createConversation);
  * Fetch current user's conversations.
  * Endpoint: GET /conversations/fetchAll
  */
-router.get('/fetchAll', mainController.getConversations);
+router.get('/', mainController.getConversations);
 
 /**
  * Fetches the next batch of messages in a conversation for pagination.

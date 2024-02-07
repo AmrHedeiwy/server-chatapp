@@ -1,9 +1,10 @@
 import bcrypt from 'bcrypt';
 import sequelize from 'sequelize';
+import fs from 'fs';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
-import cloudinary from '../../../config/cloudinary.js';
-import { redisClient } from '../../../config/redis-client.js';
+import cloudinary from '../../../lib/cloudinary.js';
+import { redisClient } from '../../../lib/redis-client.js';
 
 import db from '../../models/index.js';
 import {
@@ -28,14 +29,21 @@ import {
 export const saveNewCredentials = async (data, currentUser) => {
   try {
     // Upload image file to Cloudinary if FilePath is provided in the data object
-    if (data.filePath) {
-      const result = await cloudinary.uploader.upload(data.filePath, {
-        format: 'png'
+    if (data.path) {
+      const result = await cloudinary.uploader.upload(data.path, {
+        folder: 'images',
+        public_id: `profile_img:${currentUser.userId}`
       });
 
+      fs.unlink(data.path, (err) => {
+        if (err) {
+          console.error('Error deleting file:', err);
+          return;
+        }
+      });
       // Update image URL with secure URL from Cloudinary and remove FilePath from data object
-      data.Image = result.secure_url;
-      delete data.filePath;
+      data.image = result.secure_url;
+      delete data.path;
     }
 
     const user = await db.User.findOne({
@@ -48,11 +56,7 @@ export const saveNewCredentials = async (data, currentUser) => {
     delete updatedUser.dataValues.password;
 
     // Cache updated user data
-    await redisClient.setEx(
-      `user_data:${updatedUser.userId}`,
-      60 * 60 * 24,
-      JSON.stringify(updatedUser.dataValues)
-    );
+    await redisClient.del(`user_data:${currentUser.userId}`);
 
     return {
       // Success message with an additional notification if email verification is required

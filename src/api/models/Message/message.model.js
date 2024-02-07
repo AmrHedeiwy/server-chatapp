@@ -20,17 +20,17 @@ export default (sequelize, DataTypes) => {
         allowNull: false
       },
       content: {
-        type: DataTypes.STRING
+        type: DataTypes.TEXT
       },
       fileUrl: {
         type: DataTypes.STRING,
         allowNull: true
       },
-      createdAt: {
+      sentAt: {
         type: DataTypes.DATE,
         allowNull: false,
         get() {
-          let date = this.getDataValue('createdAt');
+          let date = this.getDataValue('sentAt');
 
           return !!date && typeof date === 'object'
             ? format(date, 'd MMMM yyyy, h:mm a')

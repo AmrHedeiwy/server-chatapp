@@ -3,6 +3,8 @@ const router = new Router();
 
 import mainController from '../controllers/main.controller.js';
 
+router.get('/', mainController.getContacts);
+
 /**
  * Retrieves and displays the user's profile.
  * Endpoint: GET /contacts/search

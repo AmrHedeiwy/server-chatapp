@@ -14,11 +14,10 @@ import { redisClient } from './lib/redis-client.js';
 import cors from 'cors';
 
 import {
-  handleAckMessage,
   handleConnect,
   handleDisconnect,
   handleMessage,
-  handleSeenMessage,
+  handleMessageStatus,
   initializeUser
 } from './api/controllers/socket.controller.js';
 
@@ -93,10 +92,7 @@ io.on('connection', async (socket) => {
   socket.on('sendMessage', (data, cb) => handleMessage(socket, data, cb));
 
   // when a message is delivered to a user
-  socket.on('acknowledge_message', (data) => handleAckMessage(socket, data));
-
-  // when a message is seen by a user
-  socket.on('seen_message', (data) => handleSeenMessage(socket, data));
+  socket.on('update_status', (data) => handleMessageStatus(socket, data));
 
   // when a user disconnects
   socket.on('disconnect', () => handleDisconnect(io, socket));

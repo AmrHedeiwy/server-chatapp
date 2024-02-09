@@ -169,7 +169,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         {
           model: db.User,
           as: 'members',
-          attributes: ['userId', 'username', 'email', 'image', 'createdAt']
+          attributes: ['userId', 'username', 'image']
         }
       ],
       attributes: {
@@ -180,13 +180,14 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
               SELECT COUNT(*)
               FROM messagestatus as ms
               WHERE ms."userId" = '${currentUserId}'
-              AND ms."deliverAt" IS NOT NULL
-              AND ms."seenAt" IS NULL
               AND ms."messageId" IN (
                 SELECT "messageId"
                 FROM messages as m
                 WHERE m."conversationId" = "Conversation"."conversationId"
               )
+              AND ms."deliverAt" IS NOT NULL
+              AND ms."seenAt" IS NULL
+    
             )`),
             'unseenMessagesCount'
           ]
@@ -203,18 +204,22 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
     });
 
     const messages = await db.Message.findAll({
-      where: { conversationId: { [Op.in]: conversationIds } },
+      where: {
+        conversationId: { [Op.in]: conversationIds }
+      },
       attributes: [
         'messageId',
         'conversationId',
         'content',
         'fileUrl',
-        'sentAt'
+        'sentAt',
+        'senderId'
       ],
       include: [
         {
           model: db.MessageStatus,
           as: 'status',
+          attributes: ['deliverAt', 'seenAt'],
           /**
            * Include all the messages in the conversation except messages that are not sent by the user and
            * have not been delivered.
@@ -227,54 +232,30 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
           where: {
             [Op.or]: [
               {
-                deliverAt: { [Op.ne]: null },
-                seenAt: { [Op.or]: [{ [Op.ne]: null }, { [Op.eq]: null }] }
+                deliverAt: { [Op.ne]: null }
               },
-              { userId: { [Op.ne]: currentUserId } }
+              {
+                userId: { [Op.ne]: currentUserId }
+              }
             ]
           },
           required: true,
-          limit: BATCH_SIZE + 1
-        },
-        // Include all the users that the message was delivered to
-        {
-          model: db.MessageStatus,
-          as: 'deliverStatus',
-          attributes: ['deliverAt'],
-          where: { deliverAt: { [Op.ne]: null } },
-          include: [
-            {
-              model: db.User,
-              as: 'user',
-              attributes: ['userId', 'username', 'image', 'createdAt']
-            }
-          ],
-          required: false
-        },
-        // Include all the users that the message was seen by
-        {
-          model: db.MessageStatus,
-          as: 'seenStatus',
-          attributes: ['seenAt'],
-          where: { seenAt: { [Op.ne]: null } },
-          include: [
-            {
-              model: db.User,
-              as: 'user',
-              attributes: ['userId', 'username', 'image', 'createdAt']
-            }
-          ],
-          required: false
+          include: {
+            model: db.User,
+            as: 'user',
+            attributes: ['userId', 'image', 'username']
+          }
         },
         // Include the sender of the message
         {
           model: db.User,
           as: 'sender',
-          attributes: ['userId', 'username', 'image', 'createdAt'],
+          attributes: ['userId', 'username', 'image'],
           required: false
         }
       ],
-      order: [['sentAt', 'DESC']]
+      order: [['sentAt', 'DESC']],
+      limit: BATCH_SIZE + 1
     });
 
     // Handle the case when no conversations are found
@@ -283,7 +264,17 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
 
     // Group messages by conversation ID and format conversations
     let groupedMessages = messages.reduce((acc, message) => {
-      const conversationId = message.dataValues.conversationId;
+      let {
+        messageId,
+        conversationId,
+        content,
+        fileUrl,
+        sentAt,
+        sender,
+        senderId,
+        status
+      } = message.dataValues;
+
       if (!acc[conversationId]) {
         acc[conversationId] = {
           messages: [],
@@ -291,7 +282,33 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
           hasInitialNextPage: false
         };
       }
-      acc[conversationId].messages.push(message);
+
+      let deliverCount = 0;
+      let seenCount = 0;
+
+      if (senderId === currentUserId) {
+        status = status.reduce((acc, userStatus) => {
+          const { deliverAt, seenAt, user } = userStatus.dataValues;
+
+          if (deliverAt) deliverCount += 1;
+          if (seenAt) seenCount += 1;
+
+          acc[user.userId] = { ...userStatus.dataValues };
+          return acc;
+        }, {});
+      }
+
+      acc[conversationId].messages.push({
+        messageId,
+        conversationId,
+        content,
+        fileUrl,
+        sentAt,
+        sender,
+        ...(senderId === currentUserId
+          ? { status, deliverCount, seenCount }
+          : {})
+      });
 
       // Check if the number of messages exceeds the batch size
       if (acc[conversationId].messages.length > BATCH_SIZE) {
@@ -349,7 +366,10 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         groupedMessages[conversationId].unseenMessagesCount =
           parseInt(unseenMessagesCount);
       } else {
-        groupedMessages[conversationId] = { messages: [], unseenMessagesCount };
+        groupedMessages[conversationId] = {
+          messages: [],
+          unseenMessagesCount: 0
+        };
       }
 
       return acc;

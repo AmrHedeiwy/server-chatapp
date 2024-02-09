@@ -127,7 +127,6 @@ export const handleConnect = async (io, socket) => {
     order: [[{ model: db.Message, as: 'messages' }, 'sentAt', 'DESC']]
   });
 
-  console.log('call', undeliveredMessages);
   if (undeliveredMessages.length !== 0)
     io.to(socket.id).emit('undelivered_messages', undeliveredMessages);
 
@@ -182,14 +181,7 @@ export const handleDisconnect = async (io, socket) => {
  *
  */
 export const handleMessage = async (socket, data, cb) => {
-  const {
-    conversationId,
-    messageId,
-    pageMessagesLength,
-    sentAt,
-    content,
-    memberIds
-  } = data;
+  const { conversationId, messageId, sentAt, content, memberIds } = data;
 
   const { userId, username, image, createdAt } = socket.user;
 
@@ -219,17 +211,13 @@ export const handleMessage = async (socket, data, cb) => {
     { where: { conversationId } }
   );
 
-  socket.to(memberIds).emit(
-    'deliver_message',
-    {
-      conversationId,
-      messageId,
-      sender: { userId, username, image, createdAt },
-      sentAt,
-      content
-    },
-    pageMessagesLength
-  );
+  socket.to(memberIds).emit('new_message', {
+    conversationId,
+    messageId,
+    sender: { userId, username, image, createdAt },
+    sentAt,
+    content
+  });
 
   cb();
 };
@@ -254,90 +242,41 @@ export const handleMessage = async (socket, data, cb) => {
  * @param {string} data.messages[].conversationId - The conversation ID.
  * @param {string} data.messages[].messageId - The unique ID of the message.
  */
-export const handleAckMessage = async (socket, data) => {
-  const { userId, username, image, createdAt } = socket.user;
-
-  if (data.type === 'single') {
-    socket
-      .to(data.senderId)
-      .emit('set_deliver_status', data, { userId, username, image, createdAt });
+export const handleMessageStatus = async (socket, data) => {
+  console.log(data.type, data.deliverAt, data.seenAt);
+  if (data.messageId !== undefined) {
+    socket.to(data.senderId).emit('set_status', data, socket.user.userId);
   }
 
-  console.log(data);
-  if (data.type === 'batch') {
-    data.messages.forEach((message, i) => {
+  if (data.messages !== undefined) {
+    data.messages.forEach((message) => {
       socket.to(message.sender.userId).emit(
-        'set_deliver_status',
+        'set_status',
         {
           conversationId: message.conversationId,
           messageId: message.messageId,
           deliverAt: data.deliverAt,
-          index: i
+          type: data.type
         },
-        { userId, username, image, createdAt }
+        socket.user.userId
       );
     });
   }
 
+  console.log({
+    ...(data.type === 'deliver'
+      ? { deliverAt: data.deliverAt }
+      : { seenAt: data.seenAt })
+  });
   await db.MessageStatus.update(
-    { deliverAt: data.deliverAt },
+    {
+      ...(data.type === 'deliver'
+        ? { deliverAt: data.deliverAt }
+        : { seenAt: data.seenAt })
+    },
     {
       where: {
-        userId,
-        messageId: data.messageId || {
-          [Op.in]: data.messages.map((message) => message.messageId)
-        }
-      }
-    }
-  );
-};
-
-/**
- * Handles setting the "seen" status of messages.
- *
- * This function updates the "seen" status of messages based on the provided data.
- *
- * @param {object} socket - The socket instance that initiated the event.
- * @param {object} data - Data containing information required to update the seen status of message(s).
- * @param {string} data.type - Indicates whether to update the status of one message or multiple messages ('single' or 'batch').
- *   - 'single' means the user was active inside the conversation.
- *   - 'batch' means that the user clicked on a conversation which had unseen messages, but it does not particularly mean that there is more than one message.
- * @param {string} data.sender - (Required if type is 'single') The details of the sender to be displayed with the message.
- * @param {Array<Object>} data.messages - (Required if type is 'batch') The messages to set the seen status for.
- *  @param {Date} data.seenAt - The date when the message(s) were seen.
- * @param {string} data.messageId - Used to update seen status of the message in the database
- * @param {number} data.pageMessagesLength - (Required if type is 'single') The number of messages that the user has in their page (since messages are retrieved in batches in the client, each page has a certain number of messages).
- 
- */
-export const handleSeenMessage = async (socket, data) => {
-  const { userId, username, image, createdAt } = socket.user;
-
-  if (data.type === 'single') {
-    socket
-      .to(data.senderId)
-      .emit('set_seen_status', data, { userId, username, image, createdAt });
-  }
-
-  if (data.type === 'batch') {
-    data.messages.forEach((message, i) => {
-      socket.to(message.sender.userId).emit(
-        'set_seen_status',
-        {
-          conversationId: message.conversationId,
-          messageId: message.messageId,
-          seenAt: data.seenAt,
-          index: i
-        },
-        { userId, username, image, createdAt }
-      );
-    });
-  }
-
-  await db.MessageStatus.update(
-    { seenAt: data.seenAt },
-    {
-      where: {
-        userId,
+        userId: socket.user.userId,
         messageId: data.messageId || {
           [Op.in]: data.messages.map((message) => message.messageId)
         }

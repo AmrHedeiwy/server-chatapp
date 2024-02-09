@@ -20,7 +20,6 @@ export const fetchContacts = async (currentUserId) => {
       }
     );
 
-    console.log(contacts);
     return { contacts: contacts.length > 0 ? contacts : null };
   } catch (err) {
     return { error: err };

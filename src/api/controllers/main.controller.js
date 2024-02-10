@@ -16,8 +16,6 @@ import {
   contactService,
   uploadService
 } from '../services/main/index.js';
-import cloudinary from '../../lib/cloudinary.js';
-import db from '../models/index.js';
 
 /******* user actions *******/
 
@@ -157,7 +155,7 @@ export const deleteAccount = [
  */
 export const createConversation = [
   isAuthExpress,
-  // validation(createConversationSchema),
+  validation(createConversationSchema),
   async (req, res, next) => {
     const { otherUserId, isGroup, members, name } = req.body;
     const { sockets } = req.user;
@@ -326,7 +324,7 @@ export const uploadFile = [
 
     const entries = Object.entries(queryParams)[0];
 
-    const { fileUrl, error } = await uploadService(
+    const { fileUrl, error } = await uploadService.upload(
       req.body.path,
       entries[0],
       entries[1]

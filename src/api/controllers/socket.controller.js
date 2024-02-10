@@ -243,7 +243,6 @@ export const handleMessage = async (socket, data, cb) => {
  * @param {string} data.messages[].messageId - The unique ID of the message.
  */
 export const handleMessageStatus = async (socket, data) => {
-  console.log(data.type, data.deliverAt, data.seenAt);
   if (data.messageId !== undefined) {
     socket.to(data.senderId).emit('set_status', data, socket.user.userId);
   }
@@ -255,7 +254,9 @@ export const handleMessageStatus = async (socket, data) => {
         {
           conversationId: message.conversationId,
           messageId: message.messageId,
-          deliverAt: data.deliverAt,
+          ...(data.type === 'deliver'
+            ? { deliverAt: data.deliverAt }
+            : { seenAt: data.seenAt }),
           type: data.type
         },
         socket.user.userId

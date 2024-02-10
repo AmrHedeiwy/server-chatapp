@@ -3,14 +3,14 @@ import fs from 'fs';
 import cloudinary from '../../../lib/cloudinary.js';
 import db from '../../models/index.js';
 
-const upload = async (path, key, uniqueId) => {
+export const upload = async (path, key, uniqueId) => {
   try {
     const result = await cloudinary.uploader.upload(path, {
       folder: 'images',
       public_id: `profile_img:${uniqueId}`
     });
 
-    fs.unlink(filePath, (err) => {
+    fs.unlink(path, (err) => {
       if (err) {
         console.error('Error deleting file:', err);
         return;

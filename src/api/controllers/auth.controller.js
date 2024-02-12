@@ -125,41 +125,26 @@ export const verifyEmail = [
 ];
 
 /**
- * Route handler for retrieving authentication information based on the type.
- *
- * This route expects a GET request and expects the page name as a parameter in the URL.
- *
- * Possble types:
- * - authorisation : For protected routes.
- * - session : The user's session.
+ * Route handler for retrieving request session.
  */
-export const getAuthInfo = async (req, res, next) => {
-  const { type } = req.params;
+export const getSession = async (req, res, next) => {
+  const { isCallbackProvider, isPasswordReset } = req.session;
 
-  if (type === 'authorisation') {
-    const isCallbackProvider = req.session.isCallbackProvider ?? false;
-
-    delete req.session.isCallbackProvider;
-
-    return res.json({
-      isAuth: req.isAuthenticated(),
-      isVerified: req.user?.isVerified ?? false,
-      isPasswordReset: req.session.passwordReset ?? false,
-      isCallbackProvider
-    });
-  }
-
-  if (type === 'session') {
-    return res.json({
-      user: req?.user
-        ? {
+  const response = {
+    isCallbackProvider: isCallbackProvider ?? false,
+    isPasswordReset: isPasswordReset ?? false,
+    ...(req.isAuthenticated()
+      ? {
+          user: {
             userId: req.user.userId,
-            email: req?.user.email,
-            isVerified: req.user.isVerified
+            email: req.user.email,
+            lastVerifiedAt: req.user.lastVerifiedAt
           }
-        : null
-    });
-  }
+        }
+      : { user: null })
+  };
+
+  res.json(response);
 };
 
 /**
@@ -415,5 +400,5 @@ export default {
   facebookSignUpCallback,
   googleSignUp,
   googleSignUpCallback,
-  getAuthInfo
+  getSession
 };

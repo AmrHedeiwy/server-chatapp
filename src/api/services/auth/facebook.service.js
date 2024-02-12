@@ -32,7 +32,7 @@ const facebookStrategy = new Strategy(
         defaults: {
           facebookId: id,
           username: (first_name + '_' + last_name).toLowerCase(),
-          isVerified: true,
+          lastVerifiedAt: new Date(),
           image: profileURL ?? null
         }
       });
@@ -40,7 +40,7 @@ const facebookStrategy = new Strategy(
       // Linking facebook account to the existing user
       if (!created && user) {
         user.facebookId = id;
-        user.isVerified = true;
+        if (!user.lastVerifiedAt) user.lastVerifiedAt = new Date();
 
         user.save();
       }

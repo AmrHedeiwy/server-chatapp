@@ -1,4 +1,4 @@
-import scheduledTasks from './api/helpers/taskSchedule.helper.js';
+import scheduledTasks from './lib/taskSchedule.js';
 // Importing the Sequelize instnace
 import db from './api/models/index.js';
 
@@ -15,13 +15,13 @@ const port = process.env.PORT || 5000;
 (async function main() {
   await db.sequelize.sync();
 
-  /* db.User.bulkCreate([
+  /*db.User.bulkCreate([
     {
       username: 'Emna',
       email: 'amr.hedeiwy@gmail.com',
       password: 'amr@AMR123',
       confirmPassword: 'amr@AMR123',
-      isVerified: true
+      lastVerifiedAt: new Date()
     },
     {
       username: 'amr',

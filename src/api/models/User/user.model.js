@@ -53,10 +53,6 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true
       },
-      isVerified: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-      },
       lastVerifiedAt: {
         type: DataTypes.DATE,
         allowNull: true
@@ -107,6 +103,7 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'userId',
       otherKey: 'conversationId'
     });
+
     User.hasMany(models.Member, {
       foreignKey: 'userId'
     });

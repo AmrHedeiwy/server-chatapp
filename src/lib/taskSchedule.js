@@ -1,5 +1,5 @@
 import moment from 'moment';
-import db from '../models/index.js';
+import db from '../api/models/index.js';
 import { Op } from 'sequelize';
 
 /**
@@ -18,11 +18,10 @@ export const scheduledTasks = () => {
       // Delete unverified user accounts that meet the specified conditions
       const deletedUsersCount = await db.User.destroy({
         where: {
-          IsVerified: false, // Only unverified accounts
           createdAt: {
             [Op.lt]: twentyFourHoursAgo // Created more than 3 days ago
           },
-          LastVerifiedAt: null // Never been verified
+          lastVerifiedAt: null // Never been verified
         }
       });
 

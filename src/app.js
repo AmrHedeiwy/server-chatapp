@@ -15,8 +15,10 @@ import cors from 'cors';
 
 import {
   handleConnect,
+  handleDeleteMessage,
   handleDisconnect,
   handleMessage,
+  handleMessageEdit,
   handleMessageStatus,
   initializeUser
 } from './api/controllers/socket.controller.js';
@@ -93,6 +95,10 @@ io.on('connection', async (socket) => {
 
   // when a message is delivered to a user
   socket.on('update_status', (data) => handleMessageStatus(socket, data));
+
+  socket.on('edit_message', (data) => handleMessageEdit(socket, data));
+
+  socket.on('delete_message', (data) => handleDeleteMessage(socket, data));
 
   // when a user disconnects
   socket.on('disconnect', () => handleDisconnect(io, socket));

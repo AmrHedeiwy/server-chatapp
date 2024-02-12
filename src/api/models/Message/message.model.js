@@ -28,7 +28,6 @@ export default (sequelize, DataTypes) => {
       },
       sentAt: {
         type: DataTypes.DATE,
-        allowNull: false,
         get() {
           let date = this.getDataValue('sentAt');
 
@@ -36,13 +35,36 @@ export default (sequelize, DataTypes) => {
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        get() {
+          let date = this.getDataValue('updatedAt');
+
+          return !!date && typeof date === 'object'
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
+        }
+      },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        get() {
+          let date = this.getDataValue('deletedAt');
+
+          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+        }
       }
     },
     {
       sequelize,
       modelName: 'Message',
       tableName: 'messages',
-      timestamps: false
+      timestamps: true,
+      paranoid: true,
+      createdAt: false,
+      updatedAt: false,
+      deletedAt: 'deletedAt'
     }
   );
 

@@ -217,6 +217,7 @@ export const getMessages = [
     page = parseInt(page);
 
     const { hasNextPage, items, error } = await conversationService.getMessages(
+      req.user.userId,
       conversationId,
       page
     );
@@ -316,6 +317,23 @@ export const handleContactAction = [
   }
 ];
 
+/******* file upload actions *******/
+
+/**
+ * Route handler for uploading a file.
+ *
+ * This route expects a POST request with the following parameters:
+ * - File: The file to be uploaded, passed as a multipart/form-data in the request body with the field name 'file'.
+ * - Query parameters: Additional parameters for customization can be provided in the request URL.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware to ensure the user is logged in.
+ * 2. Parses the uploaded file using the upload.single middleware, expecting the file to be in the 'file' field.
+ * 3. Extracts query parameters from the request URL and processes them for customization.
+ * 4. Uploads the file to a designated service using the upload function.
+ * 5. Responds with the URL of the uploaded file if successful.
+ * 6. If any errors occur during the upload process, it is passed to the error handling middleware.
+ */
 export const uploadFile = [
   isAuthExpress,
   upload.single('file'),
@@ -325,6 +343,7 @@ export const uploadFile = [
     const entries = Object.entries(queryParams)[0];
 
     const { fileUrl, error } = await uploadService.upload(
+      req.user.userId,
       req.body.path,
       entries[0],
       entries[1]

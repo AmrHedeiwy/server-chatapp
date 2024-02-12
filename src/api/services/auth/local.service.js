@@ -41,7 +41,7 @@ const localStrategy = new Strategy(
 
       return done(null, user.dataValues.userId, {
         status: successJson.sign_in.status,
-        redirect: !user.dataValues.isVerified
+        redirect: !user.dataValues.lastVerifiedAt
           ? successJson.sign_in['verify-email-redirect']
           : successJson.sign_in['local-redirect']
       });

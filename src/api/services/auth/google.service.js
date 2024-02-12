@@ -33,14 +33,14 @@ const googleStrategy = new Strategy(
         defaults: {
           googleId: id,
           username: (given_name + '_' + family_name).toLowerCase(),
-          isVerified: true,
+          lastVerifiedAt: new Date(),
           image: picture ?? null
         }
       });
 
       if (!created && user) {
         user.googleId = id;
-        user.isVerified = true;
+        if (!user.lastVerifiedAt) user.lastVerifiedAt = new Date();
 
         user.save();
       }

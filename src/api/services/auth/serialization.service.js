@@ -26,7 +26,6 @@ export const deserializeUser = async ({ userId }, done) => {
             'image',
             'googleId',
             'facebookId',
-            'isVerified',
             'lastVerifiedAt',
             'createdAt'
           ],

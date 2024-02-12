@@ -21,7 +21,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         primaryKey: true
       },
-      createdAt: {
+      joinedAt: {
         type: DataTypes.DATE,
         defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
       },

@@ -38,7 +38,7 @@ router.post('/reset-password', authController.resetPassword);
  * Retrieves user session information for a specific page.
  * Endpoint: GET /auth/info/:Page
  */
-router.get('/info/:type', authController.getAuthInfo);
+router.get('/session', authController.getSession);
 
 /**
  * Authenticates a user by signing them in.

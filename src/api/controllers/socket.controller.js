@@ -32,7 +32,6 @@ export const initializeUser = async (socket, next) => {
           'image',
           'googleId',
           'facebookId',
-          'isVerified',
           'lastVerifiedAt',
           'createdAt'
         ],
@@ -81,6 +80,7 @@ export const initializeUser = async (socket, next) => {
   socket.user = user;
 
   socket.join(socket.id);
+  socket.join(socket.user.conversations);
 
   next();
 };
@@ -164,24 +164,20 @@ export const handleDisconnect = async (io, socket) => {
 };
 
 /**
- * Handles sending and storing messages in a conversation.
- *
- * This function creates a new message, updates the conversation's last message timestamp,
- * and emits the message to the conversation participants.
- *
- * @param {object} socket - The socket instance that initiated the event.
- * @param {object} data - Data containing information required to handle the message.
- * @param {number} data.pageMessagesLength - The number of messages that the user has in their page (since messages are retrieved in batches in the client, each page has a certain number of messages).
- * @param {string} data.conversationId - The ID of the conversation where the message is sent.
- * @param {string} data.messageId - The unique ID of the message.
- * @param {Date} data.createdAt - The timestamp when the message was created.
- * @param {string} data.content - The content of the message.
- * @param {Array<string>} data.userIds - An array of user IDs who are participants in the conversation.
- * @param {Function} cb - A callback function to indicate to the sender that the message was recieved by the server.
- *
+ * Handles the reception and processing of a new message received via socket.io.
+ * @param {object} socket - The socket object representing the client connection.
+ * @param {object} data - The data object containing message details.
+ *                        This object should have the following properties:
+ *                        - `conversationId`: A string representing the unique identifier of the conversation to which the message belongs.
+ *                        - `messageId`: A string representing the unique identifier of the message.
+ *                        - `sentAt`: A Date object or a string representing the timestamp when the message was sent.
+ *                        - `content`: A string representing the content of the message.
+ *                        - `intialMessageStatus`: An object containing initial message status details. This object typically maps user IDs to their corresponding message status. Each key represents a user ID, and the value associated with each key could contain information such as whether the message has been delivered or seen by that user.
+ * @param {Function} cb - A callback function to be executed after message handling to notify the sender that the message was recieved by the server.
  */
 export const handleMessage = async (socket, data, cb) => {
-  const { conversationId, messageId, sentAt, content, memberIds } = data;
+  const { conversationId, messageId, sentAt, content, intialMessageStatus } =
+    data;
 
   const { userId, username, image, createdAt } = socket.user;
 
@@ -191,8 +187,9 @@ export const handleMessage = async (socket, data, cb) => {
       messageId,
       senderId: socket.id,
       sentAt,
+      updatedAt: sentAt,
       content,
-      status: memberIds.map((userId) => {
+      status: Object.keys(intialMessageStatus).map((userId) => {
         return { userId };
       })
     },
@@ -211,11 +208,12 @@ export const handleMessage = async (socket, data, cb) => {
     { where: { conversationId } }
   );
 
-  socket.to(memberIds).emit('new_message', {
+  socket.to(conversationId).emit('new_message', {
     conversationId,
     messageId,
     sender: { userId, username, image, createdAt },
     sentAt,
+    updatedAt: sentAt,
     content
   });
 
@@ -223,24 +221,31 @@ export const handleMessage = async (socket, data, cb) => {
 };
 
 /**
- * Handles setting the "deliver" status of messages.
- *
- * This function updates the "deliver" status of messages based on the provided data.
- *
- * @param {object} socket - The socket instance that initiated the event.
- * @param {object} data - Data containing information required to update the deliver status of message(s).
- * @param {string} data.type - Indicates whether to update the status of one message or multiple messages ('single' or 'batch').
- *   - 'single' means the user was active inside the conversation.
- *   - 'batch' means that the user clicked on a conversation which had undelivered messages, but it does not particularly mean that there is more than one message.
- * @param {Date} data.deliverAt - The date when the message(s) were delivered.
- * @param {string} data.senderId - (Required if type is 'single') The user ID of the sender.
- * @param {string} data.conversationId - (Required if type is 'single') The conversation ID where the message was sent.
- * @param {string} data.messageId - (Required if type is 'single') The unique ID of the message.
- * @param {number} data.pageMessagesLength - (Required if type is 'single') The number of messages that the user has in their page (since messages are retrieved in batches in the client, each page has a certain number of messages).
- * @param {Array<Object>} data.messages - (Required if type is 'batch') The messages to set the deliver status for.
- * @param {string} data.messages[].senderId - The user ID of the sender.
- * @param {string} data.messages[].conversationId - The conversation ID.
- * @param {string} data.messages[].messageId - The unique ID of the message.
+ * Handles the update of message status (delivery or seen) received via socket.io.
+ * @param {object} socket - The socket object representing the client connection.
+ * @param {object} data - The data object containing message status details.
+ *                        This object should have one of the following structures:
+ *                        1. If updating status for a single message:
+ *                            {
+ *                              messageId: string, // The unique identifier of the message
+ *                              senderId: string, // The sender's ID
+ *                              type: string, // The type of status update ('deliver' or 'seen')
+ *                              deliverAt?: Date, // (Optional) The timestamp when the message was delivered
+ *                              seenAt?: Date // (Optional) The timestamp when the message was seen
+ *                            }
+ *                        2. If updating status for multiple messages:
+ *                            {
+ *                              messages: Array<{
+ *                                conversationId: string, // The unique identifier of the conversation
+ *                                messageId: string, // The unique identifier of the message
+ *                                sender: {
+ *                                  userId: string // The sender's ID
+ *                                }
+ *                              }>,
+ *                              type: string, // The type of status update ('deliver' or 'seen')
+ *                              deliverAt?: Date, // (Optional) The timestamp when the messages were delivered
+ *                              seenAt?: Date // (Optional) The timestamp when the messages were seen
+ *                            }
  */
 export const handleMessageStatus = async (socket, data) => {
   if (data.messageId !== undefined) {
@@ -264,11 +269,6 @@ export const handleMessageStatus = async (socket, data) => {
     });
   }
 
-  console.log({
-    ...(data.type === 'deliver'
-      ? { deliverAt: data.deliverAt }
-      : { seenAt: data.seenAt })
-  });
   await db.MessageStatus.update(
     {
       ...(data.type === 'deliver'
@@ -284,4 +284,45 @@ export const handleMessageStatus = async (socket, data) => {
       }
     }
   );
+};
+
+/**
+ * Handles the editing of a message received via socket.io.
+ * @param {object} socket - The socket object representing the client connection.
+ * @param {object} data - The data object containing message edit details.
+ *                        This object should have the following properties:
+ *                        - `messageId`: A string representing the unique identifier of the message to be edited.
+ *                        - `updatedAt`: A Date object or a string representing the updated timestamp of the message.
+ *                        - `memberIds`: An array of strings representing the IDs of members involved in the conversation.
+ *                        - `content`: A string representing the updated content of the message.
+ *                        - `conversationId`: A string representing the unique identifier of the conversation to which the message belongs.
+ */
+export const handleMessageEdit = async (socket, data) => {
+  const { messageId, updatedAt, memberIds, content, conversationId } = data;
+
+  await db.Message.update({ content, updatedAt }, { where: { messageId } });
+
+  socket
+    .to(conversationId)
+    .emit('update_message', { messageId, content, conversationId });
+};
+
+/**
+ * Handles the soft deletion of a message received via socket.io.
+ * @param {object} socket - The socket object representing the client connection.
+ * @param {object} data - The data object containing message soft deletion details.
+ *                        This object should have the following properties:
+ *                        - `messageId`: A string representing the unique identifier of the message to be soft deleted.
+ *                        - `conversationId`: A string representing the unique identifier of the conversation to which the message belongs.
+ *                        - `deletedAt`: A Date object or a string representing the timestamp when the message was soft deleted.
+ *                        Soft deletion means marking the message as deleted in the database without physically removing it.
+ */
+export const handleDeleteMessage = async (socket, data) => {
+  const { messageId, conversationId, deletedAt } = data;
+
+  await db.Message.destroy({ where: { messageId } });
+
+  socket
+    .to(conversationId)
+    .emit('remove_message', { messageId, conversationId, deletedAt });
 };

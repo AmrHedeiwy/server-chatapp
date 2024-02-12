@@ -12,14 +12,27 @@ import { io } from '../../../app.js';
  * @param {string} uniqueId - The unique identifier of the entity the file belongs to.
  * @returns {Object} An object containing the URL of the uploaded file, or an error object.
  */
-export const upload = async (currentUserId, path, key, uniqueId) => {
+export const upload = async (
+  currentUserId,
+  filePath,
+  fileType,
+  key,
+  uniqueId
+) => {
   try {
-    const result = await cloudinary.uploader.upload(path, {
-      folder: 'images',
-      public_id: `profile_img:${uniqueId}`
+    const folder = fileType.startsWith('image')
+      ? 'image'
+      : fileType.startsWith('application')
+      ? 'pdf'
+      : null;
+
+    if (!folder) throw new Error('FILE TYPE ERROR: ' + filePath);
+
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder
     });
 
-    fs.unlink(path, (err) => {
+    fs.unlink(filePath, (err) => {
       if (err) {
         console.error('Error deleting file:', err);
         return;

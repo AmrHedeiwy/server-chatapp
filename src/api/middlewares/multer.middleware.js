@@ -19,9 +19,6 @@ const upload = multer({
       return cb(new InvalidFileFormat());
     }
 
-    // adding the file path to the request body
-    req.body.path = `temp\\${file.originalname}`;
-
     // No need to pass the file since the file path is appended to the request body
     cb(null, file);
   },

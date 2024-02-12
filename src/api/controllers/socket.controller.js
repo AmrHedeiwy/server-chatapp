@@ -176,8 +176,14 @@ export const handleDisconnect = async (io, socket) => {
  * @param {Function} cb - A callback function to be executed after message handling to notify the sender that the message was recieved by the server.
  */
 export const handleMessage = async (socket, data, cb) => {
-  const { conversationId, messageId, sentAt, content, intialMessageStatus } =
-    data;
+  const {
+    conversationId,
+    messageId,
+    sentAt,
+    content,
+    fileUrl,
+    intialMessageStatus
+  } = data;
 
   const { userId, username, image, createdAt } = socket.user;
 
@@ -188,7 +194,8 @@ export const handleMessage = async (socket, data, cb) => {
       senderId: socket.id,
       sentAt,
       updatedAt: sentAt,
-      content,
+      content: content ?? null,
+      fileUrl: fileUrl ?? null,
       status: Object.keys(intialMessageStatus).map((userId) => {
         return { userId };
       })
@@ -214,7 +221,8 @@ export const handleMessage = async (socket, data, cb) => {
     sender: { userId, username, image, createdAt },
     sentAt,
     updatedAt: sentAt,
-    content
+    ...(!!content && { content }),
+    ...(!!fileUrl && { fileUrl })
   });
 
   cb();

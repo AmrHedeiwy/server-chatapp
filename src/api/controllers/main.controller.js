@@ -340,12 +340,14 @@ export const uploadFile = [
   upload.single('file'),
   async (req, res, next) => {
     const queryParams = req.query;
+    const { path, mimetype } = req.file;
 
     const entries = Object.entries(queryParams)[0];
 
     const { fileUrl, error } = await uploadService.upload(
       req.user.userId,
-      req.body.path,
+      path,
+      mimetype,
       entries[0],
       entries[1]
     );

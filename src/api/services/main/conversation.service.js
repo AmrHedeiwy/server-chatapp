@@ -23,9 +23,8 @@ export const addConversation = async (
   isGroup
 ) => {
   try {
-    // If a conversation already exists for one-to-one conversations
     if (exists) {
-      // Find the existing conversation
+      // If the conversation already exists, retrieve the conversation details
       const conversation = await db.Conversation.findOne({
         include: {
           model: db.User,
@@ -41,17 +40,17 @@ export const addConversation = async (
         (member) => member.userId !== currentUserId
       );
 
+      // Add additional details to the conversation object
       conversation.dataValues.otherMember = otherMember;
-      conversation.dataValues.name = otherMember.username;
+      conversation.dataValues.name = otherMember.dataValues.username;
 
       return { conversation };
     }
 
-    const createdAt = new Date();
-
     // If no conversation exists, create a new conversation
+    const createdAt = new Date();
     const newConversation = await db.Conversation.create({
-      ...(isGroup ? { name } : {}),
+      ...(isGroup ? { name } : {}), // Include the name if it's a group conversation
       isGroup,
       createdAt,
       createdBy: currentUserId
@@ -92,11 +91,12 @@ export const addConversation = async (
       members: allMembers
     } = conversationWithMembers;
 
-    // Format and return the newly created conversation data
+    // Determine the other member or members (depending on group or one-to-one conversation)
     const otherMemberOrMembers = isGroup
       ? allMembers.filter((member) => member.userId !== currentUserId)
       : allMembers.find((member) => member.userId !== currentUserId);
 
+    // Determine admin IDs (for group conversations)
     const adminIds = isGroup
       ? allMembers.reduce((acc, member) => {
           if (member.Member.isAdmin) acc.push(member.userId);
@@ -151,10 +151,15 @@ export const addConversation = async (
 };
 
 /**
- * Fetches conversations with associated messages and user details.
+ * Fetches conversations and their associated messages.
+ *
  * @param {string} currentUserId - The ID of the current user performing the fetch.
  * @param {Array<string>} conversationIds - Array of conversation IDs to fetch.
  * @returns {Object} An object containing formatted conversations and grouped messages, or an error object.
+ *    - {Object} conversations: Formatted conversations and their details.
+ *    - {Object} groupedMessages: Grouped messages for each conversation.
+ *    - {Error} error: An error object if the fetch operation fails.
+ * @throws {Error} Throws an error if an exception occurs during execution.
  */
 export const fetchConversations = async (currentUserId, conversationIds) => {
   const BATCH_SIZE = 20;
@@ -162,17 +167,20 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
     const conversations = await db.Conversation.findAll({
       where: {
         conversationId: { [Op.in]: conversationIds },
-        // Filter conversations with no messages to the user that did not initiate the conversation.
+        /**
+         * Fetch conversations based on any of the following criterias:
+         * - Conversations initiated by the current user
+         * - Conversations with existing messages
+         * - Group conversations
+         */
         [Op.or]: [
-          // Get conversations initiated by the current user
           { createdBy: currentUserId },
-          // Get conversations with existing messages
           { lastMessageAt: { [Op.ne]: null } },
           { isGroup: { [Op.eq]: true } }
         ]
       },
       include: [
-        // Include all the users in the conversation
+        // Include user profile for all members of each conversation
         {
           model: db.User,
           as: 'members',
@@ -201,6 +209,7 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         ]
       },
       order: [
+        // Order conversations by last message date or creation date if no messages exist
         [
           db.sequelize.literal(
             'CASE WHEN "lastMessageAt" IS NOT NULL THEN "lastMessageAt" ELSE "Conversation"."createdAt" END'
@@ -210,130 +219,45 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
       ]
     });
 
-    // Message of all conversations
-    const messages = await db.Message.findAll({
-      where: {
-        conversationId: { [Op.in]: conversationIds }
-      },
-      attributes: [
-        'messageId',
-        'conversationId',
-        'content',
-        'fileUrl',
-        'sentAt',
-        'updatedAt',
-        'deletedAt',
-        'senderId'
-      ],
-      include: [
-        {
-          model: db.MessageStatus,
-          as: 'status',
-          attributes: ['deliverAt', 'seenAt'],
-          /**
-           * Include all the messages in the conversation except messages that are not sent by the user and
-           * have not been delivered.
-           *
-           * The excluded messages will be sent from socket.io.
-           * Since these messages are being fetched from the server component on the frontend, the socket
-           * may not be connected and any messages that are sent between the timeframe of the initial fetch and
-           * the socket connection will be missed.
-           */
-          where: {
-            [Op.or]: [
-              {
-                deliverAt: { [Op.ne]: null }
-              },
-              {
-                userId: { [Op.ne]: currentUserId }
-              }
-            ]
-          },
-          required: true,
-          include: {
-            model: db.User,
-            as: 'user',
-            attributes: ['userId', 'username', 'image']
-          },
-          limit: BATCH_SIZE + 1
-        },
-        // Include the sender of the message
-        {
-          model: db.User,
-          as: 'sender',
-          attributes: ['userId', 'username', 'image'],
-          required: false
-        }
-      ],
-      paranoid: false,
-      order: [['sentAt', 'DESC']]
-    });
-
     // Handle the case when no conversations are found
     if (conversations.length == 0)
       return { conversations: null, groupedMessages: null };
 
-    // Group messages by conversation ID
-    let groupedMessages = messages.reduce((acc, message) => {
-      let {
-        messageId,
-        conversationId,
-        content,
-        fileUrl,
-        sentAt,
-        updatedAt,
-        deletedAt,
-        sender,
-        senderId,
-        status
-      } = message.dataValues;
+    /**
+     * Goal:
+     * 1. Format each conversation in an object where the key is the conversationId and the value is the info of the conversation.
+     * 2. Format the messages of each conversation where the key is the conversationId and the value is the info of the message.
+     *
+     *
+     * @example formattedConversations object:
+     * {
+     *   'conversation1.id': {
+     *     ...details of conversation1
+     *   },
+     *   'conversation2.id': {
+     *     ...details of conversation2
+     *   },
+     * }
+     *
+     * @example groupedMessages object:
+     * {
+     *   'conversation1.id': {
+     *     messages: [ ...details of each message in conversation1 ],
+     *     unseenMessagesCount: number of unseen messages in conversation1
+     *   },
+     *   'conversation2.id': {
+     *     messages: [ ...details of each message in conversation2 ],
+     *     unseenMessagesCount: number of unseen messages in conversation2
+     *   }
+     * }
+     */
 
-      if (!acc[conversationId]) {
-        acc[conversationId] = {
-          messages: [],
-          unseenMessagesCount: 0,
-          hasInitialNextPage: false
-        };
-      }
+    let groupedMessages = {};
+    let formatedConversations = {};
 
-      let deliverCount = 0;
-      let seenCount = 0;
-
-      if (senderId === currentUserId) {
-        status = status.reduce((acc, userStatus) => {
-          const { deliverAt, seenAt, user } = userStatus.dataValues;
-
-          if (deliverAt) deliverCount += 1;
-          if (seenAt) seenCount += 1;
-
-          acc[user.userId] = { ...userStatus.dataValues };
-          return acc;
-        }, {});
-      }
-
-      acc[conversationId].messages.push({
-        messageId,
-        conversationId,
-        content,
-        fileUrl,
-        sentAt,
-        updatedAt,
-        deletedAt,
-        sender,
-        ...(senderId === currentUserId
-          ? { status, deliverCount, seenCount }
-          : {})
-      });
-
-      // Check if the number of messages exceeds the batch size
-      if (acc[conversationId].messages.length > BATCH_SIZE) {
-        acc[conversationId].hasInitialNextPage = true;
-        acc[conversationId].messages.pop(); // Remove the extra message beyond the batch size
-      }
-      return acc;
-    }, {});
-
-    const formattedConversations = conversations.reduce((acc, conversation) => {
+    // Loop through each conversation
+    for (const conversation of conversations) {
+      // Extract conversation details
       const {
         conversationId,
         createdAt,
@@ -345,52 +269,130 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
         unseenMessagesCount
       } = conversation.dataValues;
 
-      if (!acc[conversationId]) {
-        const otherMemberOrMembers = !isGroup
-          ? members.find((member) => member.dataValues.userId !== currentUserId)
-          : members.filter(
-              (member) => member.dataValues.userId !== currentUserId
-            );
+      // Determine the other member or members (depending on group or one-to-one conversation)
+      const otherMemberOrMembers = !isGroup
+        ? members.find((member) => member.dataValues.userId !== currentUserId)
+        : members.filter(
+            (member) => member.dataValues.userId !== currentUserId
+          );
 
-        const adminIds = isGroup
-          ? members.reduce((acc, member) => {
-              if (member.Member.isAdmin) acc.push(member.userId);
+      // Determine admin IDs (for group conversations)
+      const adminIds = isGroup
+        ? members.reduce((acc, member) => {
+            if (member.Member.isAdmin) acc.push(member.userId);
+            return acc;
+          }, [])
+        : null;
+
+      // Format conversation details
+      formatedConversations[conversationId] = {
+        conversationId,
+        createdAt,
+        lastMessageAt,
+        isGroup,
+        image,
+        name: name ?? otherMemberOrMembers.username,
+        members,
+        ...(isGroup
+          ? { otherMembers: otherMemberOrMembers, adminIds }
+          : { otherMember: otherMemberOrMembers }),
+        hasInitialNextPage: false
+      };
+
+      // Retrieve messages for the conversation
+      const messages = await db.Message.findAll({
+        where: {
+          conversationId
+        },
+        include: [
+          // Include message status
+          {
+            model: db.MessageStatus,
+            as: 'status',
+            attributes: ['deliverAt', 'seenAt'],
+            where: {
+              /**
+               * Include all the messages in the conversation except messages are not yet delivered to the current user
+               *
+               * The excluded messages will be sent from socket event.
+               * Since these messages are being fetched from the server component on the frontend, the socket
+               * may not be connected and any messages that are sent between the timeframe of the initial fetch and
+               * the socket connection will be missed.
+               */
+              [Op.or]: [
+                { deliverAt: { [Op.ne]: null } }, // Messages with delivery confirmation
+                { userId: { [Op.ne]: currentUserId } } // Messages sent by the current user
+              ]
+            },
+            include: {
+              // Include user profile for message status
+              model: db.User,
+              as: 'user',
+              attributes: ['userId', 'username', 'image']
+            },
+            required: true
+          },
+          // Include sender's profile
+          {
+            model: db.User,
+            as: 'sender',
+            attributes: ['userId', 'username', 'image'],
+            required: false
+          }
+        ],
+        paranoid: false, // Include soft-deleted messages
+        order: [['sentAt', 'DESC']],
+        limit: BATCH_SIZE + 1
+      });
+
+      // Format messages and count unseen messages
+      groupedMessages[conversationId] = messages.reduce(
+        (acc, message, i) => {
+          if (i + 1 > BATCH_SIZE) {
+            formatedConversations[conversationId].hasInitialNextPage = true;
+            return acc;
+          }
+
+          const { senderId, ...otherFields } = message.dataValues;
+
+          // Initialize message counters for delivery and read status
+          let deliverCount = 0;
+          let seenCount = 0;
+          let formatedStatus = {};
+
+          // Process message status if sent by the current user
+          if (senderId === currentUserId) {
+            formatedStatus = otherFields.status.reduce((acc, userStatus) => {
+              const { deliverAt, seenAt, user } = userStatus.dataValues;
+
+              // Update delivery and read counters based on message status
+              if (!!deliverAt) deliverCount += 1;
+              if (!!seenAt) seenCount += 1;
+
+              acc[user.userId] = { ...userStatus.dataValues };
               return acc;
-            }, [])
-          : null;
+            }, {});
+          }
 
-        acc[conversationId] = {
-          conversationId,
-          createdAt,
-          lastMessageAt,
-          isGroup,
-          image,
-          name: name ?? otherMemberOrMembers.username,
-          members,
-          ...(isGroup
-            ? { otherMembers: otherMemberOrMembers, adminIds }
-            : { otherMember: otherMemberOrMembers }),
-          hasInitialNextPage:
-            !!groupedMessages[conversationId]?.hasInitialNextPage
-        };
-      }
+          // Check if the number of messages exceeds the batch size
+          acc.messages.push({
+            ...otherFields,
+            ...(senderId === currentUserId
+              ? { status: formatedStatus, deliverCount, seenCount }
+              : {})
+          });
 
-      // Set unseen messages count for the conversation
-      if (groupedMessages[conversationId]) {
-        groupedMessages[conversationId].unseenMessagesCount =
-          parseInt(unseenMessagesCount);
-      } else {
-        groupedMessages[conversationId] = {
+          return acc;
+        },
+        {
           messages: [],
-          unseenMessagesCount: 0
-        };
-      }
-
-      return acc;
-    }, {});
+          unseenMessagesCount: parseInt(unseenMessagesCount)
+        }
+      );
+    }
 
     return {
-      conversations: formattedConversations,
+      conversations: formatedConversations,
       groupedMessages
     };
   } catch (err) {
@@ -404,45 +406,14 @@ export const fetchConversations = async (currentUserId, conversationIds) => {
  * @param {string} conversationId - The ID of the conversation to fetch messages from.
  * @param {number} page - The page number for pagination (0-indexed).
  * @returns {Object} Object containing the fetched messages and pagination information.
- *    - {boolean} hasNextPage: Indicates whether there are more messages beyond the current page.
- *    - {Array<Object>} items: Array of message objects for the current page.
- *      Each message object contains the following properties:
- *        - {string} messageId: The unique ID of the message.
- *        - {string} senderId: The unique ID of the user that sent the message.
- *        - {string} conversationId: The ID of the conversation to which the message belongs.
- *        - {string} body: The body of the message.
- *        - {string} image: The URL of the user's profile image.
- *        - {Date} createdAt: The date when the message was created.
- *        - {Object} user: Details of the user who sent the message.
- *          - {string} userId: The unique ID of the user.
- *          - {string} username: The username of the user.
- *          - {string} image: The URL of the user's profile image.
- *          - {Date} createdAt: The date when the user account was created.
- *        - {Array<Object>} deliverStatus: Array of message delivery status objects.
- *          Each delivery status object contains:
- *            - {Date} deliverAt: The date when the message was delivered.
- *            - {Object} user: Details of the user who received the message.
- *              - {string} userId: The unique ID of the user.
- *              - {string} username: The username of the user.
- *              - {string} image: The URL of the user's profile image.
- *              - {Date} createdAt: The date when the user account was created.
- *        - {Array<Object>} seenStatus: Array of message seen status objects.
- *          Each seen status object contains:
- *            - {Date} seenAt: The date when the message was seen by the user.
- *            - {Object} user: Details of the user who saw the message.
- *              - {string} userId: The unique ID of the user.
- *              - {string} username: The username of the user.
- *              - {string} image: The URL of the user's profile image.
- *              - {Date} createdAt: The date when the user account was created.
  * @throws {Error} Throws an error if fetching messages fails.
  */
 export const getMessages = async (currentUserId, conversationId, page) => {
   const BATCH_SIZE = 20;
   try {
-    // Find 20 and count all messages
     const messages = await db.Message.findAll({
       where: { conversationId },
-      offset: page,
+      offset: page, // Calculate the offset based on the page number
       limit: BATCH_SIZE + 1, // Fetch a batch of 20 messages for pagination
       include: [
         {
@@ -465,6 +436,7 @@ export const getMessages = async (currentUserId, conversationId, page) => {
       paranoid: false
     });
 
+    // Check if there are more messages to load
     let hasNextPage = false;
     if (messages.length > BATCH_SIZE) {
       hasNextPage = true;
@@ -516,6 +488,10 @@ export const getMessages = async (currentUserId, conversationId, page) => {
       };
     });
 
+    /**
+     * @example
+     * { hasNextPage: true/false, items: [ {...message1}, {...message2}, {...message3} ] }
+     */
     return { hasNextPage, items: formatedMessage };
   } catch (err) {
     return { error: err };

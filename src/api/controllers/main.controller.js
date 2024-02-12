@@ -142,13 +142,13 @@ export const deleteAccount = [
  * Route handler for creating a conversation.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - otherUserId: The ID of the user to start the conversation with.
  * - isGroup: A boolean indicating whether the conversation is a group conversation.
- * - members: An array of user IDs representing the members of the conversation (for group conversations).
- * - name: The name of the conversation (for group conversations).
+ * - members:  An array of userIds representing the members participating in the conversation (excluding the current user).
+ * - name: (Optional) The name of the conversation (applicable for group conversations).
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Validates the request body against the createConversationSchema.
  * 2. Creates a new conversation using the addConversation function.
  * 3. If an error occurs during the process, it is passed to the error handling middleware.
  * 4. If the conversation creation is successful, the created conversation object is sent in the response.
@@ -157,12 +157,13 @@ export const createConversation = [
   isAuthExpress,
   validation(createConversationSchema),
   async (req, res, next) => {
-    const { otherUserId, isGroup, members, name } = req.body;
+    const { isGroup, members, name } = req.body;
     const { sockets } = req.user;
 
     const { conversation, error } = await conversationService.addConversation(
       req.user.userId,
-      !isGroup ? sockets.includes(otherUserId) : false, // checks if a conversation aready exists with the other user, excluding group chats
+      // If the conversation is a one-to-one conversation, checks if a conversation already exists with the other member.
+      !isGroup ? sockets.includes(members[0]) : false,
       name,
       members,
       isGroup

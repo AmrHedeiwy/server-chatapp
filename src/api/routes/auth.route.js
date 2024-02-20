@@ -11,34 +11,27 @@ router.post('/register', authController.register);
 
 /**
  * Sends a request to initiate email verification for a user.
- * Endpoint: POST /auth/request-email-verification
+ * Endpoint: POST /auth/email/verify/request
  */
-router.post('/verify-email-request', authController.verifyEmailRequest);
+router.post('/email/verify/request', authController.verifyEmailRequest);
 
 /**
  * Verifies the user's email using the verification code.
- * Endpoint: POST /auth/verify-email
+ * Endpoint: PATCH /auth/email/verify
  */
-router.post('/verify-email', authController.verifyEmail);
+router.patch('/email/verify', authController.verifyEmail);
 
 /**
  * Sends a request to initiate the password reset process.
- * Endpoint: POST /auth/forgot-password
+ * Endpoint: POST /auth/password/forgot
  */
-router.post('/forgot-password', authController.forgotPasswordRequest);
+router.post('/password/forgot', authController.forgotPasswordRequest);
 
 /**
  * Resets the user's password using the reset token and new password.
- * Endpoint: POST /auth/reset-password
+ * Endpoint: PATCH /auth/password/reset
  */
-router.post('/reset-password', authController.resetPassword);
-
-/**
- *
- * Retrieves user session information for a specific page.
- * Endpoint: GET /auth/info/:Page
- */
-router.get('/session', authController.getSession);
+router.patch('/password/reset', authController.resetPassword);
 
 /**
  * Authenticates a user by signing them in.
@@ -47,10 +40,16 @@ router.get('/session', authController.getSession);
 router.post('/sign-in', authController.signIn);
 
 /**
- * Signs out a user.
- * Endpoint: POST /auth/sign-out
+ * Retrieves the user's session.
+ * Endpoint: GET /auth/session
  */
-router.post('/sign-out', authController.signOut);
+router.get('/session', authController.getSession);
+
+/**
+ * Signs out a user.
+ * Endpoint: GET /auth/sign-out
+ */
+router.get('/sign-out', authController.signOut);
 
 /**
  * Initiates the Facebook sign-up process.

@@ -34,7 +34,8 @@ const corsOptions = {
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-  cors: corsOptions
+  cors: corsOptions,
+  maxHttpBufferSize: 5 * 1024 * 1024
 });
 
 app.use(cors(corsOptions));
@@ -86,22 +87,34 @@ io.use(wrapper(sessionMiddleware));
 io.use(isAuthSocket);
 io.use(initializeUser);
 
+io.use((socket, next) => {
+  // Check if the socket is authenticated for each event
+  socket.onAny(() => {
+    if (!socket.user) {
+      return next(new Error('authentication_error'));
+    }
+  });
+  next();
+});
+
 io.on('connection', async (socket) => {
   // when a user connects
-  handleConnect(io, socket);
+  handleConnect(socket);
 
   // when a message is sent
-  socket.on('sendMessage', (data, cb) => handleMessage(socket, data, cb));
+  socket.on('send_message', (data, cb) => handleMessage(socket, data, cb));
 
   // when a message is delivered to a user
   socket.on('update_status', (data) => handleMessageStatus(socket, data));
 
-  socket.on('edit_message', (data) => handleMessageEdit(socket, data));
+  socket.on('edit_message', (data, cb) => handleMessageEdit(socket, data, cb));
 
-  socket.on('delete_message', (data) => handleDeleteMessage(socket, data));
+  socket.on('delete_message', (data, cb) =>
+    handleDeleteMessage(socket, data, cb)
+  );
 
   // when a user disconnects
-  socket.on('disconnect', () => handleDisconnect(io, socket));
+  socket.on('disconnect', () => handleDisconnect(socket));
 });
 
 export { server, io };

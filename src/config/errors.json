@@ -1,86 +1,77 @@
 {
-  "validations": {
-    "messages": {
+  "auth": {
+    "validations": {
       "firstname": "First name can only contain letters, and must be between 2 and 30 characters long",
       "lastname": "Last name can only contain letters, and must be between 2 and 30 characters long",
       "username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
       "email": "Please enter a valid email address in the format example@example.com.",
       "password": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character from the set @$!%?&.",
       "confirmPassword": "Passwords do not match. Please try again.",
-      "termsOfAgreement": "You must agree before submitting.",
-      "contactId": "contactId is required",
-      "action": "action must either be 'add' or 'remove'"
+      "termsOfAgreement": "You must agree before submitting."
     },
-    "status": 400
-  },
-  "constraints": {
-    "messages": {
+    "constraints": {
       "email": "Sorry, that email address is already in use."
     },
-    "status": 422
+    "sign_in": {
+      "local_message": "Invalid email or password.",
+      "facebook_redirect": "/cb/facebook/error",
+      "google_redirect": "/cb/google/error"
+    },
+    "mailer": {
+      "message": "We're sorry, but we were unable to send an email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
+      "redirect": "/"
+    },
+    "user_not_found": {
+      "message": "User not found. Please make sure that the account exists."
+    },
+    "verification_code": {
+      "message": "The verification code you entered is either invalid or has expired."
+    },
+    "password": {
+      "forgot": {
+        "message": "Unable to reset password. Please use the password recovery options provided by the social media platform used to create your account."
+      },
+      "reset": {
+        "message": "Oops! Your reset password link is invalid or has expired.",
+        "redirect": "/password/forgot"
+      }
+    }
   },
-  "sign_in_email": {
-    "message": "Invalid email or password.",
-    "status": 400
+  "main": {
+    "validations": {
+      "memberIds": "At least one member is required to initiate conversation.",
+      "name": "The conversation name must be at least 2 characters long."
+    },
+    "user": {
+      "change_password": { "message": "Current password is incorrect." },
+      "delete_account": { "message": "Inncorrect email." }
+    }
   },
-  "sign_in_provider": {
-    "message": "Error selecting social media account. Please try again or choose another platform.",
-    "status": 500,
-    "facebook_redirect": "/cb/facebook/error",
-    "google_redirect": "/cb/google/error"
-  },
-  "mailer": {
-    "message": "We're sorry, but we were unable to send an email to the email address you provided. Please ensure that the email address is correct and try again. If the problem persists, please contact our support team for assistance.",
-    "status": 500,
-    "redirect": "/"
-  },
-  "user_not_found": {
-    "message": "User not found. Please make sure that the account exists.",
-    "status": 404
-  },
-  "verification_code": {
-    "message": "The verification code you entered is either invalid or has expired.",
-    "status": 400
-  },
-  "forgot_password": {
-    "message": "Unable to reset password. Please use the password recovery options provided by the social media platform used to create your account.",
-    "status": 400
-  },
-  "reset_password_ink": {
-    "message": "Oops! Your reset password link is invalid or has expired.",
-    "status": 400,
-    "redirect": "/password/forgot"
-  },
-  "change_password": {
-    "message": "Current password is incorrect.",
-    "status": 400
-  },
-  "rate_limit": {
-    "messages": {
+  "server": {
+    "rate_limit": {
       "/register": "There have been too many registration requests. Please try again later.",
-      "/verify-email-request": "You have reached the limit for sending verification codes. Please try again later.",
-      "/verify-email": "Too many attempts have been made. Please try again later.",
-      "/forgot-password": "Too many password reset attempts have been made. Please try again later.",
-      "/reset-password": "Too many attempts have been made. Please try again later.",
+      "/email/verify/request": "You have reached the limit for sending verification codes. Please try again later.",
+      "/email/verify": "Too many attempts have been made. Please try again later.",
+      "/password/forgot": "Too many password reset attempts have been made. Please try again later.",
+      "/password/reset": "Too many attempts have been made. Please try again later.",
       "/sign-in": "Too many sign in attempts. Please try again later.",
       "/edit": "You have exceeded the limit for profile modifications. Please try again later.",
-      "/change-password": "You have exceeded the limit for changing your password. Please try again later."
+      "/password/change": "You have exceeded the limit for changing your password. Please try again later."
     },
-    "status": 429
-  },
-  "image": {
-    "messages": {
-      "file-format": "Invalid file format. Please upload an image file.",
-      "file-to-large": "File too large."
+    "file": {
+      "type": "Invalid file format.",
+      "size": "File too large."
     },
-    "status": 400
+    "unexpected": {
+      "message": "Oops, something went wrong. Please try again later or contact support if the problem persists."
+    }
   },
-  "remove_account": {
-    "message": "Inncorrect email.",
-    "status": 400
-  },
-  "unexpected": {
-    "message": "Oops, something went wrong. Please try again later or contact support if the problem persists.",
-    "status": 500
+  "status": {
+    "invalid_request": 400,
+    "unauthorized_access": 401,
+    "not_found": 404,
+    "unprocessable_entity": 422,
+    "too_many_requests": 429,
+    "unexpected": 500
   }
 }

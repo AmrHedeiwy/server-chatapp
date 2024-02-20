@@ -1,6 +1,10 @@
+import { io } from '../../app.js';
+import cloudinary from '../../lib/cloudinary.js';
 import { redisClient } from '../../lib/redis-client.js';
 import db from '../models/index.js';
 import { Op } from 'sequelize';
+import errorsJson from '../../config/errors.json' assert { type: 'json' };
+import { uploader } from '../../lib/uploader.js';
 
 /**
  * Initializes the user associated with the socket.
@@ -15,74 +19,87 @@ import { Op } from 'sequelize';
  * @param {Function} next - The next function to be called in the middleware chain.
  */
 export const initializeUser = async (socket, next) => {
-  // Set the socket id to the user ID stored in the session
-  socket.id = socket.request.session.passport?.user.userId;
+  try {
+    // Set the socket id to the user ID stored in the session
+    socket.id = socket.request.session.passport?.user.userId;
 
-  // Retrieve user object from Redis cache
-  let user = JSON.parse(await redisClient.get(`user_data:${socket.id}`));
+    // Retrieve user object from Redis cache
+    let user = JSON.parse(await redisClient.get(`user_data:${socket.id}`));
 
-  // If user object not found in cache, fetch from database
-  if (!user) {
-    user = (
-      await db.User.findByPk(socket.id, {
-        attributes: [
-          'userId',
-          'email',
-          'username',
-          'image',
-          'googleId',
-          'facebookId',
-          'lastVerifiedAt',
-          'createdAt'
-        ],
-        include: [
-          {
-            model: db.Conversation,
-            as: 'conversations',
-            attributes: ['conversationId'],
-            include: {
+    // If user object not found in cache, fetch from database
+    if (!user) {
+      user = (
+        await db.User.findByPk(socket.id, {
+          attributes: [
+            'userId',
+            'email',
+            'username',
+            'image',
+            'googleId',
+            'facebookId',
+            'createdAt',
+            'isVerified'
+          ],
+          include: [
+            {
+              model: db.Conversation,
+              as: 'conversations',
+              attributes: ['conversationId', 'isGroup'],
+              include: {
+                model: db.Member,
+                as: 'members',
+                attributes: ['userId'],
+                where: { userId: { [Op.ne]: socket.id } }
+              }
+            },
+            {
               model: db.User,
-              as: 'members',
-              attributes: ['userId'],
-              where: { userId: { [Op.ne]: socket.id } }
+              as: 'contacts',
+              attributes: ['userId']
             }
-          },
-          {
-            model: db.User,
-            as: 'contacts',
-            attributes: ['userId']
-          }
-        ]
-      })
-    )?.dataValues;
+          ]
+        })
+      )?.dataValues;
 
-    // Initialize sockets, conversations, and contacts arrays in the user object
-    user.sockets = [];
-    user.conversations = [];
-    user.contacts = [];
+      const socketIds = new Set();
+      const conversationIds = new Set();
+      const contactIds = new Set();
 
-    user.conversations = user.conversations.map((conversation) => {
-      if (!conversation.isGroup)
-        user.sockets.push(conversation.users[0].userId);
-      return conversation.dataValues.conversationId;
-    });
+      user.conversations.forEach((conversation) => {
+        if (!conversation.dataValues.isGroup) {
+          socketIds.add(conversation.members[0].userId);
+        }
 
-    user.contacts = user.contacts.map((contact) => contact.dataValues.userId);
+        conversationIds.add(conversation.dataValues.conversationId);
+      });
 
-    // Store the fetched user data in the cache for future use
-    await redisClient.setEx(
-      `user_data:${socket.id}`,
-      60 * 60 * 24, // Cache expiration time set to 1 day
-      JSON.stringify({ ...user })
-    );
+      user.contacts.forEach((contact) =>
+        contactIds.add(contact.dataValues.userId)
+      );
+
+      user.socketIds = Array.from(socketIds);
+      user.conversationIds = Array.from(conversationIds);
+      user.contactIds = Array.from(contactIds);
+
+      delete user.conversations;
+      delete user.contacts;
+      // Store the fetched user data in the cache for future use
+      await redisClient.setEx(
+        `user_data:${socket.id}`,
+        60 * 60 * 24, // Cache expiration time set to 1 day
+        JSON.stringify({ ...user })
+      );
+    }
+
+    socket.user = user;
+
+    socket.join(socket.id);
+    socket.join(socket.user.conversationIds);
+
+    next();
+  } catch (err) {
+    console.error('INIT_SOCKET', err);
   }
-
-  socket.user = user;
-
-  socket.join(socket.id);
-  socket.join(socket.user.conversations);
-
-  next();
 };
 
 /**
@@ -99,45 +116,49 @@ export const initializeUser = async (socket, next) => {
  *
  * @returns {Promise<void>} A Promise indicating the completion of the operation.
  */
-export const handleConnect = async (io, socket) => {
-  const { sockets, conversations, userId } = socket.user;
+export const handleConnect = async (socket) => {
+  const { socketIds, conversationIds, userId } = socket.user;
 
-  const undeliveredMessages = await db.Conversation.findAll({
-    where: {
-      conversationId: { [Op.in]: conversations },
-      '$messages.status.userId$': { [Op.eq]: userId },
-      '$messages.status.deliverAt$': { [Op.eq]: null }
-    },
-    include: [
-      {
-        model: db.Message,
-        as: 'messages',
-        include: [
-          {
-            model: db.MessageStatus,
-            as: 'status'
-          },
-          {
-            model: db.User,
-            as: 'sender'
-          }
-        ]
-      }
-    ],
-    order: [[{ model: db.Message, as: 'messages' }, 'sentAt', 'DESC']]
-  });
+  try {
+    const undeliveredMessages = await db.Conversation.findAll({
+      where: {
+        conversationId: { [Op.in]: conversationIds },
+        '$messages.status.userId$': { [Op.eq]: userId },
+        '$messages.status.deliverAt$': { [Op.eq]: null }
+      },
+      include: [
+        {
+          model: db.Message,
+          as: 'messages',
+          include: [
+            {
+              model: db.MessageStatus,
+              as: 'status'
+            },
+            {
+              model: db.User,
+              as: 'sender'
+            }
+          ]
+        }
+      ],
+      order: [[{ model: db.Message, as: 'messages' }, 'sentAt', 'DESC']]
+    });
 
-  if (undeliveredMessages.length !== 0)
-    io.to(socket.id).emit('undelivered_messages', undeliveredMessages);
+    if (undeliveredMessages.length !== 0)
+      io.to(socket.id).emit('undelivered_messages', undeliveredMessages);
 
-  const onlineSockets = sockets.filter((socketId) =>
-    io.sockets.adapter.rooms.has(socketId)
-  );
+    const onlineSockets = socketIds.filter((socketId) =>
+      io.sockets.adapter.rooms.has(socketId)
+    );
 
-  io.to(socket.id).emit('connected', true, onlineSockets);
+    io.to(socket.id).emit('connected', true, onlineSockets);
 
-  if (onlineSockets.length > 0) {
-    io.to(onlineSockets).emit('connected', true, [socket.id]);
+    if (onlineSockets.length > 0) {
+      io.to(onlineSockets).emit('connected', true, [socket.id]);
+    }
+  } catch (error) {
+    console.error('SOCKET_CONNECT_EVENT_ERROR', error);
   }
 };
 
@@ -151,15 +172,19 @@ export const handleConnect = async (io, socket) => {
  * @param {object} io - The socket.io instance.
  * @param {object} socket - The socket instance that disconnected.
  */
-export const handleDisconnect = async (io, socket) => {
-  const sockets = socket.user.sockets;
+export const handleDisconnect = async (socket) => {
+  const socketIds = socket.user.socketIds;
 
-  const onlineSockets = sockets.filter((socketId) =>
-    io.sockets.adapter.rooms.has(socketId)
-  );
+  try {
+    const onlineSockets = socketIds.filter((socketId) =>
+      io.sockets.adapter.rooms.has(socketId)
+    );
 
-  if (onlineSockets.length > 0) {
-    io.to(onlineSockets).emit('connected', false, [socket.id]);
+    if (onlineSockets.length > 0) {
+      io.to(onlineSockets).emit('connected', false, [socket.id]);
+    }
+  } catch (error) {
+    console.error('SOCKET_DISCONNECT_EVENT_ERROR', error);
   }
 };
 
@@ -176,56 +201,78 @@ export const handleDisconnect = async (io, socket) => {
  * @param {Function} cb - A callback function to be executed after message handling to notify the sender that the message was recieved by the server.
  */
 export const handleMessage = async (socket, data, cb) => {
-  const {
-    conversationId,
-    messageId,
-    sentAt,
-    content,
-    fileUrl,
-    intialMessageStatus
-  } = data;
-
-  const { userId, username, image, createdAt } = socket.user;
-
-  await db.Message.create(
-    {
+  try {
+    const {
       conversationId,
       messageId,
-      senderId: socket.id,
+      sentAt,
+      content,
+      file,
+      intialMessageStatus
+    } = data;
+
+    const { userId, username, image, createdAt } = socket.user;
+
+    let fileUrl = null;
+    if (!!file) {
+      const folder = !!file.type.match(/(jpg|jpeg|png)/)
+        ? 'image'
+        : file.type === 'pdf'
+        ? 'pdf'
+        : null;
+
+      if (!folder) throw new Error('Invalid file type');
+      if (file.size > 4 * 1024 * 1024) throw new Error('File too large');
+
+      const { secure_url, error } = await uploader(null, file.data, folder);
+      if (error) throw error;
+
+      fileUrl = secure_url;
+    }
+
+    await db.Message.create(
+      {
+        conversationId,
+        messageId,
+        senderId: socket.id,
+        sentAt,
+        updatedAt: sentAt,
+        content: content ?? null,
+        fileUrl: fileUrl ?? null,
+        status: Object.keys(intialMessageStatus).map((userId) => {
+          return { userId };
+        })
+      },
+      {
+        include: [
+          {
+            model: db.MessageStatus,
+            as: 'status'
+          }
+        ]
+      }
+    );
+
+    await db.Conversation.update(
+      { lastMessageAt: sentAt },
+      { where: { conversationId } }
+    );
+
+    socket.to(conversationId).emit('new_message', {
+      conversationId,
+      messageId,
+      sender: { userId, username, image, createdAt },
       sentAt,
       updatedAt: sentAt,
-      content: content ?? null,
-      fileUrl: fileUrl ?? null,
-      status: Object.keys(intialMessageStatus).map((userId) => {
-        return { userId };
-      })
-    },
-    {
-      include: [
-        {
-          model: db.MessageStatus,
-          as: 'status'
-        }
-      ]
-    }
-  );
+      ...(!!content && { content }),
+      ...(!!fileUrl && { fileUrl })
+    });
 
-  await db.Conversation.update(
-    { lastMessageAt: sentAt },
-    { where: { conversationId } }
-  );
-
-  socket.to(conversationId).emit('new_message', {
-    conversationId,
-    messageId,
-    sender: { userId, username, image, createdAt },
-    sentAt,
-    updatedAt: sentAt,
-    ...(!!content && { content }),
-    ...(!!fileUrl && { fileUrl })
-  });
-
-  cb();
+    cb({ ...(fileUrl && { fileUrl }) });
+  } catch (error) {
+    console.error('SOCKET_MESSAGE_EVENT_ERROR', error);
+    cb({ error: { message: errorsJson.server.unexpected.message } });
+  }
 };
 
 /**
@@ -256,42 +303,46 @@ export const handleMessage = async (socket, data, cb) => {
  *                            }
  */
 export const handleMessageStatus = async (socket, data) => {
-  if (data.messageId !== undefined) {
-    socket.to(data.senderId).emit('set_status', data, socket.user.userId);
-  }
+  try {
+    if (data.messageId !== undefined) {
+      socket.to(data.senderId).emit('set_status', data, socket.user.userId);
+    }
 
-  if (data.messages !== undefined) {
-    data.messages.forEach((message) => {
-      socket.to(message.sender.userId).emit(
-        'set_status',
-        {
-          conversationId: message.conversationId,
-          messageId: message.messageId,
-          ...(data.type === 'deliver'
-            ? { deliverAt: data.deliverAt }
-            : { seenAt: data.seenAt }),
-          type: data.type
-        },
-        socket.user.userId
-      );
-    });
-  }
+    if (data.messages !== undefined) {
+      data.messages.forEach((message) => {
+        socket.to(message.sender.userId).emit(
+          'set_status',
+          {
+            conversationId: message.conversationId,
+            messageId: message.messageId,
+            ...(data.type === 'deliver'
+              ? { deliverAt: data.deliverAt }
+              : { seenAt: data.seenAt }),
+            type: data.type
+          },
+          socket.user.userId
+        );
+      });
+    }
 
-  await db.MessageStatus.update(
-    {
-      ...(data.type === 'deliver'
-        ? { deliverAt: data.deliverAt }
-        : { seenAt: data.seenAt })
-    },
-    {
-      where: {
-        userId: socket.user.userId,
-        messageId: data.messageId || {
-          [Op.in]: data.messages.map((message) => message.messageId)
+    await db.MessageStatus.update(
+      {
+        ...(data.type === 'deliver'
+          ? { deliverAt: data.deliverAt }
+          : { seenAt: data.seenAt })
+      },
+      {
+        where: {
+          userId: socket.user.userId,
+          messageId: data.messageId || {
+            [Op.in]: data.messages.map((message) => message.messageId)
+          }
         }
       }
-    }
-  );
+    );
+  } catch (error) {
+    console.error('SOCKET_STATUS_EVENT_ERROR', error);
+  }
 };
 
 /**
@@ -305,14 +356,21 @@ export const handleMessageStatus = async (socket, data) => {
  *                        - `content`: A string representing the updated content of the message.
  *                        - `conversationId`: A string representing the unique identifier of the conversation to which the message belongs.
  */
-export const handleMessageEdit = async (socket, data) => {
-  const { messageId, updatedAt, memberIds, content, conversationId } = data;
+export const handleMessageEdit = async (socket, data, cb) => {
+  const { messageId, updatedAt, content, conversationId } = data;
 
-  await db.Message.update({ content, updatedAt }, { where: { messageId } });
+  try {
+    await db.Message.update({ content, updatedAt }, { where: { messageId } });
 
-  socket
-    .to(conversationId)
-    .emit('update_message', { messageId, content, conversationId });
+    socket
+      .to(conversationId)
+      .emit('update_message', { messageId, content, conversationId });
+
+    cb();
+  } catch (error) {
+    console.error('SOCKET_EDIT_EVENT_ERROR', error);
+    cb({ message: errorsJson.server.unexpected.message });
+  }
 };
 
 /**
@@ -325,12 +383,19 @@ export const handleMessageEdit = async (socket, data) => {
  *                        - `deletedAt`: A Date object or a string representing the timestamp when the message was soft deleted.
  *                        Soft deletion means marking the message as deleted in the database without physically removing it.
  */
-export const handleDeleteMessage = async (socket, data) => {
+export const handleDeleteMessage = async (socket, data, cb) => {
   const { messageId, conversationId, deletedAt } = data;
 
-  await db.Message.destroy({ where: { messageId } });
+  try {
+    await db.Message.destroy({ where: { messageId } });
 
-  socket
-    .to(conversationId)
-    .emit('remove_message', { messageId, conversationId, deletedAt });
+    socket
+      .to(conversationId)
+      .emit('remove_message', { messageId, conversationId, deletedAt });
+
+    cb();
+  } catch (error) {
+    console.error('SOCKET_DELETE_EVENT_ERROR', error);
+    cb({ message: errorsJson.server.unexpected.message });
+  }
 };

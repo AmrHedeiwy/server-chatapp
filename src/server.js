@@ -1,4 +1,3 @@
-import scheduledTasks from './lib/taskSchedule.js';
 // Importing the Sequelize instnace
 import db from './api/models/index.js';
 
@@ -13,7 +12,7 @@ const port = process.env.PORT || 5000;
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync();
+  await db.sequelize.sync({ logging: false });
 
   /*db.User.bulkCreate([
     {
@@ -21,7 +20,7 @@ const port = process.env.PORT || 5000;
       email: 'amr.hedeiwy@gmail.com',
       password: 'amr@AMR123',
       confirmPassword: 'amr@AMR123',
-      lastVerifiedAt: new Date()
+      isVerified: true
     },
     {
       username: 'amr',
@@ -127,7 +126,6 @@ const port = process.env.PORT || 5000;
     }
   ]); */
 
-  scheduledTasks();
   server.listen(port, () => {
     console.log(`server running on port: ${port}`);
   });

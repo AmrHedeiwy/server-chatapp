@@ -17,14 +17,14 @@ router.put('/edit', mainController.edit);
 
 /**
  * Changes the user's password.
- * Endpoint: PATCH /users/change-password
+ * Endpoint: PATCH /users/password/change
  */
-router.patch('/change-password', mainController.changePassword);
+router.patch('/password/change', mainController.changePassword);
 
 /**
  * Deletes the user's account.
- * Endpoint: DElETE /users/delete-account
+ * Endpoint: DElETE /users/delete
  */
-router.delete('/delete-account', mainController.deleteAccount);
+router.delete('/delete', mainController.deleteAccount);
 
 export default router;

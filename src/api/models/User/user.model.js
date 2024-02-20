@@ -14,7 +14,6 @@ export default (sequelize, DataTypes) => {
    * one lowercase letter, one digit, and one special character from the set @$!%?&.
    * @property {string} image - The user's profile image (optional).
    * @property {boolean} isVerified - Indicates if the user's email has been verified. Defaults to false.
-   * @property {Date} lastVerifiedAt - The timestamp of the last email verification. Null if the user has never been verified.
    * @property {Date} createdAt - The date when the user registered their account.
    */
   class User extends Model {}
@@ -53,9 +52,9 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true
       },
-      lastVerifiedAt: {
-        type: DataTypes.DATE,
-        allowNull: true
+      isVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -63,7 +62,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('createdAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }

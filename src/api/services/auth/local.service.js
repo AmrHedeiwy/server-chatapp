@@ -40,10 +40,10 @@ const localStrategy = new Strategy(
       // if (!isMatch) throw new SignInError();
 
       return done(null, user.dataValues.userId, {
-        status: successJson.sign_in.status,
-        redirect: !user.dataValues.lastVerifiedAt
-          ? successJson.sign_in['verify-email-redirect']
-          : successJson.sign_in['local-redirect']
+        status: successJson.status.ok,
+        redirect: !user.dataValues.isVerified
+          ? successJson.auth.post.sign_in['verify-email-redirect']
+          : successJson.auth.post.sign_in['local-redirect']
       });
     } catch (err) {
       return done(err);

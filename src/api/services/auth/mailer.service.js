@@ -12,16 +12,19 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 /**
  * Sends an email to a user with the specified type, recipient details, and options.
  *
- * @param {string} type - Weather the email is for 'verification-code' or 'forgot-password'.
+ * @param {string} type - Weather the email is for 'verification_code' or 'forgot_password'.
  * @param {string} username - Used in the email context.
  * @param {string} email - The email to send to.
  * @param {object} options - Additional options for the email.
- * @param {string} options.verificationCode - The verification code for email verification (required when type is 'verification-code').
- * @param {string} options.useridToken - The user ID token for password reset (required when type is 'forgot-password').
+ * @param {string} options.verificationCode - The verification code for email verification (required when type is 'verification_code').
+ * @param {string} options.useridToken - The user ID token for password reset (required when type is 'forgot_password').
  * @returns {Promise<Object>} The success response with the message, status and redirect URL if needed.
  * @throws {EmailError} - A failed object if an error occurred during the sending operation.
  */
 const mailer = async (type, username, email, options) => {
+  if (type !== 'verification_code' && type !== 'forgot_password')
+    throw new Error('Invalid email type: ', type);
+
   let msg = {
     to: email,
     from: 'amr.hedeiwy@gmail.com',
@@ -30,7 +33,7 @@ const mailer = async (type, username, email, options) => {
   };
 
   // Construct the email message based on the type
-  if (type === 'verification-code') {
+  if (type === 'verification_code') {
     msg.subject = `Verification Code: ${options.verificationCode}`;
     msg.html = `
       <p>Hello ${username},</p>
@@ -41,12 +44,12 @@ const mailer = async (type, username, email, options) => {
       <p>Best regards,</p>
       <p>[APP_NAME] Team</p>
     `;
-  } else if (type === 'forgot-password') {
+  } else {
     msg.subject = 'Password Reset Request';
     msg.html = `
       <p>Dear ${username},</p>
       <p>We received a request to reset the password for your account. To proceed with the password reset, please click the link below:</p>
-      <a href="${process.env.CLIENT_URL}/reset-password/token=${options.useridToken}" target="_blank" style="style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px;">Reset Password</a>
+      <a href="${process.env.CLIENT_URL}/password/reset/${options.useridToken}" target="_blank" style="style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px;">Reset Password</a>
       <p>If you didn't request this password reset or if you believe this request is in error, please disregard this email. Your password will remain unchanged.</p>
       <p>If you have any questions or need further assistance, please don't hesitate to contact our support team at [Support Email].</p>
       <p>Thank you,</p>
@@ -59,11 +62,8 @@ const mailer = async (type, username, email, options) => {
     await sgMail.send(msg);
 
     return {
-      message: successJson.mailer.messages[type],
-      status: successJson.mailer.status,
-      ...(type === 'email-verification'
-        ? { redirect: successJson.mailer.redirect['verify-email'] }
-        : null)
+      ...successJson.auth.post.mailer[type],
+      status: successJson.status.ok
     };
   } catch (err) {
     console.error('MAILER ERROR', err);

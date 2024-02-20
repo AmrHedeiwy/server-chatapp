@@ -31,6 +31,7 @@ export default (User) => {
   User.afterSave(async (user) => {
     if (user.changed('email')) {
       const { username, userId, email } = user;
+      console.log(user);
 
       // Generate a 6-digit verification code.
       const verificationCode = crypto.randomInt(100000, 999999).toString();
@@ -43,8 +44,8 @@ export default (User) => {
       );
 
       // Send the verification code to the email.
-      const { failed } = await mailerService(
-        'verification-code',
+      const { error } = await mailerService(
+        'verification_code',
         username,
         email,
         {
@@ -52,7 +53,8 @@ export default (User) => {
         }
       );
 
-      if (failed) throw { error: failed };
+      console.log(error);
+      if (error) throw { error };
     }
   });
 };

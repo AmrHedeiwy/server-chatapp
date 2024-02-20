@@ -2,79 +2,68 @@ import { Op } from 'sequelize';
 import db from '../../models/index.js';
 import sequelize from 'sequelize';
 import { redisClient } from '../../../lib/redis-client.js';
+import successJson from '../../../config/success.json' assert { type: 'json' };
+import { MissingSystemDataError } from '../../helpers/ErrorTypes.helper.js';
 
-export const fetchContacts = async (currentUserId) => {
+/**
+ * Fetches contacts based on the provided contact IDs.
+ *
+ * @param {Array<string>} contactIds - An array of contact IDs to fetch.
+ * @returns {Promise<{ status: string, contacts: { [userId: string]: { userId: string, username: string, image: string, createdAt: Date } } } | { error: Error }>} 
+    A promise resolving to an object containing fetched contacts or an error object.
+ */
+export const fetchContacts = async (contactIds) => {
   try {
-    const contacts = await db.Contact.findAll(
-      {
-        addedBy: { [Op.eq]: currentUserId }
-      },
+    const contacts = await db.User.findAll({
+      where: { userId: { [Op.in]: contactIds } },
+      attributes: ['userId', 'username', 'image', 'createdAt']
+    });
 
-      {
-        include: [
-          {
-            model: db.User,
-            as: 'contact'
-          }
-        ]
-      }
-    );
+    const groupedContacts =
+      contacts.length > 0
+        ? contacts.reduce((acc, contact) => {
+            acc[contact.dataValues.userId] = contact;
 
-    return { contacts: contacts.length > 0 ? contacts : null };
+            return acc;
+          }, {})
+        : null;
+
+    return {
+      status: successJson.status.ok,
+      contacts: groupedContacts
+    };
   } catch (err) {
     return { error: err };
   }
 };
 
 /**
- * Fetches users based on the provided query.
- * @param {string} currentUserId - Used to indicate if the fetched users are a contact of the current user.
- * @param {string} currentUsername - To filter out the current user's username from being fetched.
+ * Fetches users based on the provided query and pagination parameters, excluding the current user.
+ * 
+ * @param {string} currentUserId - The ID of the current user.
  * @param {string} query - The search query to filter users by username.
  * @param {number} page - The page number for pagination.
- * @returns {Object} Object containing the total count of users and the fetched users.
- *    - {number} count: The total count of users matching the query.
- *    - {Array<Object>} items: The array of user objects matching the query.
- *      Each user object contains the following properties:
- *        - {string} userId: The unique ID of the user.
- *        - {string} username: The username of the user.
- *        - {string} email: The email address of the user.
- *        - {string} image: The image URL of the user.
- *        - {Date} createdAt: The date when the user account was created.
- *        - {boolean} isContact: Indicates whether the user is a contact of the current user.
+ * @returns {Promise<{ status: number, hasNextPage: boolean, items: Array<{ userId: string, username: string, image: string, createdAt: Date }> } | { error: Error }>} 
+    A promise resolving to an object containing fetched users, pagination info, or an error object.
+ * @throws {MissingSystemDataError} If query or page is missing.
  */
-export const fetchUsers = async (
-  currentUserId,
-  currentUsername,
-  query,
-  page
-) => {
+export const fetchUsers = async (currentUserId, query, page) => {
   try {
+    if (!query || page === undefined) {
+      throw new MissingSystemDataError('FETCH_USERS', {
+        query,
+        page
+      });
+    }
+
     const BATCH_SIZE = 10;
     // Find and count all users based on the provided query
     const users = await db.User.findAll({
-      attributes: [
-        'userId',
-        'username',
-        'email',
-        'image',
-        'createdAt',
-        // Include a column to indicate whether the user is a contact of the current user
-        [
-          db.sequelize.literal(
-            `EXISTS (
-            SELECT 1 
-            FROM "contacts" 
-            WHERE "contacts"."contactId" = "User"."userId" 
-            AND "contacts"."addedById" = '${currentUserId}')`
-          ),
-          'isContact'
-        ]
-      ],
+      attributes: ['userId', 'username', 'image', 'createdAt'],
       where: {
         [Op.and]: [
           { username: { [Op.iLike]: query + '%' } }, // Include everything that starts with the query
-          { username: { [Op.ne]: currentUsername } } // Exclude the current user fetching
+          { userId: { [Op.ne]: currentUserId } } // Exclude the current user fetching
         ]
       },
       offset: page,
@@ -89,45 +78,38 @@ export const fetchUsers = async (
     }
 
     // Return the total count of users and the fetched users
-    return { hasNextPage, items: users };
+    return { status: successJson.status.ok, hasNextPage, items: users };
   } catch (err) {
     return { error: err };
   }
 };
 
 /**
- * Manages contact actions such as adding or removing a contact for a user.
- * @param {string} action - The action to perform. Can be 'add' to add a contact or 'remove' to remove a contact.
- * @param {string} currentUserId - The ID of the user that added or removed a contact.
- * @param {string} contactId - The ID of the contact to add or remove.
- * @returns {Object} Object indicating success or failure of the action.
- *    - {boolean} isContact: Indicates if the contact was added (true) or removed (false).
- *    - {Error} error: An error object if the action failed.
+ * Sets a contact for the current user in the database.
+ *
+ * @param {string} currentUserId - The ID of the current user.
+ * @param {string} contactId - The ID of the contact to be set for the current user.
+ * @returns {Promise<{ status: string } | { error: Error }>} A promise resolving to a success object with status or an error object.
+ * @throws {MissingSystemDataError} If contactId is missing.
+ * @throws {UserNotFoundError} If a foreign key constraint error occurs during database operation.
  */
-export const manageContact = async (action, currentUserId, contactId) => {
+export const setContact = async (currentUserId, contactId) => {
   try {
-    // Perform action based on the specified action parameter
-    if (action === 'add') {
-      await db.Contact.create({
-        contactId,
-        addedById: currentUserId
-      });
+    if (!contactId) {
+      throw new MissingSystemDataError('SET_CONTACT', { contactId });
     }
 
-    if (action === 'remove') {
-      await db.Contact.destroy({
-        where: {
-          contactId,
-          addedById: currentUserId
-        }
-      });
-    }
+    await db.Contact.create({
+      contactId,
+      addedById: currentUserId
+    });
 
     // Clear user data cache
     await redisClient.del(`user_data:${currentUserId}`);
 
-    // Return success response
-    return { isContact: action === 'add' ? true : false };
+    return {
+      status: successJson.status.created
+    };
   } catch (err) {
     return {
       error:
@@ -138,4 +120,40 @@ export const manageContact = async (action, currentUserId, contactId) => {
   }
 };
 
-export default { fetchUsers, manageContact };
+/**
+ * Deletes a contact associated with the current user from the database.
+ *
+ * @param {string} currentUserId - The ID of the current user.
+ * @param {string} contactId - The ID of the contact to be deleted.
+ * @returns {Promise<{ status: string } | { error: Error }>} A promise resolving to a success object with status or an error object.
+ * @throws {MissingSystemDataError} If contactId is missing.
+ * @throws {UserNotFoundError} If a foreign key constraint error occurs during database operation.
+ */
+export const deleteContact = async (currentUserId, contactId) => {
+  try {
+    if (!contactId) {
+      throw new MissingSystemDataError('DELETE_CONTACT', { contactId });
+    }
+
+    await db.Contact.destroy({
+      where: {
+        contactId,
+        addedById: currentUserId
+      }
+    });
+
+    // Clear user data cache
+    await redisClient.del(`user_data:${currentUserId}`);
+
+    return {
+      status: successJson.status.no_content
+    };
+  } catch (err) {
+    return {
+      error:
+        err instanceof sequelize.ForeignKeyConstraintError
+          ? new UserNotFoundError() // Handle foreign key constraint error
+          : err // Unexpected errors
+    };
+  }
+};

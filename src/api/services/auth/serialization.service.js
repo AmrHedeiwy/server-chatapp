@@ -26,16 +26,16 @@ export const deserializeUser = async ({ userId }, done) => {
             'image',
             'googleId',
             'facebookId',
-            'lastVerifiedAt',
+            'isVerified',
             'createdAt'
           ],
           include: [
             {
               model: db.Conversation,
               as: 'conversations',
-              attributes: ['conversationId'],
+              attributes: ['conversationId', 'isGroup'],
               include: {
-                model: db.User,
+                model: db.Member,
                 as: 'members',
                 attributes: ['userId'],
                 where: { userId: { [Op.ne]: userId } }
@@ -50,15 +50,29 @@ export const deserializeUser = async ({ userId }, done) => {
         })
       )?.dataValues;
 
-      user.sockets = [];
+      const socketIds = new Set();
+      const conversationIds = new Set();
+      const contactIds = new Set();
 
-      user.conversations = user.conversations.map((conversation) => {
-        if (!conversation.isGroup)
-          user.sockets.push(conversation.members[0].userId);
-        return conversation.dataValues.conversationId;
+      user.conversations.forEach((conversation) => {
+        console.log(conversation.conversationId);
+        if (!conversation.dataValues.isGroup) {
+          socketIds.add(conversation.members[0].userId);
+        }
+
+        conversationIds.add(conversation.dataValues.conversationId);
       });
 
-      user.contacts = user.contacts.map((contact) => contact.dataValues.userId);
+      user.contacts.forEach((contact) =>
+        contactIds.add(contact.dataValues.userId)
+      );
+
+      user.socketIds = Array.from(socketIds);
+      user.conversationIds = Array.from(conversationIds);
+      user.contactIds = Array.from(contactIds);
+
+      delete user.conversations;
+      delete user.contacts;
 
       // Store the fetched user data in the cache for future use
       await redisClient.setEx(

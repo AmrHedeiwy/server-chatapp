@@ -24,6 +24,18 @@ export function authErrorFormatter(errors) {
 
   return new JoiValidationError(formattedError, 'auth');
 }
+
 export function mainErrorFormatter(errors) {
-  return new Error(errors);
+  const formattedError = errors.reduce((acc, err) => {
+    /**
+     * Pushes the error code and label to the array.
+     *
+     * @example acc.push({ code: 'string.empty', label: 'email' })
+     */
+    acc.push({ code: err.code, label: err.local.label });
+
+    return acc;
+  }, []);
+
+  return new JoiValidationError(formattedError, 'main');
 }

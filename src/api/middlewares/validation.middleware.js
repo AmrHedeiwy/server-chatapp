@@ -12,13 +12,8 @@ const validation =
   /**
    * Validates the user's credentials from the request object against Joi schema.
    *
-   * @param {Object} req - The HTTP request object.
-   * @param {Object} res - The HTTP response object.
-   * @param {Function} next - The next middleware in the chain.
-   *
    * If the validation passes:
-   * - We update the req.body to the stripped values(removes unnecessary
-   * data from the object).
+   * - We update the req.body to the stripped values(removes unnecessary data from the object).
    * - The next() function is called.
    *
    * If the validation fails:

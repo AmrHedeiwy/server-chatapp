@@ -32,7 +32,7 @@ const facebookStrategy = new Strategy(
         defaults: {
           facebookId: id,
           username: (first_name + '_' + last_name).toLowerCase(),
-          lastVerifiedAt: new Date(),
+          isVerified: true,
           image: profileURL ?? null
         }
       });
@@ -40,14 +40,14 @@ const facebookStrategy = new Strategy(
       // Linking facebook account to the existing user
       if (!created && user) {
         user.facebookId = id;
-        if (!user.lastVerifiedAt) user.lastVerifiedAt = new Date();
+        if (!user.isVerified) user.isVerified = true;
 
         user.save();
       }
 
       done(null, user.dataValues.userId, {
-        status: successJson.sign_in.status,
-        redirect: successJson.sign_in['facebook-redirect']
+        status: successJson.status.ok,
+        redirect: successJson.auth.post.sign_in['facebook-redirect']
       });
     } catch (err) {
       done(err);

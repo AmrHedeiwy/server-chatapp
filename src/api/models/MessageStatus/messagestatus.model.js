@@ -28,7 +28,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('seenAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -38,7 +38,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('deliverAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -61,7 +61,10 @@ export default (sequelize, DataTypes) => {
   );
 
   MessageStatus.associate = (models) => {
-    MessageStatus.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+    MessageStatus.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'profile'
+    });
     MessageStatus.belongsTo(models.Message, {
       foreignKey: 'messageId'
     });

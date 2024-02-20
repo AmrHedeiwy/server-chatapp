@@ -51,7 +51,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('createdAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -79,14 +79,15 @@ export default (sequelize, DataTypes) => {
 
   Conversation.associate = (models) => {
     Conversation.belongsToMany(models.User, {
-      as: 'members',
+      as: 'users',
       through: models.Member,
       foreignKey: 'conversationId',
       otherKey: 'userId'
     });
 
     Conversation.hasMany(models.Member, {
-      foreignKey: 'conversationId'
+      foreignKey: 'conversationId',
+      as: 'members'
     });
 
     Conversation.hasMany(models.Message, {

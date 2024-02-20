@@ -2,10 +2,7 @@ import Joi from 'joi';
 import { mainErrorFormatter } from './errorFormater.js';
 
 /**
- * Joi schema for validating the user profile edit request payload.
- *
- * This schema defines the structure and validation rules for the user profile edit request payload,
- * including username and email.
+ * Joi schema for validating the payload when updatin the user's profile.
  *
  * - username: The updated username of the user. Must be between 3 and 20 letters, digits, underscores, or hyphens.
  * - email: The updated email address of the user. Must be in valid email format.
@@ -14,21 +11,17 @@ export const editUserSchema = Joi.object({
   username: Joi.string()
     .trim()
     .pattern(/^[A-Za-z\d_-]{3,20}$/),
-  email: Joi.string().trim().email(),
-  path: Joi.string()
+  email: Joi.string().trim().email()
 })
   .options({ abortEarly: false })
   .error(mainErrorFormatter);
 
 /**
- * Joi schema for validating the change password request payload.
- *
- * This schema defines the structure and validation rules for the change password request payload,
- * including currentPassword, password, and confirmPassword.
+ * Joi schema for validating the payload when changing the user's password.
  *
  * - currentPassword: The current password of the user.
-   - password: The new password for the user.
- * - confirmPassword: The confirmation of the new password, should match the 'password' field.
+ * - password: The new password for the user. Must contain at least one uppercase letter, one lowercase letter, one digit, one special character, and be at least 8 characters long.
+ * - confirmPassword: The confirmation of the new password. Must match the 'password' field.
  */
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required(),
@@ -52,24 +45,7 @@ export const changePasswordSchema = Joi.object({
   .error(mainErrorFormatter);
 
 /**
- * Joi schema for validating the contact request payload.
- *
- * This schema defines the structure and validation rules for the contact request payload,
- * including contactId and action.
- *
- * - contactId: The ID of the contact.
- * - action: The action to perform on the contact. Must be either 'add' or 'remove'.
- */
-export const contactSchema = Joi.object({
-  contactId: Joi.string().required(),
-  action: Joi.string().valid('add', 'remove').required()
-}).error(mainErrorFormatter);
-
-/**
- * Joi schema for validating the create conversation request payload.
- *
- * This schema defines the structure and validation rules for the create conversation request payload,
- * including otherUserId, isGroup, name, and members.
+ * Joi schema for validating the payload when creating a conversation.
  *
  * - otherUserId: The ID of the other user involved in the conversation.
  * - isGroup: Indicates whether the conversation is a group conversation.
@@ -77,12 +53,35 @@ export const contactSchema = Joi.object({
  * - members: The array of user IDs participating in the conversation excluding the the user creating the conversation.
  */
 export const createConversationSchema = Joi.object({
-  isGroup: Joi.boolean(),
-  members: Joi.array().min(1).required(),
+  memberIds: Joi.array().min(1).required(),
   name: Joi.string()
     .min(2)
     .when('isGroup', {
       is: Joi.exist().valid(true),
       then: Joi.required()
     })
-}).error(mainErrorFormatter);
+})
+  .unknown()
+  .error(mainErrorFormatter);
+
+/**
+ * Joi schema for validating the payload when updating the name of a group conversation.
+ *
+ * - name: The updated name of the conversation.
+ */
+export const updateNameSchema = Joi.object({
+  name: Joi.string().min(2).required()
+})
+  .unknown()
+  .error(mainErrorFormatter);
+
+/**
+ * Joi schema for validating the payload when adding members to a group conversation.
+ *
+ * - memberIds: The array of user IDs to be added as members to the conversation.
+ */
+export const addMembersSchema = Joi.object({
+  memberIds: Joi.array().min(1).required()
+})
+  .unknown()
+  .error(mainErrorFormatter);

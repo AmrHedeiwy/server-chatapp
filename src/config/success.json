@@ -1,48 +1,57 @@
 {
-  "register": {
-    "message": "Your account has been created. Please check your email to verify it.",
-    "status": 201,
-    "redirect": "/email/verify"
-  },
-  "sign_in": {
-    "status": 200,
-    "verify-email-redirect": "/email/verify",
-    "local-redirect": "/conversations",
-    "facebook-redirect": "/cb/facebook/success",
-    "google-redirect": "/cb/google/success"
-  },
-  "verified_email": {
-    "message": "You have successfully verified your account.",
-    "status": 200,
-    "redirect": "/conversations"
-  },
-  "reset_password": {
-    "message": "Congratulations! Your password has been successfully changed.",
-    "status": 200,
-    "redirect": "/"
-  },
-  "change_password": {
-    "message": "Password updated successfully.",
-    "status": 200
-  },
-  "mailer": {
-    "messages": {
-      "verification-code": "A verification code has been sent to your email.",
-      "forgot-password": "Password reset link sent. Check your email and follow the instructions to reset your password."
+  "auth": {
+    "post": {
+      "register": {
+        "message": "Your account has been created. Please check your email to verify it.",
+        "redirect": "/email/verify"
+      },
+      "sign_in": {
+        "verify-email-redirect": "/email/verify",
+        "local-redirect": "/conversations",
+        "facebook-redirect": "/cb/facebook/success",
+        "google-redirect": "/cb/google/success"
+      },
+      "mailer": {
+        "forgot_password": {
+          "message": "Password reset link sent. Check your email and follow the instructions to reset your password."
+        },
+        "verification_code": {
+          "message": "A verification code has been sent to your email.",
+          "redirect": "/email/verify"
+        }
+      }
     },
-    "status": 200,
-    "redirect": {
-      "verify-email": "/email/verify"
+    "patch": {
+      "email": {
+        "message": "You have successfully verified your account.",
+        "redirect": "/conversations"
+      },
+      "password": {
+        "message": "Congratulations! Your password has been successfully reset.",
+        "redirect": "/"
+      }
     }
   },
-  "update_profile": {
-    "message": "Profile successfully updated.",
-    "status": 303,
-    "redirect": "/email/verify"
+  "user": {
+    "put": {
+      "profile": {
+        "message": "Profile successfully updated.",
+        "redirect": "/email/verify"
+      },
+      "password": {
+        "message": "Password updated successfully."
+      }
+    },
+    "delete": {
+      "account": {
+        "message": "Your account has been deleted.",
+        "redirect": "/"
+      }
+    }
   },
-  "delete_account": {
-    "message": "Your account has been deleted.",
-    "status": 200,
-    "redirect": "/"
+  "status": {
+    "created": 201,
+    "ok": 200,
+    "no_content": 204
   }
 }

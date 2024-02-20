@@ -25,7 +25,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('createdAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && data instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -50,6 +50,20 @@ export default (sequelize, DataTypes) => {
       ]
     }
   );
+
+  Contact.associate = (models) => {
+    Contact.belongsTo(models.User, {
+      as: 'contact',
+      foreignKey: 'addedById',
+      onDelete: 'CASCADE'
+    });
+
+    Contact.belongsTo(models.User, {
+      as: 'otherContacts',
+      foreignKey: 'contactId',
+      onDelete: 'CASCADE'
+    });
+  };
 
   return Contact;
 };

@@ -6,9 +6,11 @@ export default (sequelize, DataTypes) => {
    * @class Message
    *
    * @property {string} messageId - The unique ID of the message.
-   * @property {string} body - Contains the message content if any.
-   * @property {string} image - Contains the image content if any.
-   * @property {Date} createdAt - The date when the message was created.
+   * @property {string} content - Contains the message content if any.
+   * @property {string} fileUrl - Contains the image URL if any.
+   * @property {Date} sentAt - The date when the message was sent.
+   * @property {Date} updatedAt - The date when the message was last updated.
+   * @property {Date} deletedAt - The date when the message was soft deleted.
    */
   class Message extends Model {}
 
@@ -31,7 +33,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('sentAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -41,7 +43,7 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('updatedAt');
 
-          return !!date && typeof date === 'object'
+          return !!date && date instanceof Date
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
@@ -52,7 +54,9 @@ export default (sequelize, DataTypes) => {
         get() {
           let date = this.getDataValue('deletedAt');
 
-          return !!date ? format(date, 'd MMMM yyyy, h:mm a') : date;
+          return !!date && date instanceof Date
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
         }
       }
     },

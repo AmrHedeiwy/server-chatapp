@@ -33,21 +33,21 @@ const googleStrategy = new Strategy(
         defaults: {
           googleId: id,
           username: (given_name + '_' + family_name).toLowerCase(),
-          lastVerifiedAt: new Date(),
+          isVerified: true,
           image: picture ?? null
         }
       });
 
       if (!created && user) {
         user.googleId = id;
-        if (!user.lastVerifiedAt) user.lastVerifiedAt = new Date();
+        if (!user.isVerified) user.isVerified = true;
 
         user.save();
       }
 
       done(null, user.dataValues.userId, {
-        status: successJson.sign_in.status,
-        redirect: successJson.sign_in['google-redirect']
+        status: successJson.status.ok,
+        redirect: successJson.auth.post.sign_in['google-redirect']
       });
     } catch (err) {
       done(err);

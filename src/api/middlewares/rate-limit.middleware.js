@@ -3,53 +3,56 @@ import { RateLimitError } from '../helpers/ErrorTypes.helper.js';
 
 const ipRouteLimits = {
   '/register': { count: 5, expire: 60 * 5 },
-  '/forgot-password': { count: 5, expire: 60 * 10 },
-  '/reset-password': { count: 5, expire: 60 * 5 }
+  '/password/forgot': { count: 5, expire: 60 * 10 },
+  '/password/reset': { count: 5, expire: 60 * 5 }
 };
 
 const emailRouteLimits = {
-  '/verify-email-request': { count: 3, expire: 10 * 60 * 1000 },
-  '/verify-email': { count: 4, expire: 5 * 60 * 1000 },
-  '/forgot-password': { count: 3, expire: 10 * 60 * 1000 },
+  '/email/verify/request': { count: 5, expire: 10 * 60 * 1000 },
+  '/email/verify': { count: 10, expire: 5 * 60 * 1000 },
+  '/password/forgot': { count: 3, expire: 10 * 60 * 1000 },
   '/sign-in': { count: 5, expire: 5 * 60 * 1000 }
 };
 
 const userIdRouteLimits = {
   '/edit': { count: 4, expire: 60 * 60 * 1000 },
-  '/change-password': { count: 10, expire: 120 * 60 * 1000 }
+  '/password/change': { count: 10, expire: 120 * 60 * 1000 }
 };
 
 /**
  * IP Rate Limiter Middleware
  *
  * This middleware function limits the number of requests from a specific IP address
- * within a certain time frame.
+ * within a certain time frame for each route.
+ *
+ * It utilizes a Redis-based counter to track the number of requests made from
+ * a particular IP address to a specific route. If the limit is exceeded,
+ * it prevents the user from proceeding with the request and returns a rate limit error.
  */
 export const ipRateLimiter = async (req, res, next) => {
   // Retrieve the IP address of the client
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-  // Get the current route being accessed
+  // Get the URL of the current route
   const route = req.url;
 
-  // Generate a unique identifier based on the route and IP address
+  // Generate a unique identifier based on the route and the user's IP address
   const uniqueIdentifier = route + ip;
 
-  // Execute multiple Redis commands atomically
+  // Increment the counter and set an expiration time for the unique identifier in Redis
   const response = await redisClient
     .multi()
-    .incr(uniqueIdentifier) // Increment the counter for the unique identifier
+    .incr(uniqueIdentifier)
     .expire(uniqueIdentifier, ipRouteLimits[route].expire) // Set an expiration time based on the ip route limit configuration
     .exec();
 
-  // Retrieve the counter value from the Redis response
+  // The number of times the a request was made to this route with the IP
   const counter = response[0];
 
-  // If the limit is exceeded, invoke the next middleware with a RateLimitError
+  // If the limit is exceeded, prevent the user from proceeding with the request
   if (counter > ipRouteLimits[route].count)
     return next(new RateLimitError(route));
 
-  // If the limit is not exceeded, proceed to the next middleware
   next();
 };
 
@@ -63,27 +66,26 @@ export const emailRateLimiter = async (req, res, next) => {
   // Retrieve the email address from the session or request body
   const email = req.user?.email || req.body.email;
 
-  // Get the current route being accessed
+  // Get the URL of the current route
   const route = req.url;
 
   // Generate a unique identifier based on the route and email address
   const uniqueIdentifier = route + email;
 
-  // Execute multiple Redis commands atomically
+  // Increment the counter and set an expiration time for the unique identifier in Redis
   const response = await redisClient
     .multi()
-    .incr(uniqueIdentifier) // Increment the counter for the unique identifier
+    .incr(uniqueIdentifier)
     .expire(uniqueIdentifier, emailRouteLimits[route].expire) // Set an expiration time based on the email route limit configuration
     .exec();
 
-  // Retrieve the counter value from the Redis response
+  // The number of times the a request was made to this route with the specified email
   const counter = response[0];
 
-  // If the limit is exceeded, invoke the next middleware with a RateLimitError
+  // If the limit is exceeded, prevent the user from proceeding with the request
   if (counter > emailRouteLimits[route].count)
     return next(new RateLimitError(route));
 
-  // If the limit is not exceeded, proceed to the next middleware
   next();
 };
 
@@ -106,14 +108,14 @@ export const emailSkipSucessRequest = async (req, res, next) => {
       // Retrieve the email from the session or request body
       const email = req.user?.email || req.body.email;
 
-      // Get the route from the request URL
+      // Get the URL of the current route
       const route = req.url;
 
       // Generate a unique identifier using the route and email
       const uniqueIdentifier = route + email;
 
-      // Decrement the counter stored in Redis using the unique identifier
-      await redisClient.multi().decr(uniqueIdentifier).exec();
+      // Delete the counter stored in Redis using the unique identifier
+      await redisClient.del(uniqueIdentifier);
     }
 
     // Call the original end() function
@@ -130,29 +132,28 @@ export const emailSkipSucessRequest = async (req, res, next) => {
  * within a certain time frame.
  */
 export const userIdRateLimiter = async (req, res, next) => {
-  // Retrieve the email address from the session or request body
+  // Retrieve the user ID from the session or request body
   const userId = req.user.userId;
 
-  // Get the current route being accessed
+  // Get the URL of the current route
   const route = req.url;
 
-  // Generate a unique identifier based on the route and email address
+  // Generate a unique identifier based on the route and user ID
   const uniqueIdentifier = route + userId;
 
-  // Execute multiple Redis commands atomically
+  // Increment the counter and set an expiration time for the unique identifier in Redis
   const response = await redisClient
     .multi()
-    .incr(uniqueIdentifier) // Increment the counter for the unique identifier
-    .expire(uniqueIdentifier, userIdRouteLimits[route].expire) // Set an expiration time based on the email route limit configuration
+    .incr(uniqueIdentifier)
+    .expire(uniqueIdentifier, userIdRouteLimits[route].expire) // Set an expiration time based on the userId route limit configuration
     .exec();
 
-  // Retrieve the counter value from the Redis response
+  // The number of times the a request was made to this route with the specified userId
   const counter = response[0];
 
-  // If the limit is exceeded, invoke the next middleware with a RateLimitError
+  // If the limit is exceeded, prevent the user from proceeding with the request
   if (counter > userIdRouteLimits[route].count)
     return next(new RateLimitError(route));
 
-  // If the limit is not exceeded, proceed to the next middleware
   next();
 };

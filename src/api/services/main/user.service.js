@@ -12,37 +12,28 @@ import {
   DeleteAccountError,
   SequelizeConstraintError
 } from '../../helpers/ErrorTypes.helper.js';
+import { uploader } from '../../../lib/uploader.js';
 
 /**
- * Saves new user credentials and updates the user profile.
- * @param {Object} data - Object containing new user credentials and profile data.
+ * Saves new credentials and updates user profile data, including image upload to Cloudinary if provided.
+ *
+ * @param {Object} data - The data object containing new credentials and profile information.
+ * @param {string} data.path - The file path of the image to be uploaded to Cloudinary (if provided).
+ * @param {string} data.email - The email address of the user for email verification (optional).
  * @param {Object} currentUser - The current user object.
- * @returns {Object} Object containing status and message indicating the success of the operation,
- *                   along with updated user profile data if successful, or an error if failed.
- *    - {string} message: Success message with an additional notification if email verification is required.
- *    - {string} status: Status indicating the success of the operation.
- *    - {string} redirect: Redirect URL after successful operation.
- *    - {Object} user: Updated user profile data.
- * @throws {SequelizeConstraintError} Throws a SequelizeConstraintError if a unique constraint error occurs.
- *    Other Sequelize errors are treated as unexpected errors.
+ * @param {string} currentUser.userId - The ID of the current user.
+ * @returns {Promise<{ message: string, status: string, redirect: string, user: Object }> | { error: Error }} A promise resolving to a success message, status, redirect URL (if email verification is required), and updated user object, or an error object.
+ * @throws {SequelizeConstraintError} If a unique constraint error occurs during database operation.
  */
 export const saveNewCredentials = async (data, currentUser) => {
   try {
     // Upload image file to Cloudinary if FilePath is provided in the data object
     if (data.path) {
-      const result = await cloudinary.uploader.upload(data.path, {
-        folder: 'images',
-        public_id: `profile_img:${currentUser.userId}`
-      });
+      const { secure_url, error } = await uploader(data.path, null, 'image');
 
-      fs.unlink(data.path, (err) => {
-        if (err) {
-          console.error('Error deleting file:', err);
-          return;
-        }
-      });
+      if (error) throw error;
       // Update image URL with secure URL from Cloudinary and remove FilePath from data object
-      data.image = result.secure_url;
+      data.image = secure_url;
       delete data.path;
     }
 
@@ -60,11 +51,12 @@ export const saveNewCredentials = async (data, currentUser) => {
 
     return {
       // Success message with an additional notification if email verification is required
-      message: data.email
-        ? successJson.update_profile.message + ' Please verify your email.'
-        : successJson.update_profile.message,
-      status: successJson.update_profile.status,
-      redirect: successJson.update_profile.redirect,
+      message:
+        successJson.user.put.profile.message + data.email
+          ? ' Please verify your email.'
+          : '',
+      status: successJson.status.ok,
+      redirect: data.email ? successJson.user.put.profile.redirect : null,
       user: updatedUser // Updated user profile data
     };
   } catch (err) {
@@ -78,14 +70,13 @@ export const saveNewCredentials = async (data, currentUser) => {
 };
 
 /**
- * Changes the password for a user.
+ * Sets a new password for the user identified by their user ID after validating the current password.
+ *
  * @param {string} currentPassword - The current password of the user.
- * @param {string} newPassword - The new password to set for the user.
- * @param {string} userId - The ID of the user whose password is being changed.
- * @returns {Object} Object indicating success or failure of the password change.
- *    - {string} successJson.change_password: Success message indicating the password change was successful.
- *    - {Error} error: An error object if the password change failed.
- * @throws {ChangePasswordError} Throws a ChangePasswordError if the provided current password does not match the user's current password.
+ * @param {string} newPassword - The new password to be set.
+ * @param {string} userId - The ID of the user whose password will be changed.
+ * @returns {Promise<{ status: string, message: string }> | { error: Error }} A promise resolving to a success message or an error object.
+ * @throws {ChangePasswordError} If the current password does not match the user's existing password.
  */
 export const setChangePassword = async (
   currentPassword,
@@ -105,33 +96,40 @@ export const setChangePassword = async (
     user.password = newPassword;
     await user.save();
 
-    return successJson.change_password;
+    return { ...successJson.user.put.password, status: successJson.status.ok };
   } catch (err) {
     return { error: err };
   }
 };
 
 /**
- * Deletes a user account from the database.
- * @param {string} email - The email address of the user requesting the account deletion.
- * @param {Object} user - The user object to be deleted from the database.
- * @returns {Object} Object indicating success or failure of the account deletion.
- *    - {string} successJson.delete_account: Success message indicating the account deletion was successful.
- *    - {Error} error: An error object if the account deletion failed.
- * @throws {DeleteAccountError} Throws a DeleteAccountError if the provided email does not match the user's email.
+ * Deletes a user account from the database and clears associated cached data.
+ *
+ * @param {string} email - The email address used to validate the deletion request.
+ * @param {Object} user - The user object containing user details.
+ * @param {string} user.email - The email address of the user.
+ * @param {string} user.userId - The ID of the user to be deleted.
+ * @returns {Promise<{ status: string, message: string }> | { error: Error }} A promise resolving to a success message or an error object.
+ * @throws {DeleteAccountError} If the provided email does not match the user's email.
  */
 export const deleteUser = async (email, user) => {
   try {
     // Validate email against user's email
-    if (email != user.email) throw new DeleteAccountError();
+    if (email !== user.email) throw new DeleteAccountError();
 
+    // Delete the user account from the database
     await db.User.delete({ where: { userId: user.userId } });
 
     // Delete the stored data from the cache
     await redisClient.del(`user_data:${user.userId}`);
 
-    return successJson.delete_account;
+    // Return success status and message
+    return {
+      ...successJson.user.delete.account,
+      status: successJson.status.no_content
+    };
   } catch (err) {
+    // Handle errors
     return { error: err };
   }
 };

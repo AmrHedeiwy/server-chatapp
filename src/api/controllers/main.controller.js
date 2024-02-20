@@ -6,15 +6,15 @@ import upload from '../middlewares/multer.middleware.js';
 import {
   editUserSchema,
   changePasswordSchema,
-  contactSchema,
-  createConversationSchema
+  createConversationSchema,
+  updateNameSchema,
+  addMembersSchema
 } from '../validations/main.validation.js';
 
 import {
   userService,
   conversationService,
-  contactService,
-  uploadService
+  contactService
 } from '../services/main/index.js';
 
 /******* user actions *******/
@@ -29,7 +29,7 @@ import {
  * 2. Remove the password before sending to the client.
  * 3. Finally, the response is sent with user's information.
  */
-export const current = [
+const current = [
   isAuthExpress,
   async (req, res, next) => {
     const { userId, username, email, image, createdAt } = req.user;
@@ -52,7 +52,7 @@ export const current = [
  * 7. If the operation is successful and a new email is provided, logs out the user and sends a response with the appropriate status code and redirect URL.
  * 8. If the operation is successful and no new email is provided, sends a response with the appropriate status code and updated user information.
  */
-export const edit = [
+const edit = [
   isAuthExpress,
   userIdRateLimiter,
   upload.single('image'),
@@ -90,7 +90,7 @@ export const edit = [
  * 5. If an error occurs during the password change process, it is passed to the error handling middleware.
  * 6. If the password change is successful, the response is sent with the appropriate status code and message.
  */
-export const changePassword = [
+const changePassword = [
   isAuthExpress,
   userIdRateLimiter,
   validation(changePasswordSchema),
@@ -121,7 +121,7 @@ export const changePassword = [
  * 4. If the account deletion is successful, a success flash message is stored in the req.flash object.
  * 5. Finally, the response is sent with the appropriate status code and redirect URL.
  */
-export const deleteAccount = [
+const deleteAccount = [
   isAuthExpress,
   async (req, res, next) => {
     const { status, message, redirect, error } = await userService.deleteUser(
@@ -143,40 +143,45 @@ export const deleteAccount = [
  *
  * This route expects a POST request with the following parameters in the request body:
  * - isGroup: A boolean indicating whether the conversation is a group conversation.
- * - members:  An array of userIds representing the members participating in the conversation (excluding the current user).
- * - name: (Optional) The name of the conversation (applicable for group conversations).
+ * - memberIds: An array of userIds representing the members participating in the conversation (excluding the current user).
+ * - name: The name of the group conversation (required when isGroup is set to true).
+ * - isImage: Indicates whether there will be an image for a group conversation (required when isGroup is set to true).
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
  * 2. Validates the request body against the createConversationSchema.
- * 2. Creates a new conversation using the addConversation function.
- * 3. If an error occurs during the process, it is passed to the error handling middleware.
- * 4. If the conversation creation is successful, the created conversation object is sent in the response.
+ * 3. Creates a new conversation using the addConversation function.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the conversation creation is successful, the created conversation object is sent in the response.
  */
-export const createConversation = [
+const createConversation = [
   isAuthExpress,
   validation(createConversationSchema),
   async (req, res, next) => {
-    const { isGroup, members, name } = req.body;
-    const { sockets } = req.user;
+    const { isGroup, memberIds, name, isImage } = req.body;
+    const { socketIds } = req.user;
 
-    const { conversation, error } = await conversationService.addConversation(
-      req.user.userId,
-      // If the conversation is a one-to-one conversation, checks if a conversation already exists with the other member.
-      !isGroup ? sockets.includes(members[0]) : false,
-      name,
-      members,
-      isGroup
-    );
+    const { status, conversation, error } =
+      await conversationService.addConversation(
+        req.user.userId,
+        // If the conversation is a one-to-one conversation, checks if a conversation already exists with the other member.
+        !isGroup ? socketIds.includes(memberIds[0]) : false,
+        memberIds,
+        name,
+        isGroup,
+        isImage
+      );
 
     if (error) return next(error);
 
-    res.json({ conversation });
+    res.status(status).json({ conversation });
   }
 ];
 
 /**
  * Route handler for fetching conversations.
+ *
+ * This route expects a GET request.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
@@ -184,63 +189,335 @@ export const createConversation = [
  * 3. If an error occurs during the process, it is passed to the error handling middleware.
  * 4. If the conversation fetching is successful, the fetched conversations are sent in the response.
  */
-export const getConversations = [
+const getConversations = [
   isAuthExpress,
   async (req, res, next) => {
-    const { conversations, groupedMessages, error } =
+    const { status, conversations, groupedMessages, error } =
       await conversationService.fetchConversations(
-        req.user.userId,
-        req.user.conversations
+        req.user.conversationIds,
+        req.user.userId
       );
 
     if (error) return next(error);
 
-    res.json({ conversations, groupedMessages });
+    res.status(status).json({ conversations, groupedMessages });
+  }
+];
+
+/**
+ * Route handler for fetching a single conversation.
+ *
+ * This route expects a GET request with the following parameters in the request params:
+ * - conversationId: The conversation ID to fetch from the database.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Fetches the conversation associated with the provided conversationId using the fetchConversation function.
+ * 3. If an error occurs during the process, it is passed to the error handling middleware.
+ * 4. If the conversation fetching is successful, the fetched conversation is sent in the response.
+ */
+const getConversation = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversationId } = req.params;
+
+    const { status, conversation, error } =
+      await conversationService.fetchConversation(
+        conversationId,
+        req.user.userId
+      );
+
+    if (error) return next(error);
+
+    res.status(status).json({ conversation });
   }
 ];
 
 /**
  * Route handler for fetching the next batch of messages in a conversation for pagination.
  *
+ * This route expects a GET request with the following parameters in the request query:
+ * - conversationId: The conversation to fetch the messages from.
+ * - page: The number of rows to skip.
+ * - joinedAt: To filter only the messages after the date the user joined the conversation.
+ *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
- * 2. Parses the request query to extract the conversationId and page parameters.
- * 3. Calls the getMessages function to fetch messages for the specified conversation and page.
+ * 2. Parses the request query to extract the conversationId, page, and joinedAt parameters.
+ * 3. Calls the fetchMessages function to fetch messages for the specified conversation and page.
  * 4. If an error occurs during the process, it is passed to the error handling middleware.
  * 5. If the message fetching is successful, the fetched items (messages) and information about
- * the next page (if available) are sent in the response.
+ *    the next page (if available) are sent in the response.
  */
-export const getMessages = [
+const getMessages = [
   isAuthExpress,
   async (req, res, next) => {
-    let { conversationId, page } = req.query;
+    let { conversationId, page, joinedAt } = req.query;
 
     page = parseInt(page);
 
-    const { hasNextPage, items, error } = await conversationService.getMessages(
-      req.user.userId,
+    const { status, hasNextPage, items, error } =
+      await conversationService.fetchMessages(
+        conversationId,
+        req.user.userId,
+        page,
+        joinedAt
+      );
+
+    if (error) return next(error);
+
+    res
+      .status(status)
+      .json({ items, nextPage: hasNextPage ? page + 20 : null });
+  }
+];
+
+/**
+ * Route handler for handling image uploads in a conversation.
+ *
+ * This route expects a POST request with the following parameters in the request body/file:
+ * - file: The new image of the group conversation.
+ * - conversationId: The ID of the group conversation to update with the new image.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Handles file uploads using the upload middleware.
+ * 3. Calls the uploadImage function to upload the image for the specified conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the image upload is successful, an appropriate response is sent with the corresponding status code.
+ */
+const uploadImage = [
+  isAuthExpress,
+  upload.single('file'),
+  async (req, res, next) => {
+    const { conversationId } = req.body;
+    const { path } = req.file ?? {};
+
+    const { status, error } = await conversationService.uploadGroupImage(
       conversationId,
-      page
+      req.user.userId,
+      path
     );
 
     if (error) return next(error);
 
-    res.json({ items, nextPage: hasNextPage ? page + 20 : null });
+    res.status(status).json();
+  }
+];
+
+/**
+ * Route handler for updating the name of a conversation.
+ *
+ * This route expects a PATCH request with the following parameters in the request body:
+ * - conversationId: The ID of the conversation to update the name for.
+ * - name: The new name of the conversation.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Validates the request body against the updateNameSchema.
+ * 3. Calls the updateName function to update the name of the conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the name update is successful, an appropriate response is sent with the corresponding status code.
+ */
+const updateName = [
+  isAuthExpress,
+  validation(updateNameSchema),
+  async (req, res, next) => {
+    const { conversationId, name } = req.body;
+
+    const { status, error } = await conversationService.setNewName(
+      conversationId,
+      req.user.userId,
+      name
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json();
+  }
+];
+
+/**
+ * Route handler for adding members to a conversation.
+ *
+ * This route expects a POST request with the following parameters in the request body:
+ * - conversationId: The ID of the conversation to add the new members to.
+ * - memberIds: An array of userIds representing the members to add to the conversation.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Validates the request body against the addMembersSchema.
+ * 3. Calls the addMembers function to add new members to the conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the member addition is successful, an appropriate response is sent with the corresponding status code
+ *    and information about the new members added.
+ */
+const addMembers = [
+  isAuthExpress,
+  validation(addMembersSchema),
+  async (req, res, next) => {
+    const { conversationId, memberIds } = req.body;
+
+    const { status, newMembers, error } =
+      await conversationService.setNewMembers(
+        conversationId,
+        req.user.userId,
+        memberIds
+      );
+
+    if (error) return next(error);
+
+    res.status(status).json({ newMembers });
+  }
+];
+
+/**
+ * Route handler for deleting a member from a conversation.
+ *
+ * This route expects a DELETE request with the following parameters in the request params:
+ * - conversationId: The ID of the conversation to remove the member from.
+ * - memberId: The ID of the member to remove.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Calls the deleteMember function to remove a member from the conversation.
+ * 3. If an error occurs during the process, it is passed to the error handling middleware.
+ * 4. If the member deletion is successful, an appropriate response is sent with the corresponding status code.
+ */
+const deleteMember = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversationId, memberId } = req.params;
+
+    const { status, error } = await conversationService.deleteMember(
+      conversationId,
+      req.user.userId,
+      memberId
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json();
+  }
+];
+
+/**
+ * Route handler for updating the admin status of a member in a conversation.
+ *
+ * This route expects a PATCH request with the following parameters in the request body:
+ * - conversationId: The ID of the conversation to update the admin status.
+ * - setStatus: Whether to 'promote' or 'demote' the member.
+ * - memberId: The userId of the member to update the admin status.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Validates the request body against the updateAdminStatusSchema.
+ * 3. Calls the setAdminStatus function to update the admin status of the specified member in the conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the admin status update is successful, an appropriate response is sent with the corresponding status code.
+ */
+const updateAdminStatus = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversationId, setStatus, memberId } = req.body;
+
+    const { status, error } = await conversationService.setAdminStatus(
+      conversationId,
+      req.user.userId,
+      setStatus,
+      memberId
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json();
+  }
+];
+
+/**
+ * Route handler for deleting a conversation.
+ *
+ * This route expects a DELETE request with the following parameters in the request params:
+ * - conversationId: The ID of the conversation to delete from the database.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Retrieves the conversationId from the request parameters.
+ * 3. Calls the deleteConversation function to delete the conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the conversation is successfully deleted, the response is sent with an appropriate status code
+ *    and an empty JSON object.
+ */
+const deleteConversation = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversationId } = req.params;
+
+    const { status, error } = await conversationService.deleteConversation(
+      conversationId,
+      req.user.userId
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json();
+  }
+];
+
+/**
+ * Route handler for removing a one-to-one conversation only from the requested user.
+ * The user that made the request will not be able to view the conversation anymore.
+ *
+ * This route expects a PATCH request with the following parameters in the request params:
+ * - conversationId: The ID of the conversation to remove from the database.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Retrieves the conversationId from the request parameters.
+ * 3. Calls the removeConversation function to remove the conversation.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ * 5. If the conversation is successfully removed, the response is sent with an appropriate status code
+ *    and an empty JSON object.
+ */
+const removeConversation = [
+  isAuthExpress,
+  async (req, res, next) => {
+    const { conversationId } = req.params;
+
+    const { status, error } = await conversationService.removeConversation(
+      conversationId,
+      req.user.userId
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json();
   }
 ];
 
 /******* contact actions *******/
 
-export const getContacts = [
+/**
+ * Route handler for fetching contacts.
+ *
+ * This route expects a GET request.
+ *
+ * This route performs the following steps:
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Fetches contacts associated with the user using the fetchContacts function.
+ * 3. If an error occurs during the process, it is passed to the error handling middleware.
+ * 4. If the contact fetching is successful, the fetched contacts are sent in the response.
+ */
+const getContacts = [
   isAuthExpress,
   async (req, res, next) => {
-    const { userId } = req.user;
-
-    const { contacts, error } = await contactService.fetchContacts(userId);
+    const { status, contacts, error } = await contactService.fetchContacts(
+      req.user.contactIds
+    );
 
     if (error) return next(error);
 
-    res.json({ contacts });
+    res.status(status).json({ contacts });
   }
 ];
 
@@ -257,20 +534,16 @@ export const getContacts = [
  * 3. If an error occurs during the fetching process, it is passed to the error handling middleware.
  * 4. Finally, the response is sent with the fetched users and the next page number if available.
  */
-export const search = [
+const search = [
   isAuthExpress,
   async (req, res, next) => {
-    const { userId, username } = req.user;
+    const { userId } = req.user;
     let { search, page } = req.query;
 
     page = parseInt(page);
 
-    const { hasNextPage, items, error } = await contactService.fetchUsers(
-      userId,
-      username,
-      search,
-      page
-    );
+    const { status, hasNextPage, items, error } =
+      await contactService.fetchUsers(userId, search, page);
 
     if (error) return next(error);
 
@@ -279,7 +552,7 @@ export const search = [
      * Otherwise, set the next page to page + 10 to skip to the next batch of users.
      */
 
-    res.json({
+    res.status(status).json({
       items: items.length !== 0 ? items : null,
       nextPage: hasNextPage ? page + 10 : null
     });
@@ -287,74 +560,59 @@ export const search = [
 ];
 
 /**
- * Route handler for adding/removing contacts.
+ * Route handler for adding a contact.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - contactId: The UserID of the contact to add/remove.
- * - action: Specifies whether to add or remove a friend.
+ * - contactId: The userId of the contact to add.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
- * 2. Validates the request body against the contactSchema.
- * 3. Adds/Removes the selected contact using the manageContact function.
- * 4. If an error occurs during the operation, it is passed to the error handling middleware.
- * 5. Responds with the status of the contact addition/removal.
+ * 2. Adds the specified contact using the setContact function.
+ * 3. If an error occurs during the operation, it is passed to the error handling middleware.
+ * 4. Responds with the status of the contact addition.
  */
-export const handleContactAction = [
+const addContact = [
   isAuthExpress,
-  validation(contactSchema),
   async (req, res, next) => {
-    const { contactId, action } = req.body;
+    const { contactId } = req.params;
 
-    const { isContact, error } = await contactService.manageContact(
-      action,
+    const { status, error } = await contactService.setContact(
       req.user.userId,
       contactId
     );
 
     if (error) return next(error);
 
-    res.json({ isContact });
+    res.status(status).json();
   }
 ];
 
-/******* file upload actions *******/
-
 /**
- * Route handler for uploading a file.
+ * Route handler for deleting a contact.
  *
- * This route expects a POST request with the following parameters:
- * - File: The file to be uploaded, passed as a multipart/form-data in the request body with the field name 'file'.
- * - Query parameters: Additional parameters for customization can be provided in the request URL.
+ * This route expects a DELETE request with the following parameters in the request params:
+ * - contactId: The UserID of the contact to delete.
  *
  * This route performs the following steps:
- * 1. Authenticates the user using the isAuthExpress middleware to ensure the user is logged in.
- * 2. Parses the uploaded file using the upload.single middleware, expecting the file to be in the 'file' field.
- * 3. Extracts query parameters from the request URL and processes them for customization.
- * 4. Uploads the file to a designated service using the upload function.
- * 5. Responds with the URL of the uploaded file if successful.
- * 6. If any errors occur during the upload process, it is passed to the error handling middleware.
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Retrieves the contactId from the request parameters.
+ * 3. Deletes the specified contact using the deleteContact function.
+ * 4. If an error occurs during the operation, it is passed to the error handling middleware.
+ * 5. Responds with the status of the contact deletion.
  */
-export const uploadFile = [
+const deleteContact = [
   isAuthExpress,
-  upload.single('file'),
   async (req, res, next) => {
-    const queryParams = req.query;
-    const { path, mimetype } = req.file;
+    const { contactId } = req.params;
 
-    const entries = Object.entries(queryParams)[0];
-
-    const { fileUrl, error } = await uploadService.upload(
+    const { status, error } = await contactService.deleteContact(
       req.user.userId,
-      path,
-      mimetype,
-      entries[0],
-      entries[1]
+      contactId
     );
 
     if (error) return next(error);
 
-    res.json({ fileUrl });
+    res.status(status).json();
   }
 ];
 
@@ -365,9 +623,17 @@ export default {
   deleteAccount,
   createConversation,
   getConversations,
+  getConversation,
   getMessages,
+  uploadImage,
+  updateName,
+  addMembers,
+  deleteMember,
+  updateAdminStatus,
+  deleteConversation,
+  removeConversation,
   getContacts,
   search,
-  handleContactAction,
-  uploadFile
+  addContact,
+  deleteContact
 };

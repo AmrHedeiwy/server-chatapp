@@ -1,5 +1,4 @@
 import passport from 'passport';
-import jwt from 'jsonwebtoken';
 
 import validation from '../middlewares/validation.middleware.js';
 import {
@@ -10,8 +9,10 @@ import {
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
 
-import { registerService } from '../services/auth/index.service.js';
-import mailerService from '../services/auth/mailer.service.js';
+import {
+  registerService,
+  mailerService
+} from '../services/auth/index.service.js';
 import { setResetPassword } from '../services/auth/register.service.js';
 
 import {
@@ -21,10 +22,7 @@ import {
   forgotPasswordRequestSchema
 } from '../validations/auth.validation.js';
 
-import {
-  ForgotPassswordError,
-  SocialMediaAuthenticationError
-} from '../helpers/ErrorTypes.helper.js';
+import { SocialMediaAuthenticationError } from '../helpers/ErrorTypes.helper.js';
 
 /**
  * Route handler for registering a user.
@@ -138,13 +136,13 @@ export const getSession = async (req, res, next) => {
           user: {
             userId: req.user.userId,
             email: req.user.email,
-            lastVerifiedAt: req.user.lastVerifiedAt
+            isVerified: req.user.isVerified
           }
         }
       : { user: null })
   };
 
-  res.json(response);
+  res.status(200).json(response);
 };
 
 /**
@@ -171,35 +169,13 @@ export const forgotPasswordRequest = [
   async (req, res, next) => {
     const { email } = req.body;
 
-    const { user, error } = await registerService.checkUserExists(
-      'email',
-      email
-    );
+    const { message, status, error } =
+      await registerService.sendResetPasswordLink(email);
+
     if (error) return next(error);
 
-    // Indicates that account is not created by email (local-strategy)
-    if (!user.dataValues.password) return next(new ForgotPassswordError());
-
-    const useridToken = jwt.sign(
-      {
-        userId: user.userId
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
-    const { message, status, failed } = await mailerService(
-      'forgot-password',
-      user.username,
-      email,
-      {
-        useridToken
-      }
-    );
-    if (failed) return next(failed);
-
-    // To allow the user to access the reset-password.html page.
-    req.session.passwordReset = true;
+    // To allow the user to view the reset password page
+    req.session.isPasswordReset = true;
     req.session.save();
 
     res.status(status).json({ message });
@@ -236,7 +212,7 @@ export const resetPassword = [
     );
     if (error) return next(error);
 
-    delete req.session.passwordReset;
+    delete req.session.isPasswordReset;
 
     res.status(status).json({ message, redirect });
   }
@@ -280,6 +256,7 @@ export const signIn = [
           if (req.body.rememberMe)
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30;
 
+          console.log(info);
           res.status(info.status).json({ redirect: info.redirect });
         });
       }

@@ -61,13 +61,13 @@ export const initializeUser = async (socket, next) => {
         })
       )?.dataValues;
 
-      const socketIds = new Set();
+      const singleConversationUserIds = new Set();
       const conversationIds = new Set();
       const contactIds = new Set();
 
       user.conversations.forEach((conversation) => {
         if (!conversation.dataValues.isGroup) {
-          socketIds.add(conversation.members[0].userId);
+          singleConversationUserIds.add(conversation.members[0].userId);
         }
 
         conversationIds.add(conversation.dataValues.conversationId);
@@ -77,7 +77,7 @@ export const initializeUser = async (socket, next) => {
         contactIds.add(contact.dataValues.userId)
       );
 
-      user.socketIds = Array.from(socketIds);
+      user.singleConversationUserIds = Array.from(singleConversationUserIds);
       user.conversationIds = Array.from(conversationIds);
       user.contactIds = Array.from(contactIds);
 
@@ -117,7 +117,7 @@ export const initializeUser = async (socket, next) => {
  * @returns {Promise<void>} A Promise indicating the completion of the operation.
  */
 export const handleConnect = async (socket) => {
-  const { socketIds, conversationIds, userId } = socket.user;
+  const { singleConversationUserIds, conversationIds, userId } = socket.user;
 
   try {
     const undeliveredMessages = await db.Conversation.findAll({
@@ -148,7 +148,7 @@ export const handleConnect = async (socket) => {
     if (undeliveredMessages.length !== 0)
       io.to(socket.id).emit('undelivered_messages', undeliveredMessages);
 
-    const onlineSockets = socketIds.filter((socketId) =>
+    const onlineSockets = singleConversationUserIds.filter((socketId) =>
       io.sockets.adapter.rooms.has(socketId)
     );
 
@@ -173,16 +173,10 @@ export const handleConnect = async (socket) => {
  * @param {object} socket - The socket instance that disconnected.
  */
 export const handleDisconnect = async (socket) => {
-  const socketIds = socket.user.socketIds;
+  const socketIds = socket.user.singleConversationUserIds;
 
   try {
-    const onlineSockets = socketIds.filter((socketId) =>
-      io.sockets.adapter.rooms.has(socketId)
-    );
-
-    if (onlineSockets.length > 0) {
-      io.to(onlineSockets).emit('connected', false, [socket.id]);
-    }
+    io.to(socketIds).emit('connected', false, [socket.id]);
   } catch (error) {
     console.error('SOCKET_DISCONNECT_EVENT_ERROR', error);
   }

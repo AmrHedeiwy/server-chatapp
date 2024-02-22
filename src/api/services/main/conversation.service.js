@@ -60,7 +60,8 @@ export const addConversation = async (
           include: {
             model: db.User,
             as: 'profile',
-            attributes: ['userId', 'username', 'image']
+            attributes: ['userId', 'username', 'image', 'deletedAt'],
+            paranoid: false
           }
         }
       });
@@ -72,7 +73,7 @@ export const addConversation = async (
       // Add additional details to the conversation object
       conversation.dataValues.otherMember = otherMember;
 
-      return { status: successJson.status.ok, conversation };
+      return { status: successJson.status.ok, conversation, exists };
     }
 
     // If no conversation exists, create a new conversation
@@ -111,7 +112,8 @@ export const addConversation = async (
             include: {
               model: db.User,
               as: 'profile',
-              attributes: ['userId', 'username', 'image']
+              attributes: ['userId', 'username', 'image', 'deletedAt'],
+              paranoid: false
             }
           }
         ]
@@ -178,7 +180,8 @@ export const addConversation = async (
 
     return {
       status: successJson.status.created,
-      conversation: formattedConversation
+      conversation: formattedConversation,
+      exists: false
     };
   } catch (err) {
     // Handle any errors that occur during the execution
@@ -218,7 +221,8 @@ export const fetchConversations = async (conversationIds, currentUserId) => {
           include: {
             model: db.User,
             as: 'profile',
-            attributes: ['userId', 'username', 'image']
+            attributes: ['userId', 'username', 'image', 'deletedAt'],
+            paranoid: false
           }
         }
       ],
@@ -331,7 +335,8 @@ export const fetchConversations = async (conversationIds, currentUserId) => {
               // Include user profile for message status
               model: db.User,
               as: 'profile',
-              attributes: ['userId', 'username', 'image']
+              attributes: ['userId', 'username', 'image', 'deletedAt'],
+              paranoid: false
             },
             required: true
           },
@@ -339,8 +344,9 @@ export const fetchConversations = async (conversationIds, currentUserId) => {
           {
             model: db.User,
             as: 'sender',
-            attributes: ['userId', 'username', 'image'],
-            required: false
+            attributes: ['userId', 'username', 'image', 'deletedAt'],
+            required: false,
+            paranoid: false
           }
         ],
         paranoid: false, // Include soft-deleted messages
@@ -424,7 +430,8 @@ export const fetchConversation = async (conversationId, currentUserId) => {
         include: {
           model: db.User,
           as: 'profile',
-          attributes: ['userId', 'username', 'image']
+          attributes: ['userId', 'username', 'image', 'deletedAt'],
+          paranoid: false
         }
       }
     });
@@ -513,13 +520,15 @@ export const fetchMessages = async (
           include: {
             model: db.User,
             as: 'profile',
-            attributes: ['userId', 'username', 'image']
+            attributes: ['userId', 'username', 'image'],
+            paranoid: false
           }
         },
         {
           model: db.User,
           as: 'sender',
-          attributes: ['userId', 'username', 'image']
+          attributes: ['userId', 'username', 'image'],
+          paranoid: false
         }
       ],
       order: [['sentAt', 'DESC']], // Order messages by sentAt timestamp in descending order

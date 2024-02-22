@@ -1,10 +1,8 @@
 import bcrypt from 'bcrypt';
 import sequelize from 'sequelize';
-import fs from 'fs';
-import crypto from 'crypto';
 
+import { faker } from '@faker-js/faker';
 import successJson from '../../../config/success.json' assert { type: 'json' };
-import cloudinary from '../../../lib/cloudinary.js';
 import { redisClient } from '../../../lib/redis-client.js';
 
 import db from '../../models/index.js';
@@ -113,33 +111,64 @@ export const setChangePassword = async (
 };
 
 /**
- * Deletes a user account from the database and clears associated cached data.
+ * Deletes a user account from the database (soft deletion) and clears associated cached data.
  *
- * @param {string} email - The email address used to validate the deletion request.
- * @param {Object} user - The user object containing user details.
- * @param {string} user.email - The email address of the user.
- * @param {string} user.userId - The ID of the user to be deleted.
- * @returns {Promise<{ status: string, message: string }> | { error: Error }} A promise resolving to a success message or an error object.
- * @throws {DeleteAccountError} If the provided email does not match the user's email.
+ * @param {string} currentUserId - The ID of the user to be deleted.
+ * @param {string[]} conversationIds - An array of conversation IDs associated with the user.
+ * @param {string[]} singleConversationUserIds - An array of user IDs of single conversations to notify about the user online status.
+ * @returns {Promise<{ status: string }> | { error: Error }} A promise resolving to a success status or an error object.
+ * @throws {DeleteAccountError} If an error occurs during the account deletion process.
  */
-export const deleteUser = async (email, user) => {
+export const deleteUser = async (
+  currentUserId,
+  conversationIds,
+  singleConversationUserIds
+) => {
   try {
-    // Validate email against user's email
-    if (email !== user.email) throw new DeleteAccountError();
+    // Find the user in the database
+    const user = await db.User.findByPk(currentUserId, {
+      include: {
+        model: db.User,
+        as: 'otherContacts',
+        attributes: ['userId']
+      }
+    });
 
-    // Delete the user account from the database
-    await db.User.delete({ where: { userId: user.userId } });
+    // Clear sensitive user data and mark as deleted
+    user.googleId = null;
+    user.facebookId = null;
+    user.username = 'deleted_user';
+    user.email = faker.internet.email(); // Generate a fake email for privacy
+    user.image = null;
+    user.password = null;
+    await user.save();
 
-    // Delete the stored data from the cache
-    await redisClient.del(`user_data:${user.userId}`);
+    // Delete the user account from the database (soft deletion)
+    await db.User.destroy({ where: { userId: user.userId } });
 
-    // Return success status and message
+    // Clear cached user data
+    await redisClient.del(`user_data:${currentUserId}`);
+
+    // Notify connected users about the user's online status change
+    io.to(singleConversationUserIds).emit('connected', false, [currentUserId]);
+
+    // Notify users who have this user as a contact about the account deletion
+    const otherContactIds = user.otherContacts.map(
+      (otherContact) => otherContact.userId
+    );
+
+    // Notify all conversations that the user is in and otherContacts about the account deletion
+    io.to([...conversationIds, ...otherContactIds]).emit('update_user', {
+      userId: currentUserId,
+      username: 'deleted_user',
+      image: null,
+      deletedAt: Date.now()
+    });
+
     return {
-      ...successJson.user.delete.account,
       status: successJson.status.no_content
     };
   } catch (err) {
-    // Handle errors
     return { error: err };
   }
 };

@@ -31,6 +31,6 @@ router.patch('/password', mainController.changePassword);
  * Deletes the user's account.
  * Endpoint: DElETE /users/delete
  */
-router.delete('/delete', mainController.deleteAccount);
+router.delete('/delete', mainController.deleteUser);
 
 export default router;

@@ -5,6 +5,8 @@ import { Strategy } from 'passport-facebook';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import db from '../../models/index.js';
+import { Op } from 'sequelize';
+
 const facebookStrategy = new Strategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
@@ -26,9 +28,9 @@ const facebookStrategy = new Strategy(
     const { id, first_name, last_name, email, profileURL } = profile._json;
 
     try {
-      // Find or create a new user based on their Facebook ID
+      // Find or create a new user based on their Facebook ID or email
       const [user, created] = await db.User.findOrCreate({
-        where: { email },
+        where: { [Op.or]: [{ facebookId: id }, { email }] },
         defaults: {
           facebookId: id,
           username: (first_name + '_' + last_name).toLowerCase(),
@@ -40,7 +42,9 @@ const facebookStrategy = new Strategy(
       // Linking facebook account to the existing user
       if (!created && user) {
         user.facebookId = id;
-        if (!user.isVerified) user.isVerified = true;
+
+        // Set the verification status to true if the provider email is equal to the email stored in the db
+        if (!user.isVerified && email === user.email) user.isVerified = true;
 
         user.save();
       }

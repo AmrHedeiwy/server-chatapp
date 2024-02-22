@@ -42,12 +42,6 @@
         "message": "Password updated successfully.",
         "redirect": "/"
       }
-    },
-    "delete": {
-      "account": {
-        "message": "Your account has been deleted.",
-        "redirect": "/"
-      }
     }
   },
   "status": {

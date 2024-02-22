@@ -5,6 +5,7 @@ import { Strategy } from 'passport-google-oauth2';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import db from '../../models/index.js';
+import { Op } from 'sequelize';
 
 const googleStrategy = new Strategy(
   {
@@ -27,9 +28,9 @@ const googleStrategy = new Strategy(
     const { id, given_name, family_name, email, picture } = profile;
 
     try {
-      // Find or create a new user based on their Google ID
+      // Find or create a new user based on their Google ID or email
       const [user, created] = await db.User.findOrCreate({
-        where: { email },
+        where: { [Op.or]: [{ googleId: id }, { email }] },
         defaults: {
           googleId: id,
           username: (given_name + '_' + family_name).toLowerCase(),
@@ -40,7 +41,9 @@ const googleStrategy = new Strategy(
 
       if (!created && user) {
         user.googleId = id;
-        if (!user.isVerified) user.isVerified = true;
+
+        // Set the verification status to true if the provider email is equal to the email stored in the db
+        if (!user.isVerified && email === user.email) user.isVerified = true;
 
         user.save();
       }

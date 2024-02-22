@@ -135,28 +135,27 @@ const changePassword = [
 /**
  * Route handler for deleting the user's account.
  *
- * This route expects a POST request with the following parameters in the request body:
- * - email: The email used to confirm the account deletion.
- *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
  * 2. Deletes the user's account from the database using the deleteUser function.
  * 3. If an error occurs during the process, it is passed to the error handling middleware.
- * 4. If the account deletion is successful, a success flash message is stored in the req.flash object.
- * 5. Finally, the response is sent with the appropriate status code and redirect URL.
+ * 4. If the account deletion is successful, the user is logged out, and an empty response is sent.
  */
-const deleteAccount = [
+const deleteUser = [
   isAuthExpress,
   async (req, res, next) => {
-    const { status, message, redirect, error } = await userService.deleteUser(
-      req.body.email,
-      req.user
+    const { userId, conversationIds, singleConversationUserIds } = req.user;
+    const { status, error } = await userService.deleteUser(
+      userId,
+      conversationIds,
+      singleConversationUserIds
     );
 
     if (error) return next(error);
 
-    req.flash('success', message);
-    res.status(status).redirect(redirect);
+    req.logOut(() => {});
+
+    res.status(status).json();
   }
 ];
 
@@ -183,13 +182,13 @@ const createConversation = [
   validation(createConversationSchema),
   async (req, res, next) => {
     const { isGroup, memberIds, name, isImage } = req.body;
-    const { socketIds } = req.user;
+    const { singleConversationUserIds } = req.user;
 
-    const { status, conversation, error } =
+    const { status, conversation, exists, error } =
       await conversationService.addConversation(
         req.user.userId,
         // If the conversation is a one-to-one conversation, checks if a conversation already exists with the other member.
-        !isGroup ? socketIds.includes(memberIds[0]) : false,
+        !isGroup ? singleConversationUserIds.includes(memberIds[0]) : false,
         memberIds,
         name,
         isGroup,
@@ -198,7 +197,7 @@ const createConversation = [
 
     if (error) return next(error);
 
-    res.status(status).json({ conversation });
+    res.status(status).json({ conversation, exists });
   }
 ];
 
@@ -644,7 +643,7 @@ export default {
   edit,
   changeAvatar,
   changePassword,
-  deleteAccount,
+  deleteUser,
   createConversation,
   getConversations,
   getConversation,

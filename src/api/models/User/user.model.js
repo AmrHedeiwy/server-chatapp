@@ -66,13 +66,28 @@ export default (sequelize, DataTypes) => {
             ? format(date, 'd MMMM yyyy, h:mm a')
             : date;
         }
+      },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        get() {
+          let date = this.getDataValue('deletedAt');
+
+          return !!date && date instanceof Date
+            ? format(date, 'd MMMM yyyy, h:mm a')
+            : date;
+        }
       }
     },
     {
       sequelize,
       modelName: 'User',
       tableName: 'users',
-      timestamps: false,
+      timestamps: true,
+      paranoid: true,
+      createdAt: false,
+      updatedAt: false,
+      deletedAt: 'deletedAt',
       indexes: [
         {
           unique: true,

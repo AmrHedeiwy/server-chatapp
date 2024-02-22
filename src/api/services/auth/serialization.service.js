@@ -50,13 +50,13 @@ export const deserializeUser = async ({ userId }, done) => {
         })
       )?.dataValues;
 
-      const socketIds = new Set();
-      const conversationIds = new Set();
+      const singleConversationUserIds = new Set(); // The userIds of the other user in a one-to-one conversation
+      const conversationIds = new Set(); // All conversation ids include conversations that do not have messages and are not intiated by the current user.
       const contactIds = new Set();
 
       user.conversations.forEach((conversation) => {
         if (!conversation.dataValues.isGroup) {
-          socketIds.add(conversation.members[0].userId);
+          singleConversationUserIds.add(conversation.members[0].userId);
         }
 
         conversationIds.add(conversation.dataValues.conversationId);
@@ -66,7 +66,7 @@ export const deserializeUser = async ({ userId }, done) => {
         contactIds.add(contact.dataValues.userId)
       );
 
-      user.socketIds = Array.from(socketIds);
+      user.singleConversationUserIds = Array.from(singleConversationUserIds);
       user.conversationIds = Array.from(conversationIds);
       user.contactIds = Array.from(contactIds);
 

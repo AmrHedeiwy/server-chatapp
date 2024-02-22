@@ -40,7 +40,9 @@
   "main": {
     "validations": {
       "memberIds": "At least one member is required to initiate conversation.",
-      "name": "The conversation name must be at least 2 characters long."
+      "name": "The conversation name must be at least 2 characters long.",
+      "username": "Username can only contain letters, digits, underscores, and hyphens, and must be between 3 and 20 characters long.",
+      "email": "Please enter a valid email address in the format example@example.com."
     },
     "user": {
       "change_password": { "message": "Current password is incorrect." },

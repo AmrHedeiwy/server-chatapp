@@ -16,7 +16,7 @@ const emailRouteLimits = {
 
 const userIdRouteLimits = {
   '/edit': { count: 4, expire: 60 * 60 * 1000 },
-  '/password/change': { count: 10, expire: 120 * 60 * 1000 }
+  '/password': { count: 10, expire: 120 * 60 * 1000 }
 };
 
 /**

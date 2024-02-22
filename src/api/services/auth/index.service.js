@@ -24,4 +24,3 @@ passport.deserializeUser(deserializeUser);
 
 export { passport };
 export * as registerService from './register.service.js';
-export * as mailerService from './mailer.service.js';

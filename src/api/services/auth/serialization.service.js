@@ -55,7 +55,6 @@ export const deserializeUser = async ({ userId }, done) => {
       const contactIds = new Set();
 
       user.conversations.forEach((conversation) => {
-        console.log(conversation.conversationId);
         if (!conversation.dataValues.isGroup) {
           socketIds.add(conversation.members[0].userId);
         }

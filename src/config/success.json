@@ -39,7 +39,8 @@
         "redirect": "/email/verify"
       },
       "password": {
-        "message": "Password updated successfully."
+        "message": "Password updated successfully.",
+        "redirect": "/"
       }
     },
     "delete": {

@@ -32,10 +32,19 @@ import {
 const current = [
   isAuthExpress,
   async (req, res, next) => {
-    const { userId, username, email, image, createdAt } = req.user;
-    res
-      .status(200)
-      .json({ curentUser: { userId, username, email, image, createdAt } });
+    const { userId, googleId, facebookId, username, email, image, createdAt } =
+      req.user;
+    res.status(200).json({
+      curentUser: {
+        userId,
+        googleId,
+        facebookId,
+        username,
+        email,
+        image,
+        createdAt
+      }
+    });
   }
 ];
 
@@ -44,33 +53,46 @@ const current = [
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
- * 2. Applies rate limiting based on the userId to prevent abuse using the userIdRateLimiter middleware.
- * 3. Handles file upload for the 'image' field using the upload middleware.
- * 4. Validates the request body using the Joi editUserSchema at the validation middleware.
- * 5. Updates the user's credentials using the saveNewCredentials function.
- * 6. If an error occurs during the process, it is passed to the error handling middleware.
- * 7. If the operation is successful and a new email is provided, logs out the user and sends a response with the appropriate status code and redirect URL.
- * 8. If the operation is successful and no new email is provided, sends a response with the appropriate status code and updated user information.
+ * 2. Handles file upload for the 'image' field using the upload middleware.
+ * 3. Validates the request body using the Joi editUserSchema at the validation middleware.
+ * 4. Updates the user's credentials using the saveNewCredentials function.
+ * 5. If an error occurs during the process, it is passed to the error handling middleware.
+ * 6. If the operation is successful and a new email is provided, logs out the user and sends a response with the appropriate status code and redirect URL.
+ * 7. If the operation is successful and no new email is provided, sends a response with the appropriate status code and updated user information.
  */
 const edit = [
   isAuthExpress,
-  userIdRateLimiter,
-  upload.single('image'),
   validation(editUserSchema),
   async (req, res, next) => {
-    const { status, message, redirect, user, error } =
-      await userService.saveNewCredentials(req.body, req.user);
+    const { status, message, redirect, error } =
+      await userService.saveNewCredentials(
+        req.user.conversationIds,
+        req.user.userId,
+        req.user.username,
+        req.body
+      );
 
     if (error) return next(error);
 
-    if (req.body.email) {
-      await req.logout((options, done) => {
-        res.status(status).json({ message, redirect });
-      });
-      return;
-    }
+    res.status(status).json({ message, redirect });
+  }
+];
 
-    res.status(status).json({ user, message });
+const changeAvatar = [
+  isAuthExpress,
+  upload.single('file'),
+  async (req, res, next) => {
+    const { path } = req.file ?? {};
+
+    const { image, status, error } = await userService.uploadAvatar(
+      req.user.userId,
+      req.user.conversationIds,
+      path
+    );
+
+    if (error) return next(error);
+
+    res.status(status).json({ image });
   }
 ];
 
@@ -80,15 +102,14 @@ const edit = [
  * This route expects a POST request with the following OPTIONAL parameters in the request body:
  * - currentPassword: The user's current password.
  * - newPassword: The new password to be set.
- * - confirmPassword: The re-entered password.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
  * 2. Applies rate limiting based on the UserID to prevent abuse using the userIdRateLimiter middleware.
- * 3. Validates the request body using the Joi changePasswordSchema at the validation middleware.
+ * 3. Validates the request body against the changePasswordSchema.
  * 4. Updates the user's password using the setChangePassword function.
  * 5. If an error occurs during the password change process, it is passed to the error handling middleware.
- * 6. If the password change is successful, the response is sent with the appropriate status code and message.
+ * 6. If the password change is successful, the user is logged out and the response is sent with the appropriate status code and message.
  */
 const changePassword = [
   isAuthExpress,
@@ -97,14 +118,17 @@ const changePassword = [
   async (req, res, next) => {
     const { currentPassword, newPassword } = req.body;
 
-    const { status, message, error } = await userService.setChangePassword(
-      currentPassword,
-      newPassword,
-      req.user.UserID
-    );
+    const { status, message, redirect, error } =
+      await userService.setChangePassword(
+        req.user.userId,
+        currentPassword,
+        newPassword
+      );
     if (error) return next(error);
 
-    res.status(status).json({ message });
+    req.logOut(() => {});
+
+    res.status(status).json({ message, redirect });
   }
 ];
 
@@ -290,11 +314,10 @@ const uploadImage = [
   isAuthExpress,
   upload.single('file'),
   async (req, res, next) => {
-    const { conversationId } = req.body;
     const { path } = req.file ?? {};
 
     const { status, error } = await conversationService.uploadGroupImage(
-      conversationId,
+      req.body.conversationId,
       req.user.userId,
       path
     );
@@ -619,6 +642,7 @@ const deleteContact = [
 export default {
   current,
   edit,
+  changeAvatar,
   changePassword,
   deleteAccount,
   createConversation,

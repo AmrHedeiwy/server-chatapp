@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import sequelize from 'sequelize';
 import fs from 'fs';
+import crypto from 'crypto';
 
 import successJson from '../../../config/success.json' assert { type: 'json' };
 import cloudinary from '../../../lib/cloudinary.js';
@@ -13,51 +14,59 @@ import {
   SequelizeConstraintError
 } from '../../helpers/ErrorTypes.helper.js';
 import { uploader } from '../../../lib/uploader.js';
+import { io } from '../../../app.js';
+import mailer from '../../../lib/mailer.js';
 
 /**
- * Saves new credentials and updates user profile data, including image upload to Cloudinary if provided.
+ * Updates the user's profile data and performs additional actions such as caching updated user data and sending email verification if the email is updated.
  *
- * @param {Object} data - The data object containing new credentials and profile information.
- * @param {string} data.path - The file path of the image to be uploaded to Cloudinary (if provided).
- * @param {string} data.email - The email address of the user for email verification (optional).
- * @param {Object} currentUser - The current user object.
- * @param {string} currentUser.userId - The ID of the current user.
- * @returns {Promise<{ message: string, status: string, redirect: string, user: Object }> | { error: Error }} A promise resolving to a success message, status, redirect URL (if email verification is required), and updated user object, or an error object.
- * @throws {SequelizeConstraintError} If a unique constraint error occurs during database operation.
+ * @param {Array<string>} conversationIds - An array of conversation IDs where the user's username change will be broadcasted.
+ * @param {string} currentUserId - The ID of the current user.
+ * @param {string} currentUsername - The current username of the user.
+ * @param {object} data - An object containing the new profile data to be updated.
+ * @param {string} [data.username] - The new username.
+ * @param {string} [data.email] - The new email address.
+ * @returns {Promise<{ message: string, status: string, redirect: string | null }> | { error: Error }} A promise resolving to a success message and status, with an optional redirect URL if email verification is required, or an error object.
+ * @throws {SequelizeConstraintError | Error} If a unique constraint error occurs during the database update or unexpected errors happen.
  */
-export const saveNewCredentials = async (data, currentUser) => {
+export const saveNewCredentials = async (
+  conversationIds,
+  currentUserId,
+  currentUsername,
+  data
+) => {
   try {
-    // Upload image file to Cloudinary if FilePath is provided in the data object
-    if (data.path) {
-      const { secure_url, error } = await uploader(data.path, null, 'image');
-
-      if (error) throw error;
-      // Update image URL with secure URL from Cloudinary and remove FilePath from data object
-      data.image = secure_url;
-      delete data.path;
-    }
-
-    const user = await db.User.findOne({
-      where: { userId: currentUser.userId }
-    });
-
-    const updatedUser = await user.update(data);
-
-    // Remove Password from updatedUser data to not br stored in the cache
-    delete updatedUser.dataValues.password;
+    await db.User.update(
+      { ...data, ...(data.email && { isVerified: false }) },
+      { where: { userId: currentUserId } }
+    );
 
     // Cache updated user data
-    await redisClient.del(`user_data:${currentUser.userId}`);
+    await redisClient.del(`user_data:${currentUserId}`);
+
+    if (!!data.username) {
+      io.to(conversationIds).emit('update_user', {
+        userId: currentUserId,
+        username: data.username
+      });
+    }
+
+    if (!!data.email) {
+      const { failed } = await mailer(
+        currentUserId,
+        data.username ?? currentUsername,
+        data.email,
+        'verification_code'
+      );
+
+      if (failed) throw failed;
+    }
 
     return {
       // Success message with an additional notification if email verification is required
-      message:
-        successJson.user.put.profile.message + data.email
-          ? ' Please verify your email.'
-          : '',
+      message: successJson.user.put.profile.message,
       status: successJson.status.ok,
-      redirect: data.email ? successJson.user.put.profile.redirect : null,
-      user: updatedUser // Updated user profile data
+      redirect: data.email ? successJson.user.put.profile.redirect : null
     };
   } catch (err) {
     return {
@@ -72,16 +81,17 @@ export const saveNewCredentials = async (data, currentUser) => {
 /**
  * Sets a new password for the user identified by their user ID after validating the current password.
  *
+ * @param {string} userId - The ID of the user whose password will be changed.
  * @param {string} currentPassword - The current password of the user.
  * @param {string} newPassword - The new password to be set.
- * @param {string} userId - The ID of the user whose password will be changed.
- * @returns {Promise<{ status: string, message: string }> | { error: Error }} A promise resolving to a success message or an error object.
+ * @returns {Promise<{ status: string, message: string, redirect: string }> | { error: Error }} 
+    A promise resolving to a success message, status, redirect or an error object.
  * @throws {ChangePasswordError} If the current password does not match the user's existing password.
  */
 export const setChangePassword = async (
+  userId,
   currentPassword,
-  newPassword,
-  userId
+  newPassword
 ) => {
   try {
     // Find the user by their ID
@@ -134,8 +144,38 @@ export const deleteUser = async (email, user) => {
   }
 };
 
-export default {
-  saveNewCredentials,
-  setChangePassword,
-  deleteUser
+/**
+ * Uploads a new avatar image for the current user and broadcasts the update to specified conversations.
+ *
+ * @param {string} currentUserId - The ID of the current user.
+ * @param {Array<string>} conversationIds - An array of conversation IDs where the user's avatar change will be broadcasted.
+ * @param {string} path - The file path of the new avatar image to be uploaded.
+ * @returns {Promise<{ image: string, status: string }> | { error: Error }} A promise resolving to the new image URL and status, or an error object if the upload fails.
+ */
+export const uploadAvatar = async (currentUserId, conversationIds, path) => {
+  try {
+    // Upload the new avatar image
+    const { secure_url, error } = await uploader(path, null, 'image');
+
+    if (error) throw error;
+
+    // Update the user's avatar image URL in the database
+    await db.User.update(
+      { image: secure_url },
+      { where: { userId: currentUserId } }
+    );
+
+    // Clear cached user data
+    await redisClient.del(`user_data:${currentUserId}`);
+
+    // Broadcast the avatar update to specified conversations
+    io.to(conversationIds).emit('update_user', {
+      userId: currentUserId,
+      image: secure_url
+    });
+
+    return { image: secure_url, status: successJson.status.ok };
+  } catch (err) {
+    return { error: err };
+  }
 };

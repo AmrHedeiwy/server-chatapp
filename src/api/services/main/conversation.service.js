@@ -71,7 +71,6 @@ export const addConversation = async (
 
       // Add additional details to the conversation object
       conversation.dataValues.otherMember = otherMember;
-      conversation.dataValues.name = otherMember.dataValues.profile.username;
 
       return { status: successJson.status.ok, conversation };
     }
@@ -133,8 +132,8 @@ export const addConversation = async (
       createdBy,
       lastMessageAt,
       isGroup,
-      image: isGroup ? image : otherMemberOrMembers.dataValues.profile.image,
-      name: name ?? otherMemberOrMembers.dataValues.profile.username,
+      image,
+      name,
       members,
       ...(isGroup
         ? {
@@ -294,8 +293,8 @@ export const fetchConversations = async (conversationIds, currentUserId) => {
         createdAt,
         lastMessageAt,
         isGroup,
-        image: isGroup ? image : otherMemberOrMembers[0].profile.image,
-        name: name ?? otherMemberOrMembers[0].profile.username,
+        image,
+        name,
         members,
         ...(isGroup
           ? {
@@ -451,8 +450,8 @@ export const fetchConversation = async (conversationId, currentUserId) => {
       createdAt,
       lastMessageAt,
       isGroup,
-      image: isGroup ? image : otherMemberOrMembers.dataValues.profile.image,
-      name: name ?? otherMemberOrMembers.dataValues.profile.username,
+      image,
+      name,
       members,
       ...(isGroup
         ? {

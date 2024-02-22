@@ -9,10 +9,7 @@ import {
 import { isAuthExpress } from '../middlewares/auth.middleware.js';
 import { resetPasswordDecoder } from '../middlewares/token-decoder.middlware.js';
 
-import {
-  registerService,
-  mailerService
-} from '../services/auth/index.service.js';
+import { registerService } from '../services/auth/index.service.js';
 import { setResetPassword } from '../services/auth/register.service.js';
 
 import {
@@ -23,6 +20,7 @@ import {
 } from '../validations/auth.validation.js';
 
 import { SocialMediaAuthenticationError } from '../helpers/ErrorTypes.helper.js';
+import mailer from '../../lib/mailer.js';
 
 /**
  * Route handler for registering a user.
@@ -63,18 +61,14 @@ export const register = [
 ];
 
 /**
- * Route handler for sending verification code for email-verification.
- *
- * This route expects a POST request with the following parameters in the request user:
- * - username: Used in the email context.
- * - email: The email address to send the verification code.
- * - userId: The key to set for the verification code when storing in the cache (redis).
+ * Route handler for sending a verification code for email verification.
  *
  * This route performs the following steps:
- * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
- * 2. Sends the new verification code to the user's email using the sendVerificaitonCode function.
- * 3. If an error occurs during the saving process, it will be passed to the error handling middleware.
- * 4. If the emailing process is successful, the user is redirected to the email verification page with an appropriate message.
+ * 1. Authenticates the user using the isAuthExpress middleware.
+ * 2. Applies email rate limiting using the emailRateLimiter middleware to prevent abuse.
+ * 3. Sends the new verification code to the user's email using the mailer function.
+ * 4. If an error occurs during the sending process, the error is passed to the error handling middleware.
+ * 5. If the email sending process is successful, the response includes a status code and a message.
  */
 export const verifyEmailRequest = [
   isAuthExpress,
@@ -82,8 +76,12 @@ export const verifyEmailRequest = [
   async (req, res, next) => {
     const { username, email, userId } = req.user;
 
-    const { message, redirect, status, error } =
-      await registerService.sendVerificationCode(username, email, userId);
+    const {
+      message,
+      redirect,
+      status,
+      failed: error
+    } = await mailer(userId, username, email, 'verification_code');
     if (error) return next(error);
 
     res.status(status).json({ message, redirect });
@@ -149,18 +147,19 @@ export const getSession = async (req, res, next) => {
  * Route handler for initiating a password reset request.
  *
  * This route expects a POST request with the following parameters in the request body:
- * - email: The email address to send the request to.
+ * - email: The email address to send the password reset request to.
  *
  * This route performs the following steps:
  * 1. Applies IP rate limiting using the ipRateLimiter middleware to prevent abuse.
- * 1. Applies Email rate limiting using the emailRateLimiter middleware to prevent abuse.
- * 1. Checks if the user with the provided email exists using the checkUserExists function.
- * 2. If an error occurs during the search process, it will be passed to the error handling middleware.
- * 3. If the user is found, a JWT token is generated with the user's ID to expire in 15 minutes and used as the token in the URL.
- * 4. Sends a reset password link to the user's email.
- * 5. If an error occurs during the emailing process, it will be passed to the error handling middleware.
- * 6. If the emailing process is successful, a resetPassword property is added to the session.
- * 7. Finally, the response is sent with the appropriate status code and message.
+ * 2. Applies email rate limiting using the emailRateLimiter middleware to prevent abuse.
+ * 3. Validates the request body parameters against the forgotPasswordRequestSchema schema.
+ * 4. Checks if a user with the provided email exists using the checkUserExists function.
+ * 5. If an error occurs during the search process, it will be passed to the error handling middleware.
+ * 6. If the user is found, a JWT token is generated with the user's ID to expire in 15 minutes and used as the token in the reset password URL.
+ * 7. Sends a reset password link to the user's email.
+ * 8. If an error occurs during the emailing process, it will be passed to the error handling middleware.
+ * 9. If the emailing process is successful, a resetPassword property is added to the session to allow the user to view the reset password page.
+ * 10. Finally, the response is sent with the appropriate status code and message.
  */
 export const forgotPasswordRequest = [
   ipRateLimiter,
@@ -169,10 +168,19 @@ export const forgotPasswordRequest = [
   async (req, res, next) => {
     const { email } = req.body;
 
-    const { message, status, error } =
-      await registerService.sendResetPasswordLink(email);
-
+    const { user, error } = await registerService.checkUserExists(
+      'email',
+      email
+    );
     if (error) return next(error);
+
+    const { message, status, failed } = await mailer(
+      user.dataValues.userId,
+      user.dataValues.username,
+      email,
+      'forgot_password'
+    );
+    if (failed) return next(failed);
 
     // To allow the user to view the reset password page
     req.session.isPasswordReset = true;

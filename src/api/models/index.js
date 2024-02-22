@@ -34,10 +34,6 @@ async function loadModels() {
    * - Is not the basename, which is the name of the file we
    * are importing from.
    * @default index.js
-   * - End with `.js` extention
-   * @example user.model.js
-   * - It does not contain `.test.js`
-   * @example user.test.js
    */
   for (const file of files) {
     if (file !== basename) {
@@ -55,7 +51,7 @@ async function loadModels() {
       db[modelName] = model;
 
       // Load the hooks for this model
-      const hooksPath = await path.join(
+      const hooksPath = path.join(
         path.dirname(filePath),
         `${modelName.toLowerCase()}.hooks.js`
       );

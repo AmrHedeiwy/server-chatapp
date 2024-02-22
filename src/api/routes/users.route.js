@@ -16,10 +16,16 @@ router.get('/current', mainController.current);
 router.put('/edit', mainController.edit);
 
 /**
+ * Updates the user's avatar.
+ * Endpoint: POST /users/edit
+ */
+router.post('/avatar', mainController.changeAvatar);
+
+/**
  * Changes the user's password.
  * Endpoint: PATCH /users/password/change
  */
-router.patch('/password/change', mainController.changePassword);
+router.patch('/password', mainController.changePassword);
 
 /**
  * Deletes the user's account.

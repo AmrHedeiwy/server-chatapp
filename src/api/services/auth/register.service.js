@@ -6,10 +6,11 @@ import {
   VerificationCodeError
 } from '../../helpers/ErrorTypes.helper.js';
 import { redisClient } from '../../../lib/redis-client.js';
-import mailerService from './mailer.service.js';
+
 import crypto from 'crypto';
 import sequelize from 'sequelize';
 import jwt from 'jsonwebtoken';
+import mailer from '../../../lib/mailer.js';
 
 /**
  * Adds a new user to the database.
@@ -24,6 +25,16 @@ export const addUser = async (data) => {
   try {
     // Create the new user in the database using a transaction
     const user = await db.User.create(data, { transaction: t });
+
+    const { userId, username, email } = user.dataValues;
+    const { failed } = await mailer(
+      userId,
+      username,
+      email,
+      'verification_code'
+    );
+
+    if (failed) throw failed;
 
     // Commit the transaction if no errors occur
     await t.commit();
@@ -45,47 +56,6 @@ export const addUser = async (data) => {
           ? new SequelizeConstraintError(err) // Use the custom SequelizeConstraintError class for handling unique constraint errors
           : err // Treat other Sequelize errors as unexpected errors
     };
-  }
-};
-
-/**
- * Sends a verification code via email to a user for email verification.
- *
- * @param {string} username - The username of the user.
- * @param {string} email - The email address of the user.
- * @param {string} userId - The ID of the user.
- * @returns {Promise<{ message: string, redirect: string, status: string } | { error: Error }>} A promise resolving to an object containing the message, redirect URL, and status of the operation, or an error object.
- */
-export const sendVerificationCode = async (username, email, userId) => {
-  try {
-    // Generate a 6-digit verification code
-    const verificationCode = crypto.randomInt(100000, 999999).toString();
-
-    // Store the verification code in Redis with a TTL of 15 minutes (code expires in 15 minutes)
-    await redisClient.setEx(
-      `email_verification:${userId}`,
-      60 * 15,
-      JSON.stringify({ verificationCode })
-    );
-
-    // Send the verification code via email using the mailerService
-    const { message, redirect, status, failed } = await mailerService(
-      'verification_code',
-      username,
-      email,
-      {
-        verificationCode
-      }
-    );
-
-    // Throw an error if the email failed to send
-    if (failed) throw failed;
-
-    // Return the message, redirect URL, and status of the operation
-    return { message, redirect, status };
-  } catch (err) {
-    // Handle and return any errors that occur during the execution
-    return { error: err };
   }
 };
 
@@ -157,50 +127,6 @@ export const checkUserExists = async (field, value) => {
 };
 
 /**
- * Sends a reset password link to the user's email if the user exists and has a password set.
- *
- * @param {string} email - The email address of the user requesting the password reset.
- * @returns {Promise<{ message: string, status: string }> | { error: Error }} A promise resolving to an object containing the message and status if the reset password link is sent successfully, or an error object.
- */
-export const sendResetPasswordLink = async (email) => {
-  try {
-    // Check if the user exists and has a password set
-    const { user, error } = await checkUserExists('email', email);
-
-    if (error) throw error;
-
-    // Indicates that account is not created by email (local-strategy)
-    if (!user.dataValues.password) throw new ForgotPassswordError();
-
-    // Generate a JWT token containing the user ID with a 1-hour expiration
-    const useridToken = jwt.sign(
-      {
-        userId: user.userId
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
-    // Send the reset password link via email
-    const {
-      message,
-      status,
-      error: failed
-    } = await mailerService('forgot_password', user.username, email, {
-      useridToken
-    });
-
-    if (failed) throw failed;
-
-    // Return success message and status if the email is sent successfully
-    return { message, status };
-  } catch (err) {
-    // Handle and return any errors that occur during the execution
-    return { error: err };
-  }
-};
-
-/**
  * Sets a new password for the user identified by the provided user ID.
  *
  * @param {string} userId - The unique identifier of the user whose password will be reset.
@@ -231,7 +157,6 @@ export const setResetPassword = async (userId, newPassword) => {
 
 export default {
   addUser,
-  sendVerificationCode,
   verifyEmail,
   checkUserExists,
   setResetPassword

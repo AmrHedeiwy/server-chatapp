@@ -12,7 +12,9 @@ const errorMiddleware = (error, req, res, next) => {
     const { status, message, redirect } = error.getResponse();
 
     if (error.name === 'SocialMediaAuthenticationError') {
-      console.error(`${err.provider} AUTH ERROR `, { details: err.details });
+      console.error(`${error.provider} AUTH ERROR `, {
+        details: error.details
+      });
 
       req.session.isCallbackProvider = true;
 

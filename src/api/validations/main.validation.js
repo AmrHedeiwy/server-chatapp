@@ -25,21 +25,12 @@ export const editUserSchema = Joi.object({
  */
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required(),
-  password: Joi.string()
+  newPassword: Joi.string()
     .trim()
     .pattern(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     )
-    .required(),
-  confirmPassword: Joi.string()
-    .trim()
-    .empty('')
     .required()
-    .valid(Joi.ref('password'))
-    .messages({
-      'any.required': '"ConfirmPassword" is not allowed to be empty'
-    })
-    .strip()
 })
   .options({ abortEarly: false })
   .error(mainErrorFormatter);

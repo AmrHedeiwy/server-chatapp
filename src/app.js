@@ -27,7 +27,7 @@ const corsOptions = {
   origin: process.env.CLIENT_URL,
   credentials: true,
   allowedHeaders:
-    'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept'
+    'X-Requested-With, X-HTTP-Method-Override, Access-Control-Allow-Origin, Content-Type, Accept'
 };
 
 // Create instances of the Express app, HTTP server, and Socket.io
@@ -60,9 +60,7 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: false,
     httpOnly: true,
-    domain: 'localhost',
-    path: '/',
-    sameSite: 'strict'
+    sameSite: 'none'
   }
 });
 

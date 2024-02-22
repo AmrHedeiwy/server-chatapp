@@ -78,7 +78,7 @@ export const generateFakeAccount = async () => {
     return {
       status: successJson.status.created,
       ...successJson.auth.post.fake_account,
-      user
+      user: user.dataValues
     };
   } catch (err) {
     // Return an error object if an error occurs during the process
@@ -186,5 +186,6 @@ export default {
   addUser,
   verifyEmail,
   checkUserExists,
-  setResetPassword
+  setResetPassword,
+  generateFakeAccount
 };

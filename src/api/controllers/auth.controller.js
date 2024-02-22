@@ -72,13 +72,14 @@ export const register = [
 export const fakeAccount = [
   async (req, res, next) => {
     const { status, message, redirect, user, error } =
-      await registerService.generateFakeAccout();
+      await registerService.generateFakeAccount();
 
     if (error) return next(error);
 
-    req.login(user.userId, (err) => {
+    await req.login(user.userId, (err) => {
       if (err) return next(err);
 
+      console.log(req.session);
       res.status(status).json({ message, redirect });
     });
   }
@@ -149,6 +150,7 @@ export const verifyEmail = [
  */
 export const getSession = async (req, res, next) => {
   const { isCallbackProvider, isPasswordReset } = req.session;
+  console.log(req.session);
 
   const response = {
     isCallbackProvider: isCallbackProvider ?? false,

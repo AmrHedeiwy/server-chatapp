@@ -52,15 +52,14 @@ const redisStore = new RedisStore({
 
 // Configure session middleware
 const sessionMiddleware = session({
-  secret: 'sec',
+  secret: process.env.SESSION_SECRET,
   saveUninitialized: false,
   resave: false,
   store: redisStore,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
-    secure: false,
-    httpOnly: true,
-    sameSite: 'none'
+    secure: true,
+    httpOnly: true
   }
 });
 

@@ -48,8 +48,7 @@
       "change_password": {
         "provider_account": "Your account is registered with a social media account, you can't directly change your password here. If you wish to change your password, you'll need to initiate a password reset request.",
         "invalid_password": "Current password is incorrect."
-      },
-      "delete_account": { "message": "Inncorrect email." }
+      }
     }
   },
   "server": {

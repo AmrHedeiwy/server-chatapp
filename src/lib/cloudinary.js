@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './src/config/.env' });
+// import dotenv from 'dotenv';
+// dotenv.config({ path: './src/config/.env' });
 
 import { v2 as cloudinary } from 'cloudinary';
 

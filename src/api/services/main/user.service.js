@@ -8,7 +8,6 @@ import { redisClient } from '../../../lib/redis-client.js';
 import db from '../../models/index.js';
 import {
   ChangePasswordError,
-  DeleteAccountError,
   SequelizeConstraintError
 } from '../../helpers/ErrorTypes.helper.js';
 import { uploader } from '../../../lib/uploader.js';

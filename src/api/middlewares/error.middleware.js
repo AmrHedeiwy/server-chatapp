@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './src/config/.env' });
+// import dotenv from 'dotenv';
+// dotenv.config({ path: './src/config/.env' });
 
 import errorsJson from '../../config/errors.json' assert { type: 'json' };
 

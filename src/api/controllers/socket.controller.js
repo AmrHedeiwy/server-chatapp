@@ -1,5 +1,4 @@
 import { io } from '../../app.js';
-import cloudinary from '../../lib/cloudinary.js';
 import { redisClient } from '../../lib/redis-client.js';
 import db from '../models/index.js';
 import { Op } from 'sequelize';

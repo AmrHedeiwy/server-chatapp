@@ -339,26 +339,3 @@ export class ChangePasswordError extends BaseError {
     };
   }
 }
-
-/**
- * Represents an error that occurs when the prompted email does not match the user's email.
- *
- * @extends BaseError
- */
-export class DeleteAccountError extends BaseError {
-  constructor() {
-    super();
-  }
-
-  /**
-   * Returns the response containing the status code and error message.
-   *
-   * @returns {object} - The response containing the status code and error message.
-   */
-  getResponse() {
-    return {
-      ...errorsJson.main.user.delete_account,
-      status: errorsJson.status.invalid_request
-    };
-  }
-}

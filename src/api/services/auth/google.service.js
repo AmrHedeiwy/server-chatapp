@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './src/config/.env' });
+// import dotenv from 'dotenv';
+// dotenv.config({ path: './src/config/.env' });
 
 import { Strategy } from 'passport-google-oauth2';
 
@@ -11,7 +11,7 @@ const googleStrategy = new Strategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://localhost:5000/auth/google/callback'
+    callbackURL: `${process.env.SERVER_URL}/auth/google/callback`
   },
   /**
    * Authenticates and handles a user profile obtained from Google OAuth.

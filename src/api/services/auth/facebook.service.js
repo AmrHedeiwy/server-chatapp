@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './src/config/.env' });
+// import dotenv from 'dotenv';
+// dotenv.config({ path: './src/config/.env' });
 
 import { Strategy } from 'passport-facebook';
 
@@ -11,7 +11,7 @@ const facebookStrategy = new Strategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: 'http://localhost:5000/auth/facebook/callback',
+    callbackURL: `${process.env.SERVER_URL}/auth/facebook/callback`,
     profileFields: ['id', 'first_name', 'last_name', 'email']
   },
   /**

@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js",
-    "install": "npm install"
+    "start": "node src/server.js --omit=dev",
+    "install": "npm install --omit=dev"
   },
   "keywords": [],
   "author": "",

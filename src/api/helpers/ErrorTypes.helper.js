@@ -317,18 +317,24 @@ export class MissingSystemDataError extends BaseError {
  * @extends BaseError
  */
 export class ChangePasswordError extends BaseError {
-  constructor() {
+  /**
+   * Creates a new instance of ChangePasswordError.
+   *
+   * @param {string} type - The type of error, which can be either 'provider_account' or 'invalid_password'.
+   */
+  constructor(type) {
     super();
+    this.type = type;
   }
 
   /**
    * Returns the response containing the status code and error message.
    *
-   * @returns {object} - The response containing the status code and error message.
+   * @returns {object} The response containing the status code and error message.
    */
   getResponse() {
     return {
-      ...errorsJson.main.user.change_password,
+      message: errorsJson.main.user.change_password[this.type],
       status: errorsJson.status.invalid_request
     };
   }

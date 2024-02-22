@@ -61,6 +61,30 @@ export const register = [
 ];
 
 /**
+ * Route handler for generating a fake user account and logging them in.
+ *
+ * This route performs the following steps:
+ * 1. Generates fake user account data using the generateFakeAccount function from the registerService.
+ * 2. Attempts to log in the newly created user using their user ID.
+ * 3. If the login is successful, the response is sent with the appropriate status code, message, and redirect URL.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ */
+export const fakeAccount = [
+  async (req, res, next) => {
+    const { status, message, redirect, user, error } =
+      await registerService.generateFakeAccout();
+
+    if (error) return next(error);
+
+    req.login(user.userId, (err) => {
+      if (err) return next(err);
+
+      res.status(status).json({ message, redirect });
+    });
+  }
+];
+
+/**
  * Route handler for sending a verification code for email verification.
  *
  * This route performs the following steps:
@@ -375,6 +399,7 @@ export const googleSignUpCallback = async (req, res, next) => {
 
 export default {
   register,
+  fakeAccount,
   verifyEmailRequest,
   verifyEmail,
   forgotPasswordRequest,

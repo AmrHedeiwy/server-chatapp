@@ -10,6 +10,12 @@ import authController from '../controllers/auth.controller.js';
 router.post('/register', authController.register);
 
 /**
+ * Registers a fake user account.
+ * Endpoint: POST /auth/createFakeAccount
+ */
+router.post('/createFakeAccount', authController.fakeAccount);
+
+/**
  * Sends a request to initiate email verification for a user.
  * Endpoint: POST /auth/email/verify/request
  */

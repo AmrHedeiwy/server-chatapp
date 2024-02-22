@@ -33,6 +33,7 @@ const facebookStrategy = new Strategy(
         where: { [Op.or]: [{ facebookId: id }, { email }] },
         defaults: {
           facebookId: id,
+          email,
           username: (first_name + '_' + last_name).toLowerCase(),
           isVerified: true,
           image: profileURL ?? null

@@ -95,10 +95,12 @@ export const setChangePassword = async (
     // Find the user by their ID
     const user = await db.User.findByPk(userId);
 
+    if (!user.password) throw new ChangePasswordError('provider_account');
+
     // Compare the provided password with the user's hashed password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
 
-    if (!isMatch) throw new ChangePasswordError();
+    if (!isMatch) throw new ChangePasswordError('invalid_password');
 
     // Update the user's password
     user.password = newPassword;

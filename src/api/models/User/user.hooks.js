@@ -5,8 +5,6 @@ export default (User) => {
     if (user.changed('email') && !user.googleId && !user.facebookId) {
       // Keep emails lowercase
       user.email = user.email.toLowerCase();
-      // Set verification status to false
-      user.isVerified = false;
     }
 
     if (user.changed('password')) {

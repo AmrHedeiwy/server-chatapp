@@ -33,6 +33,7 @@ const googleStrategy = new Strategy(
         where: { [Op.or]: [{ googleId: id }, { email }] },
         defaults: {
           googleId: id,
+          email,
           username: (given_name + '_' + family_name).toLowerCase(),
           isVerified: true,
           image: picture ?? null

@@ -5,6 +5,10 @@
         "message": "Your account has been created. Please check your email to verify it.",
         "redirect": "/email/verify"
       },
+      "fake_account": {
+        "message": "Your fake account has been created.",
+        "redirect": "/"
+      },
       "sign_in": {
         "verify-email-redirect": "/email/verify",
         "local-redirect": "/conversations",

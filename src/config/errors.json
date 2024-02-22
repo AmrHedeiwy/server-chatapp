@@ -45,7 +45,10 @@
       "email": "Please enter a valid email address in the format example@example.com."
     },
     "user": {
-      "change_password": { "message": "Current password is incorrect." },
+      "change_password": {
+        "provider_account": "Your account is registered with a social media account, you can't directly change your password here. If you wish to change your password, you'll need to initiate a password reset request.",
+        "invalid_password": "Current password is incorrect."
+      },
       "delete_account": { "message": "Inncorrect email." }
     }
   },

@@ -7,9 +7,8 @@ import {
 } from '../../helpers/ErrorTypes.helper.js';
 import { redisClient } from '../../../lib/redis-client.js';
 
-import crypto from 'crypto';
+import { faker } from '@faker-js/faker';
 import sequelize from 'sequelize';
-import jwt from 'jsonwebtoken';
 import mailer from '../../../lib/mailer.js';
 
 /**
@@ -56,6 +55,34 @@ export const addUser = async (data) => {
           ? new SequelizeConstraintError(err) // Use the custom SequelizeConstraintError class for handling unique constraint errors
           : err // Treat other Sequelize errors as unexpected errors
     };
+  }
+};
+
+/**
+ * Generates a fake user account for testing purposes.
+ *
+ * @returns {Promise<{ status: string, message: string, user: object }> | { error: Error }} A promise resolving to the status, message, and user object of the generated fake account, or an error object if an error occurs.
+ * @throws {Error} If an error occurs during the account creation process.
+ */
+export const generateFakeAccount = async () => {
+  try {
+    // Create a fake user account
+    const user = await db.User.create({
+      username: faker.internet.userName(),
+      email: faker.internet.email(),
+      password: faker.internet.password(),
+      isVerified: true
+    });
+
+    // Return the status, success message, and user object
+    return {
+      status: successJson.status.created,
+      ...successJson.auth.post.fake_account,
+      user
+    };
+  } catch (err) {
+    // Return an error object if an error occurs during the process
+    return { error: err };
   }
 };
 

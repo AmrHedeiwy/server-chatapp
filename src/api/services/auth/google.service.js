@@ -1,5 +1,5 @@
 // import dotenv from 'dotenv';
-// dotenv.config({ path: './src/config/.env' });
+// dotenv.config({ path: './src/.env' });
 
 import { Strategy } from 'passport-google-oauth2';
 

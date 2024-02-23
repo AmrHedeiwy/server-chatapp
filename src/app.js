@@ -40,6 +40,7 @@ const io = new Server(server, {
 });
 
 app.set('trust proxy', 1);
+app.enable('trust proxy');
 
 app.use(cors(corsOptions));
 

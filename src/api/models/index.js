@@ -30,7 +30,7 @@ const sequelize = new Sequelize(
  */
 async function loadModels() {
   // Read the files in the `models` directory
-  const files = await fs.promises.readdir(process.cwd() + '\\src\\api\\models');
+  const files = await fs.promises.readdir(process.cwd() + '/src/api/models');
   /**
    * Filter and return the files based on the following conditions:
    * - Does not start with `.`.

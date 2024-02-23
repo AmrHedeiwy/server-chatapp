@@ -61,7 +61,7 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: true,
     httpOnly: true,
-    domain: process.env.SERVER_URL
+    domain: process.env.CLIENT_URL
   }
 });
 

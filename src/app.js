@@ -41,6 +41,8 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 
+app.set('trust proxy', 1);
+
 // Parse request body as JSON and URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -62,8 +64,8 @@ const sessionMiddleware = session({
     secure: false,
     httpOnly: true,
     path: '/',
-    domain: '.up.railway.app',
-    sameSite: 'lax'
+    domain: process.env.CLIENT_URL,
+    sameSite: 'none'
   }
 });
 

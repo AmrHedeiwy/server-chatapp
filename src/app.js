@@ -64,7 +64,7 @@ const sessionMiddleware = session({
     secure: false,
     httpOnly: true,
     path: '/',
-    domain: process.env.CLIENT_URL,
+    domain: process.env.SERVER_URL,
     sameSite: 'none'
   }
 });

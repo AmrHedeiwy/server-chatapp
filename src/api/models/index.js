@@ -1,16 +1,16 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './src/.env' });
 
-import fs from 'fs';
-import path from 'path';
-import process from 'process';
 import { Sequelize } from 'sequelize';
+import fs from 'fs';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 let db = {};
 
-const filePath = import.meta.url;
-const basename = path.basename(filePath);
-const dirName = path.dirname(filePath);
+const __filename = fileURLToPath(import.meta.url);
+const __basename = path.basename(__filename);
+const __dirname = path.dirname(__filename);
 
 // Create a Sequelize instance based on the configuration file
 const sequelize = new Sequelize(
@@ -30,7 +30,7 @@ const sequelize = new Sequelize(
  */
 async function loadModels() {
   // Read the files in the `models` directory
-  const files = await fs.promises.readdir(process.cwd() + '/src/api/models');
+  const files = fs.readdirSync(__dirname);
   /**
    * Filter and return the files based on the following conditions:
    * - Does not start with `.`.
@@ -40,10 +40,10 @@ async function loadModels() {
    * @default index.js
    */
   for (const file of files) {
-    if (file !== basename) {
+    if (file !== __basename) {
       // Import the model and pass the sequelize instance and sequelize data types.
       const filePath = path.join(
-        dirName,
+        process.platform === 'win32' ? 'file://' + __dirname : dirname,
         file,
         `${file.toLowerCase()}.model.js`
       );

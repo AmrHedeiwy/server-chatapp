@@ -3,6 +3,7 @@ import fs from 'fs';
 
 export const uploader = async (path = null, data = null, folder) => {
   try {
+    console.log(path);
     const result = await cloudinary.uploader.upload(path ?? data, {
       folder
     });

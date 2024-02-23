@@ -59,11 +59,11 @@ const sessionMiddleware = session({
   store: redisStore,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
-    secure: true,
+    secure: false,
     httpOnly: true,
     path: '/',
     domain: '.up.railway.app',
-    sameSite: 'none'
+    sameSite: 'lax'
   }
 });
 

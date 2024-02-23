@@ -78,6 +78,18 @@ const edit = [
   }
 ];
 
+/**
+ * Route handler for changing a user's avatar.
+ *
+ * This route expects a post request wi
+ *
+ * This route performs the following steps:
+ * 1. Generates fake user account data using the generateFakeAccount function from the registerService.
+ * 2. Attempts to log in the newly created user using their user ID.
+ * 3. If the login is successful, the response is sent with the appropriate status code, message, and redirect URL.
+ * 4. If an error occurs during the process, it is passed to the error handling middleware.
+ */
+
 const changeAvatar = [
   isAuthExpress,
   upload.single('file'),

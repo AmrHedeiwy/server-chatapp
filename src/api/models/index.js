@@ -19,27 +19,18 @@ const sequelize = new Sequelize(
   process.env.POSTGRES_PASSWORD,
   {
     host: process.env.POSTGRES_HOST,
-    dialect: 'postgres',
-    port: process.env.POSTGRES_PORT
+    port: process.env.POSTGRES_PORT,
+    dialect: 'postgres'
   },
   { logging: console.log }
 );
 
-/**
- * Load all the models from the `models` directory.
- */
 async function loadModels() {
-  // Read the files in the `models` directory
+  // Read all the files(models) in the models directory
   const files = fs.readdirSync(__dirname);
-  /**
-   * Filter and return the files based on the following conditions:
-   * - Does not start with `.`.
-   * @example .gitignore
-   * - Is not the basename, which is the name of the file we
-   * are importing from.
-   * @default index.js
-   */
+
   for (const file of files) {
+    // Exclude the index.js file (current file)
     if (file !== __basename) {
       // Import the model and pass the sequelize instance and sequelize data types.
       const filePath = path.join(
@@ -54,7 +45,7 @@ async function loadModels() {
       // load the model to db object
       db[modelName] = model;
 
-      // Load the hooks for this model
+      // Load the hooks for this model (if it exists)
       const hooksPath = path.join(
         path.dirname(filePath),
         `${modelName.toLowerCase()}.hooks.js`
@@ -65,6 +56,7 @@ async function loadModels() {
         .then((hooksModule) => {
           hooksModule.default(model, sequelize);
         })
+        // The errors generated from not finding the hook file can be ignored, since not all models will have a hooks file for it
         .catch((err) => {
           // console.error(err);
           return;
@@ -75,7 +67,7 @@ async function loadModels() {
 
 await loadModels();
 
-// // Call the `associate` function for each model, if it exists
+// Call the `associate` function for each model, if it exists
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {
     db[modelName].associate(db);

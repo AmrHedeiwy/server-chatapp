@@ -28,52 +28,52 @@ const sequelize = new Sequelize(
 /**
  * Load all the models from the `models` directory.
  */
-// async function loadModels() {
-//   // Read the files in the `models` directory
-//   const files = await fs.promises.readdir(dirName.replace('file:///', ''));
-//   /**
-//    * Filter and return the files based on the following conditions:
-//    * - Does not start with `.`.
-//    * @example .gitignore
-//    * - Is not the basename, which is the name of the file we
-//    * are importing from.
-//    * @default index.js
-//    */
-//   for (const file of files) {
-//     if (file !== basename) {
-//       // Import the model and pass the sequelize instance and sequelize data types.
-//       const filePath = path.join(
-//         dirName,
-//         file,
-//         `${file.toLowerCase()}.model.js`
-//       );
-//       const modelModule = await import(filePath);
-//       const model = modelModule.default(sequelize, Sequelize.DataTypes);
+async function loadModels() {
+  // Read the files in the `models` directory
+  const files = await fs.promises.readdir(dirName);
+  /**
+   * Filter and return the files based on the following conditions:
+   * - Does not start with `.`.
+   * @example .gitignore
+   * - Is not the basename, which is the name of the file we
+   * are importing from.
+   * @default index.js
+   */
+  for (const file of files) {
+    if (file !== basename) {
+      // Import the model and pass the sequelize instance and sequelize data types.
+      const filePath = path.join(
+        dirName,
+        file,
+        `${file.toLowerCase()}.model.js`
+      );
+      const modelModule = await import(filePath);
+      const model = modelModule.default(sequelize, Sequelize.DataTypes);
 
-//       const modelName = model.name;
-//       // load the model to db object
-//       db[modelName] = model;
+      const modelName = model.name;
+      // load the model to db object
+      db[modelName] = model;
 
-//       // Load the hooks for this model
-//       const hooksPath = path.join(
-//         path.dirname(filePath),
-//         `${modelName.toLowerCase()}.hooks.js`
-//       );
+      // Load the hooks for this model
+      const hooksPath = path.join(
+        path.dirname(filePath),
+        `${modelName.toLowerCase()}.hooks.js`
+      );
 
-//       // Import the hooks and pass the model instance
-//       await import(hooksPath)
-//         .then((hooksModule) => {
-//           hooksModule.default(model, sequelize);
-//         })
-//         .catch((err) => {
-//           // console.error(err);
-//           return;
-//         });
-//     }
-//   }
-// }
+      // Import the hooks and pass the model instance
+      await import(hooksPath)
+        .then((hooksModule) => {
+          hooksModule.default(model, sequelize);
+        })
+        .catch((err) => {
+          // console.error(err);
+          return;
+        });
+    }
+  }
+}
 
-// await loadModels();
+await loadModels();
 
 // // Call the `associate` function for each model, if it exists
 Object.keys(db).forEach((modelName) => {

@@ -31,7 +31,7 @@ const sequelize = new Sequelize(
 async function loadModels() {
   // Read the files in the `models` directory
   const files = await fs.promises.readdir(
-    dirName.replace('file:///', 'app/', './')
+    dirName.replace('file:///', '').replace('app/', './')
   );
   /**
    * Filter and return the files based on the following conditions:

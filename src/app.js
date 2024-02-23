@@ -27,7 +27,8 @@ const corsOptions = {
   origin: '*',
   credentials: true,
   allowedHeaders:
-    'X-Requested-With, X-HTTP-Method-Override, Access-Control-Allow-Origin, Content-Type, Accept'
+    'X-Requested-With, X-HTTP-Method-Override, Access-Control-Allow-Origin, Content-Type, Accept',
+  methods: ['POST', 'GET', 'PATCH', 'PUT', 'DELETE']
 };
 
 // Create instances of the Express app, HTTP server, and Socket.io

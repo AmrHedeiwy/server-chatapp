@@ -60,7 +60,8 @@ const sessionMiddleware = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: true,
-    httpOnly: true
+    httpOnly: true,
+    domain: process.env.SERVER_URL
   }
 });
 

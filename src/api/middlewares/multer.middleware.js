@@ -6,7 +6,7 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
   destination: function (req, file, cb) {
-    const absPath = path.resolve(process.cwd(), 'temp');
+    const absPath = path.resolve(process.cwd(), 'temp').replace('app/', './');
     console.log(absPath);
     cb(null, absPath); // Save files to the 'temp' directory
   }

@@ -1,13 +1,11 @@
 import multer from 'multer';
-import path from 'path';
 
 const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     cb(null, file.originalname);
   },
   destination: function (req, file, cb) {
-    console.log(process.env.NODE_ENV, process.env);
-    cb(null, file); // Save files to the 'temp' directory
+    cb(null, 'tmp'); // Save files to the 'temp' directory
   }
 });
 
@@ -19,8 +17,6 @@ const upload = multer({
     if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
       return new Error('MULTER_FILETPYE_ERROR', file);
     }
-
-    console.log(file);
 
     // No need to pass the file since the file path is appended to the request body
     cb(null, file);

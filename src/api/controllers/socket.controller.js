@@ -83,7 +83,7 @@ export const initializeUser = async (socket, next) => {
       delete user.conversations;
       delete user.contacts;
       // Store the fetched user data in the cache for future use
-      await redisClient.setEx(
+      await redisClient.setex(
         `user_data:${socket.id}`,
         60 * 60 * 24, // Cache expiration time set to 1 day
         JSON.stringify({ ...user })

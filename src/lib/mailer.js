@@ -41,7 +41,7 @@ const mailer = async (currentUserId, username, email, type) => {
     const verificationCode = crypto.randomInt(100000, 999999).toString();
 
     // Store the verification code in Redis with a TTL of 15 minutes (code expires in 15 minutes)
-    await redisClient.setEx(
+    await redisClient.setex(
       `email_verification:${currentUserId}`,
       60 * 15,
       JSON.stringify({ verificationCode })

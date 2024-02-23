@@ -74,7 +74,7 @@ export const deserializeUser = async ({ userId }, done) => {
       delete user.contacts;
 
       // Store the fetched user data in the cache for future use
-      await redisClient.setEx(
+      await redisClient.setex(
         `user_data:${userId}`,
         60 * 60 * 24, // Cache expiration time set to 1 day
         JSON.stringify({ ...user })

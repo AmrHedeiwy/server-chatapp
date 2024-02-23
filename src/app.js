@@ -62,7 +62,7 @@ const sessionMiddleware = session({
     secure: true,
     httpOnly: true,
     path: '/',
-    domain: '.up.railway.app',
+    domain: 'up.railway.app',
     sameSite: 'none'
   }
 });

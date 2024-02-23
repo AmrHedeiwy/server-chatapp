@@ -1,5 +1,5 @@
 // Importing the Sequelize instnace
-import db from './api/models/index.js';
+// import db from './api/models/index.js';
 
 import { server } from './app.js';
 
@@ -12,7 +12,7 @@ const port = process.env.PORT || 5000;
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync({ logging: false });
+  // await db.sequelize.sync({ logging: false });
 
   /*db.User.bulkCreate([
     {

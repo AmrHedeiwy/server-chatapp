@@ -8,7 +8,7 @@ export const uploader = async (path = null, data = null, folder) => {
     });
 
     if (!!path)
-      fs.unlink(path, (err) => {
+      fs.unlink(`./${path}`, (err) => {
         if (err) {
           console.error('Error deleting file:', err, 'path:', path);
           return;

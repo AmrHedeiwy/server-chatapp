@@ -43,7 +43,7 @@ async function loadModels() {
     if (file !== __basename) {
       // Import the model and pass the sequelize instance and sequelize data types.
       const filePath = path.join(
-        process.platform === 'win32' ? 'file://' + __dirname : dirname,
+        process.platform === 'win32' ? 'file://' + __dirname : __dirname,
         file,
         `${file.toLowerCase()}.model.js`
       );

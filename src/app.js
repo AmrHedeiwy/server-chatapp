@@ -24,7 +24,7 @@ import {
 } from './api/controllers/socket.controller.js';
 
 const corsOptions = {
-  origin: '*',
+  origin: process.env.CLIENT_URL,
   credentials: true,
   allowedHeaders:
     'X-Requested-With, X-HTTP-Method-Override, Access-Control-Allow-Origin, Content-Type, Accept',

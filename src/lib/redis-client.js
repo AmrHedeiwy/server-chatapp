@@ -1,9 +1,15 @@
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL
+// Initialize the Redis client.
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  username: process.env.REDIS_USER,
+  password: process.env.REDIS_PASSWORD,
+  port: process.env.REDIS_PORT
 });
 
-await redisClient.connect().catch(console.error);
+// Attempt to connect to the Redis client.
+
+const redisClient = redis;
 
 export { redisClient };

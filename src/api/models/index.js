@@ -1,11 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: './src/.env' });
+
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { Sequelize } from 'sequelize';
 
-const env = process.env.NODE_ENV || 'development';
-import fileData from '../../config/db-config.json' assert { type: 'json' };
-let config = fileData[env];
 let db = {};
 
 const filePath = import.meta.url;
@@ -14,10 +14,10 @@ const dirName = path.dirname(filePath);
 
 // Create a Sequelize instance based on the configuration file
 const sequelize = new Sequelize(
-  config.database,
-  config.username,
-  config.password,
-  config.options,
+  process.env.POSTGRES_DATABASE,
+  process.env.POSTGRES_USER,
+  process.env.POSTGRES_PASSWORD,
+  { host: process.env.POSTGRES_HOST, dialect: 'postgres' },
   { logging: console.log }
 );
 

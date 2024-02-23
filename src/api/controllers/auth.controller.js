@@ -79,7 +79,6 @@ export const fakeAccount = [
     await req.login(user.userId, (err) => {
       if (err) return next(err);
 
-      console.log(req.session);
       res.status(status).json({ message, redirect });
     });
   }

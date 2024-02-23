@@ -39,9 +39,9 @@ const io = new Server(server, {
   maxHttpBufferSize: 5 * 1024 * 1024
 });
 
-app.use(cors(corsOptions));
-
 app.set('trust proxy', 1);
+
+app.use(cors(corsOptions));
 
 // Parse request body as JSON and URL-encoded
 app.use(express.json());
@@ -62,10 +62,7 @@ const sessionMiddleware = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: false,
-    httpOnly: true,
-    path: '/',
-    domain: process.env.SERVER_URL,
-    sameSite: 'none'
+    httpOnly: true
   }
 });
 

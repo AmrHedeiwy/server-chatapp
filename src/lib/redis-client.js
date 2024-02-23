@@ -1,6 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './src/.env' });
 import Redis from 'ioredis';
+import { createClient } from 'redis';
 
 // Initialize the Redis client.
 const redis = new Redis({
@@ -13,5 +12,7 @@ const redis = new Redis({
 // Attempt to connect to the Redis client.
 
 const redisClient = redis;
+
+// await redisClient.connect().catch(console.error);
 
 export { redisClient };

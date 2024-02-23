@@ -18,6 +18,8 @@ const upload = multer({
       return new Error('MULTER_FILETPYE_ERROR', file);
     }
 
+    console.log(file);
+
     // No need to pass the file since the file path is appended to the request body
     cb(null, file);
   },

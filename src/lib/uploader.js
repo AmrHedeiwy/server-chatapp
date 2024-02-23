@@ -3,9 +3,10 @@ import fs from 'fs';
 
 export const uploader = async (path = null, data = null, folder) => {
   try {
-    // const result = await cloudinary.uploader.upload(`./${path}` ?? data, {
-    //   folder
-    // });
+    console.log(path);
+    const result = await cloudinary.uploader.upload(`./${path}` ?? data, {
+      folder
+    });
 
     if (!!path)
       fs.unlink(`./${path}`, (err) => {
@@ -17,6 +18,6 @@ export const uploader = async (path = null, data = null, folder) => {
 
     return { secure_url: result.secure_url };
   } catch (err) {
-    return { error: err };
+    return { error: new Error('UPLOADER_ERROR', err) };
   }
 };

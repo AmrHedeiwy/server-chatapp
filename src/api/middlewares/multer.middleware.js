@@ -1,8 +1,13 @@
 import multer from 'multer';
+import path from 'path';
 
 const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     cb(null, file.originalname);
+  },
+  destination: function (req, file, cb) {
+    const absPath = path.join(__dirname, 'temp');
+    cb(null, absPath); // Save files to the 'temp' directory
   }
 });
 

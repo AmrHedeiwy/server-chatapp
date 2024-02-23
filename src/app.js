@@ -62,7 +62,7 @@ const sessionMiddleware = session({
   store: redisStore,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
-    secure: process.env === 'production' ? true : false,
+    secure: process.env.NODE_ENV === 'production' ? true : false,
     httpOnly: true,
     domain: '.railway.app'
   }

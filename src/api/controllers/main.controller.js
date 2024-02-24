@@ -51,6 +51,10 @@ const current = [
 /**
  * Route handler for editing the user's profile.
  *
+ * This route expects a PUT request with the following OPTIONAL parameters in the request body:
+ * - username: The new username of the user to update.
+ * - email: The user's new email to update (Needs to verify their new email).
+ *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
  * 2. Handles file upload for the 'image' field using the upload middleware.
@@ -81,7 +85,8 @@ const edit = [
 /**
  * Route handler for changing a user's avatar.
  *
- * This route expects a post request wi
+ * This route expects a POST request with the following parameters in the request file:
+ * - path: The location of the image file saved in the tmp folder by the multer middleware.
  *
  * This route performs the following steps:
  * 1. Generates fake user account data using the generateFakeAccount function from the registerService.
@@ -89,7 +94,6 @@ const edit = [
  * 3. If the login is successful, the response is sent with the appropriate status code, message, and redirect URL.
  * 4. If an error occurs during the process, it is passed to the error handling middleware.
  */
-
 const changeAvatar = [
   isAuthExpress,
   upload.single('file'),
@@ -138,14 +142,18 @@ const changePassword = [
       );
     if (error) return next(error);
 
-    req.logOut(() => {});
+    await req.logout((err) => {
+      if (err) return next(err);
 
-    res.status(status).json({ message, redirect });
+      res.status(status).json({ message, redirect });
+    });
   }
 ];
 
 /**
  * Route handler for deleting the user's account.
+ *
+ * This route expects a DELETE request.
  *
  * This route performs the following steps:
  * 1. Authenticates the user using the isAuthExpress middleware.
@@ -159,15 +167,17 @@ const deleteUser = [
     const { userId, conversationIds, singleConversationUserIds } = req.user;
     const { status, error } = await userService.deleteUser(
       userId,
-      conversationIds,
-      singleConversationUserIds
+      conversationIds, // Used to notify all conversations about the deleted user.
+      singleConversationUserIds // Used to notify to all one-to-one conversations about the user's online status
     );
 
     if (error) return next(error);
 
-    req.logOut(() => {});
+    await req.logout((err) => {
+      if (err) return next(err);
 
-    res.status(status).json();
+      res.status(status).json();
+    });
   }
 ];
 

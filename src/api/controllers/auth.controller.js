@@ -52,7 +52,7 @@ export const register = [
 
     if (error) return next(error);
 
-    req.login(user.userId, (err) => {
+    await req.login(user.userId, (err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });

@@ -21,11 +21,10 @@ export const deserializeUser = async ({ userId }, done) => {
         await db.User.findByPk(userId, {
           attributes: [
             'userId',
+            'googleId',
             'email',
             'username',
             'image',
-            'googleId',
-            'facebookId',
             'isVerified',
             'createdAt'
           ],

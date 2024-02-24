@@ -30,11 +30,6 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
         unique: true
       },
-      facebookId: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        unique: true
-      },
       username: {
         type: DataTypes.STRING,
         allowNull: false
@@ -49,7 +44,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true
       },
       image: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true
       },
       isVerified: {

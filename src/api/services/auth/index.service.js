@@ -1,16 +1,12 @@
 import passport from 'passport';
 
 import localStrategyService from './local.service.js';
-import facebookStrategyService from './facebook.service.js';
 import googleStrategyService from './google.service.js';
 
 import { serializeUser, deserializeUser } from './serialization.service.js';
 
 // Local strategy
 passport.use('local', localStrategyService);
-
-// Facebook strategy
-passport.use('facebook', facebookStrategyService);
 
 // Google strategy
 passport.use('google', googleStrategyService);

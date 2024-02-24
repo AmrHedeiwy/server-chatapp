@@ -31,11 +31,10 @@ export const initializeUser = async (socket, next) => {
         await db.User.findByPk(socket.id, {
           attributes: [
             'userId',
+            'googleId',
             'email',
             'username',
             'image',
-            'googleId',
-            'facebookId',
             'createdAt',
             'isVerified'
           ],

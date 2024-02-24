@@ -24,19 +24,49 @@ Features:
 
 ### Cloning the repository
 
-[copy](https://gist.github.com/ddd204f23a3d8e65b3d279d9eb55c7d5.git)
+`git clone https://github.com/AmrHedeiwy/server-chatapp`
 
 ### Install packages
 
-<script src="https://gist.github.com/AmrHedeiwy/6913ea98b8b6085bbcd7a4cefbcb7574.js"></script>
+`npm i`
 
 ### Setup .env file
 
-<script src="https://gist.github.com/AmrHedeiwy/64e936c4861e43e3f4b7398075c13895.js"></script>
+```
+SENDGRID_API_KEY
+
+CLIENT_URL
+SERVER_URL
+
+SESSION_SECRET
+
+JWT_SECRET
+
+FACEBOOK_APP_ID
+FACEBOOK_APP_SECRET'
+
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+
+CLOUDINARY_CLOAD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+
+REDIS_PASSWORD
+REDIS_PORT
+REDIS_USER
+REDIS_HOST
+
+POSTGRES_USER
+POSTGRES_HOST
+POSTGRES_PASSWOR
+POSTGRES_DATABASE
+POSTGRES_PORT
+```
 
 ### Start the app
 
-<script src="https://gist.github.com/AmrHedeiwy/5e54b8012532fbfec9b3a40559cb7f69.js"></script>
+`npm run dev`
 
 ### Available commands
 

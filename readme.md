@@ -2,6 +2,8 @@
 
 This is a repository for Backend Chat App: Express.js, Socket.io, Redis, Sequelize, PostgreSQL
 
+[Frontend repository](https://github.com/AmrHedeiwy/client-chatapp)
+
 Features:
 
 - Real-time messaging using Socket.io

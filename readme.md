@@ -1,12 +1,14 @@
 ## Getting Started
 
-This is a repository for Backend Chat App: Express.js, Socket.io, IoRedis, Sequelize, PostgreSQL
+This is a repository for Backend Chat App: Express.js, Socket.io, Redis, Sequelize, PostgreSQL
 
 Features:
 
 - Real-time messaging using Socket.io
 - Send attachments as messages using Cloudinary
 - Delete & Edit messages in real time for all users
+- Data caching using Io Redis
+- Rate limiting by IP, User ID and Email
 - 1:1 conversation and group conversations
 - Member management (Remove, Role change member / Admin)
 - Infinite loading for messages in batches of 20

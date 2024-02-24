@@ -12,9 +12,9 @@ const port = process.env.PORT || 5000;
  * @function main
  */
 (async function main() {
-  await db.sequelize.sync({ logging: false, force: true });
+  await db.sequelize.sync({ logging: false });
 
-  // test users
+  // users test
   /*db.User.bulkCreate([
     {
       username: 'Emna',

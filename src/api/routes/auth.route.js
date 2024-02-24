@@ -58,18 +58,6 @@ router.get('/session', authController.getSession);
 router.get('/sign-out', authController.signOut);
 
 /**
- * Initiates the Facebook sign-up process.
- * Endpoint: GET /auth/facebook
- */
-router.get('/facebook', authController.facebookSignUp);
-
-/**
- * Handles the callback after Facebook sign-up.
- * Endpoint: GET /auth/facebook/callback
- */
-router.get('/facebook/callback', authController.facebookSignUpCallback);
-
-/**
  * Initiates the Google sign-up process.
  * Endpoint: GET /auth/google
  */

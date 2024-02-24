@@ -314,48 +314,6 @@ export const signOut = [
 ];
 
 /**
- * Initiates the Facebook sign-up process by authenticating the user using the 'facebook' strategy with specified scopes.
- *
- * Scopes: 'email'
- */
-export const facebookSignUp = passport.authenticate('facebook', {
-  scope: ['email']
-});
-
-/**
- * Route handler for facebook sign-up callback function that authenticates the user using the 'facebook' strategy.
- *
- * This route performs the following steps:
- * 1. If an error occurs during the authentication process, it will be passed to the error handling middleware.
- * 2. If the authentication is successful, we call the login() method provided by PassportJS and redirect the
- * user to the success page.
- */
-export const facebookSignUpCallback = async (req, res, next) => {
-  passport.authenticate(
-    'facebook',
-    { passReqToCallback: true },
-    async (err, userId, info) => {
-      if (err) return next(new SocialMediaAuthenticationError(err, 'facebook'));
-
-      /**
-       * Add a passport object to the session containing the user's userId.
-       * @example passport { user: userId: '<UUID>' }
-       */
-      req.login(userId, (err) => {
-        if (err) return next(err);
-
-        // Marking the user as Callback Provider to view the success page.
-        req.session.isCallbackProvider = true;
-
-        res
-          .status(info.status)
-          .redirect(process.env.CLIENT_URL + info.redirect);
-      });
-    }
-  )(req, res, next);
-};
-
-/**
  * Initiates the Google sign-up process by authenticating the user using the 'google' strategy with specified scopes.
  *
  * Scopes: 'email', 'profile'
@@ -406,8 +364,6 @@ export default {
   resetPassword,
   signIn,
   signOut,
-  facebookSignUp,
-  facebookSignUpCallback,
   googleSignUp,
   googleSignUpCallback,
   getSession

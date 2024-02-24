@@ -12,7 +12,6 @@
       "sign_in": {
         "verify-email-redirect": "/email/verify",
         "local-redirect": "/conversations",
-        "facebook-redirect": "/cb/facebook/success",
         "google-redirect": "/cb/google/success"
       },
       "mailer": {

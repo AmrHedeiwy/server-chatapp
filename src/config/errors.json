@@ -14,7 +14,6 @@
     },
     "sign_in": {
       "local_message": "Invalid email or password.",
-      "facebook_redirect": "/cb/facebook/error",
       "google_redirect": "/cb/google/error"
     },
     "mailer": {

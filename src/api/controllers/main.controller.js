@@ -142,7 +142,7 @@ const changePassword = [
       );
     if (error) return next(error);
 
-    await req.logout((err) => {
+    await req.logOut((err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });
@@ -173,7 +173,8 @@ const deleteUser = [
 
     if (error) return next(error);
 
-    await req.logout((err) => {
+    console.log('call');
+    await req.logOut((err) => {
       if (err) return next(err);
 
       res.status(status).json();

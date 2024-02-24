@@ -52,7 +52,7 @@ export const register = [
 
     if (error) return next(error);
 
-    await req.login(user.userId, (err) => {
+    await req.logIn(user.userId, (err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });
@@ -76,7 +76,7 @@ export const fakeAccount = [
 
     if (error) return next(error);
 
-    await req.login(user.userId, (err) => {
+    await req.logIn(user.userId, (err) => {
       if (err) return next(err);
 
       res.status(status).json({ message, redirect });
@@ -149,7 +149,6 @@ export const verifyEmail = [
  */
 export const getSession = async (req, res, next) => {
   const { isCallbackProvider, isPasswordReset } = req.session;
-  console.log(req.session);
 
   const response = {
     isCallbackProvider: isCallbackProvider ?? false,

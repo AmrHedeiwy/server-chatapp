@@ -173,12 +173,11 @@ const deleteUser = [
 
     if (error) return next(error);
 
-    console.log('call');
     await req.logOut((err) => {
       if (err) return next(err);
-
-      res.status(status).json();
     });
+
+    res.status(status).json();
   }
 ];
 

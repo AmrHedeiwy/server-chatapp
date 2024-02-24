@@ -24,7 +24,7 @@ Features:
 
 ### Cloning the repository
 
-<script src="https://gist.github.com/AmrHedeiwy/ddd204f23a3d8e65b3d279d9eb55c7d5.js"></script>
+[copy](https://gist.github.com/ddd204f23a3d8e65b3d279d9eb55c7d5.git)
 
 ### Install packages
 

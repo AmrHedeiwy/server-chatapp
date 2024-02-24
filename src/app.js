@@ -64,7 +64,7 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24, // Equals 1 day
     secure: process.env.NODE_ENV === 'production' ? true : false,
     httpOnly: true,
-    domain: '.railway.app'
+    domain: process.env.NODE_ENV === 'production' ? '.railway.app' : 'localhost'
   }
 });
 

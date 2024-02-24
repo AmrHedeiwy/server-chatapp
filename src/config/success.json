@@ -7,7 +7,7 @@
       },
       "fake_account": {
         "message": "Your fake account has been created.",
-        "redirect": "/"
+        "redirect": "/conversations"
       },
       "sign_in": {
         "verify-email-redirect": "/email/verify",

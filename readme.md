@@ -6,8 +6,8 @@ Features:
 
 - Real-time messaging using Socket.io
 - Send attachments as messages using Cloudinary
-- Delete & Edit messages in real time for all users
-- Data caching using Io Redis
+- Messages can be edited, deleted, and viewed for status in real time for all users
+- Data caching using IO-Redis
 - Rate limiting by IP, User ID and Email
 - 1:1 conversation and group conversations
 - Member management (Remove, Role change member / Admin)
@@ -26,11 +26,15 @@ Features:
 
 ### Cloning the repository
 
-`git clone https://github.com/AmrHedeiwy/server-chatapp`
+```
+git clone https://github.com/AmrHedeiwy/server-chatapp
+```
 
 ### Install packages
 
-`npm i`
+```
+npm i
+```
 
 ### Setup .env file
 
@@ -68,7 +72,9 @@ POSTGRES_PORT
 
 ### Start the app
 
-`npm run dev`
+```
+npm run dev
+```
 
 ### Available commands
 

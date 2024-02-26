@@ -73,7 +73,13 @@ export const addConversation = async (
       // Add additional details to the conversation object
       conversation.dataValues.otherMember = otherMember;
 
-      return { status: successJson.status.ok, conversation, exists };
+      return {
+        status: successJson.status.ok,
+        conversation,
+        exists:
+          !!conversation.lastMessageAt ||
+          conversation.createdBy === currentUserId
+      };
     }
 
     // If no conversation exists, create a new conversation

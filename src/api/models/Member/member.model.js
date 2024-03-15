@@ -48,7 +48,7 @@ export default (sequelize, DataTypes) => {
         {
           unique: true,
           fields: ['userId', 'conversationId'],
-          name: 'idx_usersconversations_userId_conversationId',
+          name: 'idx_member_userId_conversationId',
           type: 'BTREE'
         }
       ]

@@ -75,28 +75,37 @@ export default (sequelize, DataTypes) => {
   Message.associate = (models) => {
     Message.hasMany(models.MessageStatus, {
       foreignKey: 'messageId',
-      as: 'seenStatus'
+      as: 'seenStatus',
+      onDelete: 'CASCADE'
     });
     Message.hasMany(models.MessageStatus, {
       foreignKey: 'messageId',
-      as: 'deliverStatus'
+      as: 'deliverStatus',
+      onDelete: 'CASCADE'
     });
 
     Message.hasMany(models.MessageStatus, {
       foreignKey: 'messageId',
-      as: 'status'
+      as: 'status',
+      onDelete: 'CASCADE'
     });
 
-    Message.belongsTo(models.User, { foreignKey: 'senderId', as: 'sender' });
+    Message.belongsTo(models.User, {
+      foreignKey: 'senderId',
+      as: 'sender',
+      onDelete: 'CASCADE'
+    });
 
     Message.belongsToMany(models.User, {
       through: models.MessageStatus,
-      foreignKey: 'messageId'
+      foreignKey: 'messageId',
+      onDelete: 'CASCADE'
     });
 
     Message.belongsTo(models.Conversation, {
       foreignKey: 'conversationId',
-      as: 'conversation'
+      as: 'conversation',
+      onDelete: 'CASCADE'
     });
   };
 

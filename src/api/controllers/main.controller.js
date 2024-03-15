@@ -167,8 +167,7 @@ const deleteUser = [
     const { userId, conversationIds, singleConversationUserIds } = req.user;
     const { status, error } = await userService.deleteUser(
       userId,
-      conversationIds, // Used to notify all conversations about the deleted user.
-      singleConversationUserIds // Used to notify to all one-to-one conversations about the user's online status
+      conversationIds // Used to notify all conversations about the deleted user
     );
 
     if (error) return next(error);

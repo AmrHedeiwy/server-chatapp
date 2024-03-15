@@ -49,6 +49,8 @@ export const deserializeUser = async ({ userId }, done) => {
         })
       )?.dataValues;
 
+      if (!user) return done(null, false);
+
       const singleConversationUserIds = new Set(); // The userIds of the other user in a one-to-one conversation
       const conversationIds = new Set(); // All conversation ids include conversations that do not have messages and are not intiated by the current user.
       const contactIds = new Set();

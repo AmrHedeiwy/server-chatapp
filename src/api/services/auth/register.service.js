@@ -69,7 +69,7 @@ export const generateFakeAccount = async () => {
     // Create a fake user account
     const user = await db.User.create({
       username: faker.internet.userName(),
-      email: faker.internet.email(),
+      email: faker.internet.email({ provider: 'faker.com' }),
       password: faker.internet.password(),
       isVerified: true
     });

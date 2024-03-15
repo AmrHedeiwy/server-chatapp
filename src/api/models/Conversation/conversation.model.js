@@ -82,12 +82,14 @@ export default (sequelize, DataTypes) => {
       as: 'users',
       through: models.Member,
       foreignKey: 'conversationId',
-      otherKey: 'userId'
+      otherKey: 'userId',
+      onDelete: 'CASCADE'
     });
 
     Conversation.hasMany(models.Member, {
       foreignKey: 'conversationId',
-      as: 'members'
+      as: 'members',
+      onDelete: 'CASCADE'
     });
 
     Conversation.hasMany(models.Message, {

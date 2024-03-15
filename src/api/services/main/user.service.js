@@ -120,11 +120,7 @@ export const setChangePassword = async (
  * @returns {Promise<{ status: string }> | { error: Error }} A promise resolving to a success status or an error object.
  * @throws {DeleteAccountError} If an error occurs during the account deletion process.
  */
-export const deleteUser = async (
-  currentUserId,
-  conversationIds,
-  singleConversationUserIds
-) => {
+export const deleteUser = async (currentUserId, conversationIds) => {
   try {
     // Find the user in the database
     const user = await db.User.findByPk(currentUserId, {
@@ -134,6 +130,9 @@ export const deleteUser = async (
         attributes: ['userId']
       }
     });
+
+    if (!user)
+      throw new Error('User not found when deleting user ID: ', currentUserId);
 
     // Clear sensitive user data and mark as deleted
     user.googleId = null;
@@ -150,8 +149,8 @@ export const deleteUser = async (
     // Clear cached user data
     await redisClient.del(`user_data:${currentUserId}`);
 
-    // Notify connected users about the user's online status change
-    io.to(singleConversationUserIds).emit('connected', false, [currentUserId]);
+    // Disconnect the socket to notify connected users about the user's online status change
+    io.sockets.adapter.delSockets({ rooms: [currentUserId] });
 
     // Notify users who have this user as a contact about the account deletion
     const otherContactIds = user.otherContacts.map(

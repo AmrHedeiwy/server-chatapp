@@ -63,10 +63,12 @@ export default (sequelize, DataTypes) => {
   MessageStatus.associate = (models) => {
     MessageStatus.belongsTo(models.User, {
       foreignKey: 'userId',
-      as: 'profile'
+      as: 'profile',
+      onDelete: 'CASCADE'
     });
     MessageStatus.belongsTo(models.Message, {
-      foreignKey: 'messageId'
+      foreignKey: 'messageId',
+      onDelete: 'CASCADE'
     });
   };
   return MessageStatus;

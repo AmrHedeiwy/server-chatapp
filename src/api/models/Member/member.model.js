@@ -58,11 +58,13 @@ export default (sequelize, DataTypes) => {
   Member.associate = (models) => {
     Member.belongsTo(models.User, {
       foreignKey: 'userId',
-      as: 'profile'
+      as: 'profile',
+      onDelete: 'CASCADE'
     });
     Member.belongsTo(models.Conversation, {
       foreignKey: 'conversationId',
-      as: 'conversation'
+      as: 'conversation',
+      onDelete: 'CASCADE'
     });
   };
   return Member;

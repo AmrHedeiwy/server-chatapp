@@ -110,11 +110,13 @@ export default (sequelize, DataTypes) => {
       as: 'conversations',
       through: models.Member,
       foreignKey: 'userId',
-      otherKey: 'conversationId'
+      otherKey: 'conversationId',
+      onDelete: 'CASCADE'
     });
 
     User.hasMany(models.Member, {
-      foreignKey: 'userId'
+      foreignKey: 'userId',
+      onDelete: 'CASCADE'
     });
 
     User.hasMany(models.Message, {
@@ -123,23 +125,29 @@ export default (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     });
 
-    User.hasMany(models.MessageStatus, { foreignKey: 'userId' });
+    User.hasMany(models.MessageStatus, {
+      foreignKey: 'userId',
+      onDelete: 'CASCADE'
+    });
 
     User.belongsToMany(models.Message, {
       through: models.MessageStatus,
-      foreignKey: 'userId'
+      foreignKey: 'userId',
+      onDelete: 'CASCADE'
     });
 
     User.belongsToMany(User, {
       as: 'contacts',
       through: models.Contact,
-      foreignKey: 'addedById'
+      foreignKey: 'addedById',
+      onDelete: 'CASCADE'
     });
 
     User.belongsToMany(User, {
       as: 'otherContacts', // the users that have this user added as a contact
       through: models.Contact,
-      foreignKey: 'contactId' // this user
+      foreignKey: 'contactId', // this user
+      onDelete: 'CASCADE'
     });
   };
   return User;

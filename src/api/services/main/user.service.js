@@ -150,7 +150,14 @@ export const deleteUser = async (currentUserId, conversationIds) => {
     await redisClient.del(`user_data:${currentUserId}`);
 
     // Disconnect the socket to notify connected users about the user's online status change
-    io.sockets.adapter.delSockets({ rooms: [currentUserId] });
+    const socket = io.sockets.sockets.get(currentUserId);
+    if (socket) {
+      // Leave all rooms
+      socket.leaveAll();
+
+      // Disconnect the socket
+      socket.disconnect();
+    }
 
     // Notify users who have this user as a contact about the account deletion
     const otherContactIds = user.otherContacts.map(

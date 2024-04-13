@@ -59,21 +59,25 @@ export const initializeUser = async (socket, next) => {
         })
       )?.dataValues;
 
+      if (!user) return;
+
       const singleConversationUserIds = new Set();
       const conversationIds = new Set();
       const contactIds = new Set();
 
-      user.conversations.forEach((conversation) => {
-        if (!conversation.dataValues.isGroup) {
-          singleConversationUserIds.add(conversation.members[0].userId);
-        }
+      if (!!user.conversation)
+        user.conversations.forEach((conversation) => {
+          if (!conversation.dataValues.isGroup) {
+            singleConversationUserIds.add(conversation.members[0].userId);
+          }
 
-        conversationIds.add(conversation.dataValues.conversationId);
-      });
+          conversationIds.add(conversation.dataValues.conversationId);
+        });
 
-      user.contacts.forEach((contact) =>
-        contactIds.add(contact.dataValues.userId)
-      );
+      if (!!user.contacts)
+        user.contacts.forEach((contact) =>
+          contactIds.add(contact.dataValues.userId)
+        );
 
       user.singleConversationUserIds = Array.from(singleConversationUserIds);
       user.conversationIds = Array.from(conversationIds);
